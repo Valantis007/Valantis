@@ -120,7 +120,9 @@
               </div>
               <div class="field"><label for="ch_description">Περιγραφή (θα τη δει ο πελάτης)</label><input id="ch_description" name="description" maxlength="300" required></div>
               <div class="field"><label for="ch_evidence">Τεκμηρίωση (υποχρεωτική για ζημιά: πρακτικό, φωτογραφίες, εκτίμηση/τιμολόγιο συνεργείου)</label><textarea id="ch_evidence" name="evidence" rows="2"></textarea></div>
-              <div class="field"><label for="ch_consent">Μόνο για ζημιά: ο πελάτης συναίνεσε ήδη γραπτώς; (αλλιώς θα του σταλεί για αποδοχή)</label><input id="ch_consent" name="customer_consent" placeholder="π.χ. υπέγραψε πρακτικό ζημιάς Νο 12 στην επιστροφή"></div>
+              <div class="field"><label for="ch_consent">Μόνο για ζημιά / άλλη χρέωση: ο πελάτης συναίνεσε ήδη γραπτώς; (αλλιώς θα του σταλεί για αποδοχή)</label><input id="ch_consent" name="customer_consent" placeholder="π.χ. υπέγραψε πρακτικό ζημιάς Νο 12 στην επιστροφή"></div>
+              <div class="field"><label for="ch_beyond">Μόνο για ζημιά πέραν της απαλλαγής (<%= format.money(b.excess_cents ?? b.deposit_cents) %>): εξαίρεση των όρων §7</label><input id="ch_beyond" name="beyond_excess" maxlength="300" placeholder="π.χ. ζημιά ελαστικών από οδήγηση εκτός ασφάλτου (§7)"></div>
+              <p class="small muted">Καθαρισμός έως <%= format.money(config.tariff.cleaningFeeCents) %>, διαχείριση προστίμου έως <%= format.money(config.tariff.finesAdminFeeCents) %> ανά πρόστιμο (τιμοκατάλογος όρων). Ο πελάτης λαμβάνει email για κάθε χρέωση.</p>
               <button class="btn" type="submit">Καταχώρηση</button>
             </form>
           </details>
@@ -172,7 +174,7 @@
           <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
           <h2 class="h4">Παράδοση στον πελάτη</h2>
           <div class="field"><label for="pickup_km">Χιλιόμετρα</label><input id="pickup_km" name="pickup_km" type="number" min="0" required></div>
-          <% if (b.payment_status !== 'paid') { %>
+          <% if (b.payment_status === 'unpaid') { %>
             <label class="check"><input type="checkbox" name="collected_payment" value="1"><span>Εισπράχθηκε η πληρωμή <%= format.money(b.total_cents) %></span></label>
           <% } %>
           <% if (b.deposit_cents > 0 && !held) { %>
@@ -204,6 +206,7 @@
                 <div class="field"><label for="pos_last4">Τελ. 4 ψηφία</label><input id="pos_last4" name="last4" inputmode="numeric" maxlength="4"></div>
               </div>
               <div class="field"><label for="pos_code">Αριθμός έγκρισης (approval code)</label><input id="pos_code" name="approval_code" required></div>
+              <div class="field"><label for="pos_over">Μόνο αν το ποσό είναι μεγαλύτερο από <%= format.money(b.deposit_cents) %>: συναίνεση του πελάτη</label><input id="pos_over" name="over_note" maxlength="300" placeholder="π.χ. υπέγραψε για εγγύηση 1.500 € (νέος οδηγός)"></div>
               <label class="check"><input type="checkbox" name="credit_confirmed" value="1" required><span>Η κάρτα είναι πιστωτική και ο πελάτης υπέγραψε την απόδειξη προέγκρισης.</span></label>
               <button class="btn" type="submit">Καταχώρηση προέγκρισης</button>
             </form>
@@ -214,6 +217,7 @@
             <form method="post" action="/admin/bookings/<%= b.id %>/deposit/link" class="stack">
               <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
               <div class="field"><label for="link_amount">Ποσό (€)</label><input id="link_amount" name="amount" inputmode="decimal" value="<%= format.centsToInput(b.deposit_cents) %>" required></div>
+              <div class="field"><label for="link_over">Μόνο αν το ποσό είναι μεγαλύτερο από <%= format.money(b.deposit_cents) %>: συναίνεση του πελάτη</label><input id="link_over" name="over_note" maxlength="300"></div>
               <label class="check"><input type="checkbox" name="send_email" value="1"><span>Αποστολή του συνδέσμου στον πελάτη με email</span></label>
               <button class="btn" type="submit"><%= activeDeposit && activeDeposit.status === 'awaiting' ? 'Νέος σύνδεσμος (ακυρώνει τον προηγούμενο)' : 'Δημιουργία συνδέσμου' %></button>
             </form>

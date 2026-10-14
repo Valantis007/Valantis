@@ -64,6 +64,8 @@ async function createCheckout({ kind, booking, amountCents, description, expires
     locale: 'el',
   };
   if (hold) {
+    // Μόνο κάρτα (όχι PayPal, Klarna, Link κ.λπ.): η εγγύηση είναι δέσμευση σε πιστωτική κάρτα.
+    params.payment_method_types = ['card'];
     params.payment_intent_data.capture_method = 'manual';
     params.payment_method_options = {
       card: {
@@ -110,8 +112,31 @@ async function expireCheckout(id) {
   }
 }
 
-async function refund(paymentRef, amountCents, idempotencyKey) {
-  await client.refunds.create({ payment_intent: paymentRef, amount: amountCents }, { idempotencyKey });
+function refundStatus(status) {
+  if (status === 'succeeded') return 'succeeded';
+  if (status === 'failed' || status === 'canceled') return 'failed';
+  return status === 'requires_action' ? 'requires_action' : 'pending';
+}
+
+/**
+ * Επιστροφή χρημάτων. Το `key` αναγνωρίζει την επιστροφή σε όλες τις προσπάθειες: αν υπάρχει
+ * ήδη επιστροφή με αυτό (π.χ. χάθηκε η απάντηση), δεν γίνεται δεύτερη. Το Stripe κρατά και τα
+ * σφάλματα 5xx ανά idempotency key για 24 ώρες, γι' αυτό κάθε προσπάθεια έχει δικό της.
+ */
+async function refund(paymentRef, amountCents, key, { attempt = 0 } = {}) {
+  const existing = await client.refunds.list({ payment_intent: paymentRef, limit: 100 });
+  const found = (existing.data || []).find((r) => r.metadata && r.metadata.refund_key === key && refundStatus(r.status) !== 'failed');
+  if (found) return { id: found.id, status: refundStatus(found.status) };
+  const created = await client.refunds.create(
+    { payment_intent: paymentRef, amount: amountCents, metadata: { refund_key: key } },
+    { idempotencyKey: `${key}-a${attempt}` },
+  );
+  return { id: created.id, status: refundStatus(created.status) };
+}
+
+async function getRefund(id) {
+  const r = await client.refunds.retrieve(id);
+  return { status: refundStatus(r.status), reason: r.failure_reason || null };
 }
 
 async function getHold(holdRef) {
@@ -155,6 +180,7 @@ module.exports = {
   getCheckout,
   expireCheckout,
   refund,
+  getRefund,
   getHold,
   captureHold,
   releaseHold,

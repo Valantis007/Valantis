@@ -1,13 +1,14 @@
 <%- include('_top') %>
 <p>Αγαπητέ/ή <%= booking.first_name %>,</p>
-<p>Κατά τον έλεγχο του αυτοκινήτου μετά την επιστροφή (κράτηση <strong><%= booking.reference %></strong>) καταγράψαμε την παρακάτω ζημιά:</p>
+<p>Κατά τον έλεγχο του αυτοκινήτου μετά την επιστροφή (κράτηση <strong><%= booking.reference %></strong>) καταγράψαμε την παρακάτω χρέωση, που χρειάζεται την αποδοχή σας:</p>
 <table role="presentation" width="100%" cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-size:14px;margin:12px 0;">
   <tr><td style="color:#6b7280;width:35%;">Περιγραφή</td><td><%= charge.description %></td></tr>
   <tr><td style="color:#6b7280;">Τεκμηρίωση</td><td><%= charge.evidence %></td></tr>
   <tr><td style="color:#6b7280;">Ποσό</td><td><strong><%= format.money(charge.amount_cents) %></strong></td></tr>
   <tr><td style="color:#6b7280;">Απάντηση έως</td><td><%= format.date(charge.respond_by) %></td></tr>
 </table>
-<p><strong>Καμία χρέωση για ζημιά δεν γίνεται χωρίς τη συναίνεσή σας.</strong> Μπορείτε να την αποδεχθείτε ή να την αμφισβητήσετε (με τα σχόλιά σας) από τη σελίδα της κράτησης:
+<% if (charge.category === 'damage' && booking.excess_cents !== null && booking.excess_cents !== undefined) { %><p>Η ευθύνη σας για ζημιές περιορίζεται στην απαλλαγή της κράτησής σας (<%= format.money(booking.excess_cents) %>), εκτός από τις εξαιρέσεις των όρων ενοικίασης (§7).</p><% } %>
+<p><strong>Καμία τέτοια χρέωση δεν γίνεται χωρίς τη συναίνεσή σας.</strong> Μπορείτε να την αποδεχθείτε ή να την αμφισβητήσετε (με τα σχόλιά σας) από τη σελίδα της κράτησης:
 <a href="<%= baseUrl %>/manage"><%= baseUrl %>/manage</a> (κωδικός <strong><%= booking.reference %></strong> και το email σας).</p>
 <p>Μπορείτε επίσης να ζητήσετε τα στοιχεία τεκμηρίωσης (φωτογραφίες, εκτίμηση/τιμολόγιο επισκευής) ή να επικοινωνήσετε μαζί μας.</p>
 <p><%= company.name %></p>

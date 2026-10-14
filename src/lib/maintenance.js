@@ -24,6 +24,7 @@ async function runMaintenance(db, { store = null, force = false } = {}) {
       lastSlow = Date.now();
       await payments.reconcileOpenCheckouts(db);
       await payments.processPendingRefunds(db);
+      await payments.checkProviderRefunds(db);
       await deposits.syncHeldDeposits(db);
       await deposits.autoRelease(db);
     }

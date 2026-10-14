@@ -256,13 +256,13 @@ module.exports = function adminRoutes(db, { uploadDir }) {
     else if (time.minutesBetween(time.nowLocal(), b.pickup_at) > EARLY_PICKUP_HOURS * 60) {
       req.flash('error', `Η παραλαβή είναι προγραμματισμένη για ${format.dateTime(b.pickup_at)}. Παράδοση νωρίτερα από ${EARLY_PICKUP_HOURS} ώρες δεν επιτρέπεται — αλλάξτε πρώτα την κράτηση.`);
     } else if (km === null || km < 0) req.flash('error', 'Συμπληρώστε τα χιλιόμετρα κατά την παράδοση.');
-    else if (b.payment_status !== 'paid' && !checkbox(req.body.collected_payment)) {
+    else if (b.payment_status === 'unpaid' && !checkbox(req.body.collected_payment)) {
       req.flash('error', 'Η κράτηση δεν έχει εξοφληθεί. Εισπράξτε το ποσό και επιλέξτε «Εισπράχθηκε η πληρωμή».');
     } else if (!depositOk) {
       req.flash('error', 'Δεν έχει δεσμευτεί εγγύηση. Δεσμεύστε την (POS ή online) ή επιλέξτε ρητά «Παράδοση χωρίς εγγύηση».');
     } else {
       transaction(db, () => {
-        if (b.payment_status !== 'paid') {
+        if (b.payment_status === 'unpaid') {
           db.prepare(`UPDATE bookings SET payment_status = 'paid', paid_cents = total_cents WHERE id = ?`).run(b.id);
           bookings.logEvent(db, b.id, actor(req), 'paid', `Είσπραξη κατά την παραλαβή ${format.money(b.total_cents)}`);
         }
@@ -283,6 +283,8 @@ module.exports = function adminRoutes(db, { uploadDir }) {
       transaction(db, () => {
         db.prepare(`UPDATE bookings SET status = 'completed', return_km = ? WHERE id = ?`).run(km, b.id);
         bookings.logEvent(db, b.id, actor(req), 'returned', `Χιλιόμετρα: ${km} (${km - (b.pickup_km || 0)} km διανύθηκαν)`);
+        // Ένας σύνδεσμος εγγύησης που δεν χρησιμοποιήθηκε δεν έχει πλέον νόημα.
+        db.prepare(`UPDATE deposits SET status = 'cancelled', settled_at = datetime('now') WHERE booking_id = ? AND status = 'awaiting'`).run(b.id);
       });
       req.flash(
         'success',
@@ -398,6 +400,7 @@ module.exports = function adminRoutes(db, { uploadDir }) {
         approvalCode: str(req.body.approval_code, 40),
         last4: str(req.body.last4, 4),
         creditConfirmed: checkbox(req.body.credit_confirmed),
+        overNote: str(req.body.over_note, 300),
         actor: actor(req),
       });
       return 'Η εγγύηση μέσω POS καταχωρήθηκε.';
@@ -410,6 +413,7 @@ module.exports = function adminRoutes(db, { uploadDir }) {
     handle(async (req) => {
       const link = await deposits.createOnlineLink(db, req.booking.id, {
         amountCents: moneyField(req.body.amount),
+        overNote: str(req.body.over_note, 300),
         actor: actor(req),
         sendEmail: checkbox(req.body.send_email),
       });
@@ -466,11 +470,12 @@ module.exports = function adminRoutes(db, { uploadDir }) {
         amountCents: moneyField(req.body.amount),
         evidence: str(req.body.evidence, 2000),
         customerConsent: str(req.body.customer_consent, 300),
+        beyondExcess: str(req.body.beyond_excess, 300),
         actor: actor(req),
       });
       return charge.status === 'proposed'
-        ? `Η χρέωση ζημιάς στάλθηκε στον πελάτη για αποδοχή (προθεσμία ${format.date(charge.respond_by)}).`
-        : 'Η χρέωση καταχωρήθηκε.';
+        ? `Η χρέωση στάλθηκε στον πελάτη για αποδοχή (προθεσμία ${format.date(charge.respond_by)}).`
+        : 'Η χρέωση καταχωρήθηκε και ο πελάτης ενημερώθηκε με email.';
     }),
   );
 

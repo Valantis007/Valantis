@@ -9,7 +9,7 @@
   <% if (booking.discount_cents) { %><tr><td style="color:#6b7280;">Έκπτωση διάρκειας</td><td>-<%= format.money(booking.discount_cents) %></td></tr><% } %>
   <% if (booking.fees_cents) { %><tr><td style="color:#6b7280;">Χρεώσεις σημείου / επιστροφής σε άλλο σημείο</td><td><%= format.money(booking.fees_cents) %></td></tr><% } %>
   <tr><td style="color:#6b7280;">Σύνολο</td><td><strong><%= format.money(booking.total_cents) %></strong> (περιλαμβάνεται ΦΠΑ <%= config.rules.vatPercent %>%: <%= format.money(booking.vat_cents) %>)</td></tr>
-  <tr><td style="color:#6b7280;"><%= booking.payment_status === 'paid' ? 'Πληρώθηκαν' : 'Πληρωτέο' %></td><td><%= format.money(booking.payment_status === 'paid' ? booking.paid_cents : booking.total_cents) %><%= booking.payment_status === 'paid' ? '' : ' κατά την παραλαβή' %></td></tr>
+  <% if (booking.paid_cents > 0) { %><tr><td style="color:#6b7280;">Πληρώθηκαν</td><td><%= format.money(booking.paid_cents) %><% if (booking.refunded_cents) { %> (επιστράφηκαν <%= format.money(booking.refunded_cents) %>)<% } %></td></tr><% } else { %><tr><td style="color:#6b7280;">Πληρωτέο</td><td><%= format.money(booking.total_cents) %> κατά την παραλαβή</td></tr><% } %>
   <tr><td style="color:#6b7280;">Απαλλαγή ζημιών</td><td><%= format.money(booking.excess_cents ?? booking.deposit_cents) %></td></tr>
   <tr><td style="color:#6b7280;">Πληρωμή</td><td><%= format.label('paymentMethod', booking.payment_method) %> — <%= format.label('paymentStatus', booking.payment_status) %></td></tr>
   <tr><td style="color:#6b7280;">Εγγύηση</td><td><%= format.money(booking.deposit_cents) %>: δέσμευση (όχι χρέωση) σε πιστωτική κάρτα στο όνομα του κύριου οδηγού — όχι χρεωστική/προπληρωμένη. Αποδεσμεύεται μετά την επιστροφή.</td></tr>

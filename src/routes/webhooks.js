@@ -16,9 +16,10 @@ const deposits = require('../lib/deposits');
 module.exports = function webhookRoutes(db) {
   const router = express.Router();
 
-  router.post('/:provider', express.raw({ type: '*/*', limit: '1mb' }), async (req, res) => {
+  const knownProvider = (req, res, next) => (providers.get(req.params.provider) ? next() : res.status(404).end());
+
+  router.post('/:provider', knownProvider, express.raw({ type: '*/*', limit: '1mb' }), async (req, res) => {
     const provider = providers.get(req.params.provider);
-    if (!provider) return res.status(404).end();
 
     let info;
     try {

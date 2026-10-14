@@ -211,9 +211,13 @@ module.exports = function bookingRoutes(db) {
         refund: refundable - check.feeCents > 0,
       });
       let msg = 'Η κράτηση ακυρώθηκε.';
-      if (result.refundedCents || result.refundPendingCents) {
-        msg += ` Η επιστροφή ${format.money(result.refundedCents + result.refundPendingCents)} στην κάρτα σας ξεκίνησε και θα εμφανιστεί σε 5-10 εργάσιμες ημέρες.`;
-      } else if (result.refundDueCents) {
+      if (result.refundedCents) {
+        msg += ` Η επιστροφή ${format.money(result.refundedCents)} στην κάρτα σας ξεκίνησε και θα εμφανιστεί σε 5-10 εργάσιμες ημέρες.`;
+      }
+      if (result.refundPendingCents) {
+        msg += ` Η επιστροφή ${format.money(result.refundPendingCents)} καθυστερεί λόγω προσωρινού προβλήματος του παρόχου πληρωμών· θα ολοκληρωθεί αυτόματα μόλις αποκατασταθεί.`;
+      }
+      if (result.refundDueCents) {
         msg += ` Θα επικοινωνήσουμε μαζί σας για την επιστροφή ${format.money(result.refundDueCents)}.`;
       }
       req.flash('success', msg);
@@ -284,6 +288,11 @@ module.exports = function bookingRoutes(db) {
     }
     if (decision === 'accept' && req.body.confirm !== '1') {
       req.flash('error', 'Επιβεβαιώστε ότι αποδέχεστε τη χρέωση.');
+      return res.redirect(303, `/booking/${req.booking.reference}`);
+    }
+    // Η απάντηση καταγράφεται ως συναίνεση του πελάτη: δεν τη δίνει το γραφείο για λογαριασμό του.
+    if (req.user && req.user.role === 'admin' && req.user.id !== req.booking.user_id) {
+      req.flash('error', 'Η αποδοχή από το γραφείο καταχωρείται από τη διαχείριση, με την περιγραφή της γραπτής συναίνεσης του πελάτη.');
       return res.redirect(303, `/booking/${req.booking.reference}`);
     }
     try {

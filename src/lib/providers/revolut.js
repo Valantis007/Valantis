@@ -62,7 +62,8 @@ async function createCheckout({ kind, booking, amountCents, description, expires
     description: `${description} (${booking.reference})`,
     merchant_order_data: { reference: `${booking.reference}-${kind}${refId === null ? '' : `-${refId}`}` },
     metadata: { booking_reference: booking.reference, kind, ref_id: refId === null ? '' : String(refId) },
-    redirect_url: successUrl,
+    // Το Revolut δεν δέχεται localhost/IP: χωρίς https ο πελάτης μένει στη σελίδα του Revolut.
+    ...(successUrl.startsWith('https://') ? { redirect_url: successUrl } : {}),
     industry_data: carRentalData(booking, kind === 'rental' ? 'partially_refundable' : 'refundable'),
   };
   if (hold) {
@@ -110,8 +111,21 @@ async function expireCheckout(id) {
   }
 }
 
-async function refund(paymentRef, amountCents, idempotencyKey) {
-  await client.refundOrder(paymentRef, { amount: amountCents, currency: 'EUR', idempotencyKey });
+function refundStatus(state) {
+  if (state === 'completed') return 'succeeded';
+  if (['failed', 'cancelled', 'declined'].includes(state)) return 'failed';
+  return 'pending';
+}
+
+// Το Revolut δέχεται Idempotency-Key στις επιστροφές: το ίδιο κλειδί δεν κάνει ποτέ δεύτερη.
+async function refund(paymentRef, amountCents, key) {
+  const r = await client.refundOrder(paymentRef, { amount: amountCents, currency: 'EUR', idempotencyKey: key });
+  return { id: (r && r.id) || null, status: refundStatus(r && r.state) };
+}
+
+async function getRefund(id) {
+  const order = await client.getOrder(id);
+  return { status: refundStatus(order.state), reason: null };
 }
 
 async function getHold(holdRef) {
@@ -166,6 +180,7 @@ module.exports = {
   getCheckout,
   expireCheckout,
   refund,
+  getRefund,
   getHold,
   captureHold,
   releaseHold,

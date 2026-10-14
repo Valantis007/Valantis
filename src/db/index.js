@@ -346,6 +346,20 @@ const MIGRATIONS = [
   ALTER TABLE messages ADD COLUMN kind TEXT NOT NULL DEFAULT 'question';
   ALTER TABLE messages ADD COLUMN booking_reference TEXT;
   `,
+
+  // 5: Ασφαλής εκκαθάριση εγγυήσεων και παρακολούθηση επιστροφών χρημάτων στον πάροχο.
+  `
+  -- Μία εκκαθάριση/αποδέσμευση τη φορά, και το ποσό που ζητήθηκε από τον πάροχο
+  -- (για να εφαρμοστεί σωστά ακόμη κι αν χαθεί η απάντηση του παρόχου).
+  ALTER TABLE deposits ADD COLUMN settling_at TEXT;
+  ALTER TABLE deposits ADD COLUMN capture_requested_cents INTEGER;
+  ALTER TABLE deposits ADD COLUMN synced_at TEXT;
+  ALTER TABLE deposits ADD COLUMN release_failed_at TEXT;
+  -- Η επιστροφή στον πάροχο μπορεί να αποτύχει αργότερα (π.χ. κλειστή κάρτα).
+  ALTER TABLE refunds ADD COLUMN provider_refund_id TEXT;
+  ALTER TABLE refunds ADD COLUMN provider_status TEXT;
+  ALTER TABLE refunds ADD COLUMN checked_at TEXT;
+  `,
 ];
 
 function migrate(db) {

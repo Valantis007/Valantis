@@ -68,6 +68,7 @@ function createClient({ secretKey, sandbox = false, fetchImpl = globalThis.fetch
       ),
     createWebhook: (url, events) => request('POST', '/api/webhooks', { url, events }),
     listWebhooks: () => request('GET', '/api/webhooks'),
+    getWebhook: (id) => request('GET', `/api/webhooks/${encodeURIComponent(id)}`),
   };
 }
 

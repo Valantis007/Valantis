@@ -225,19 +225,28 @@ module.exports = function publicRoutes(db) {
       deposit,
       booking,
       window: deposits.holdWindow(booking),
+      token: res.req.params.token,
       error,
       info,
     });
   }
 
+  // Σύνδεσμος εγγύησης που έκλεισε πριν από 30+ ημέρες δεν εμφανίζει πλέον στοιχεία.
+  function findLiveDeposit(token) {
+    const found = deposits.findByToken(db, token);
+    if (!found || !found.deposit.settled_at) return found;
+    const old = db.prepare(`SELECT ? < datetime('now', '-30 days') AS old`).get(found.deposit.settled_at).old;
+    return old ? null : found;
+  }
+
   router.get('/deposit/:token', (req, res, next) => {
-    const found = deposits.findByToken(db, req.params.token);
+    const found = findLiveDeposit(req.params.token);
     if (!found) return next();
     renderDeposit(res, found);
   });
 
   router.post('/deposit/:token', limits.booking, async (req, res, next) => {
-    const found = deposits.findByToken(db, req.params.token);
+    const found = findLiveDeposit(req.params.token);
     if (!found) return next();
     if (!checkbox(req.body.consent)) {
       return renderDeposit(res, found, { status: 422, error: 'Για να συνεχίσετε πρέπει να συμφωνήσετε με τη δέσμευση του ποσού.' });
@@ -246,7 +255,7 @@ module.exports = function publicRoutes(db) {
       return res.redirect(303, await deposits.startOnlineHold(db, req.params.token));
     } catch (err) {
       if (!(err instanceof bookings.BookingError)) console.error('[deposit]', err);
-      return renderDeposit(res, deposits.findByToken(db, req.params.token), {
+      return renderDeposit(res, findLiveDeposit(req.params.token), {
         status: 409,
         error: err instanceof bookings.BookingError ? err.message : 'Δεν ήταν δυνατή η σύνδεση με την υπηρεσία πληρωμών. Δοκιμάστε ξανά.',
       });
@@ -254,7 +263,7 @@ module.exports = function publicRoutes(db) {
   });
 
   router.get('/deposit/:token/return', async (req, res, next) => {
-    const found = deposits.findByToken(db, req.params.token);
+    const found = findLiveDeposit(req.params.token);
     if (!found) return next();
     const rows = db
       .prepare(`SELECT id FROM checkouts WHERE kind = 'deposit' AND ref_id = ? AND status = 'open' ORDER BY created_at DESC`)
@@ -266,7 +275,7 @@ module.exports = function publicRoutes(db) {
         console.error('[deposit return]', err.message);
       }
     }
-    const fresh = deposits.findByToken(db, req.params.token);
+    const fresh = findLiveDeposit(req.params.token);
     renderDeposit(res, fresh, {
       info: fresh.deposit.status === 'awaiting' && !fresh.deposit.failure_reason ? 'Η έγκριση επεξεργάζεται. Ανανεώστε τη σελίδα σε λίγο.' : null,
     });

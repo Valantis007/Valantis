@@ -20,7 +20,7 @@
       <% if (!window.open) { %>
         <div class="alert alert-info">Η έγκριση της εγγύησης γίνεται από <strong><%= format.dateTime(window.opensAt) %></strong> έως την επιστροφή του αυτοκινήτου.</div>
       <% } else { %>
-        <form method="post" action="" class="stack">
+        <form method="post" action="/deposit/<%= token %>" class="stack">
           <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
           <label class="check"><input type="checkbox" name="consent" value="1" required>
             <span>Συμφωνώ να δεσμευτεί το ποσό <strong><%= format.money(deposit.amount_cents) %></strong> στην πιστωτική μου κάρτα ως εγγύηση για την κράτηση <%= booking.reference %>, σύμφωνα με τους <a href="/terms" target="_blank">όρους ενοικίασης</a>.</span></label>

@@ -204,7 +204,7 @@ async function startChargesPayment(db, bookingId) {
   const outstanding = deposits.outstandingCharges(db, booking.id);
   const amount = outstanding.reduce((sum, c) => sum + (c.amount_cents - c.paid_cents), 0);
   if (amount <= 0) throw new BookingError('Δεν υπάρχουν χρεώσεις προς πληρωμή.');
-  if (deposits.activeDeposit(db, booking.id)) {
+  if (deposits.heldDeposit(db, booking.id)) {
     throw new BookingError('Οι χρεώσεις θα αφαιρεθούν πρώτα από την εγγύηση. Θα σας ενημερώσουμε για τυχόν υπόλοιπο.');
   }
   for (const row of openCheckouts(db, booking.id, 'charge')) {
@@ -273,19 +273,33 @@ function createRefund(db, { bookingId, checkoutId = null, provider, paymentRef, 
   return Number(res.lastInsertRowid);
 }
 
+// Επιστροφές που εκτελούνται αυτή τη στιγμή (μία διεργασία Node: αρκεί κλείδωμα στη μνήμη).
+const refundsInFlight = new Set();
+
 // Επιστρέφει true αν η επιστροφή ολοκληρώθηκε.
 async function processRefund(db, refundId) {
+  if (refundsInFlight.has(refundId)) return false;
+  refundsInFlight.add(refundId);
+  try {
+    return await runRefund(db, refundId);
+  } finally {
+    refundsInFlight.delete(refundId);
+  }
+}
+
+async function runRefund(db, refundId) {
   const row = db.prepare('SELECT * FROM refunds WHERE id = ?').get(refundId);
   if (!row || row.status !== 'pending') return row ? row.status === 'done' : false;
   const provider = providers.get(row.provider);
+  let result;
   try {
     if (!provider) throw new Error(`Ο πάροχος ${row.provider} δεν είναι ρυθμισμένος`);
-    // Το ίδιο κλειδί σε κάθε προσπάθεια: ο πάροχος δεν θα κάνει ποτέ διπλή επιστροφή.
-    await provider.refund(row.payment_ref, row.amount_cents, `refund-${row.id}`);
+    // Ο πάροχος ελέγχει πρώτα αν η επιστροφή `refund-<id>` έγινε ήδη: ποτέ διπλή επιστροφή.
+    result = await provider.refund(row.payment_ref, row.amount_cents, `refund-${row.id}`, { attempt: row.attempts });
   } catch (err) {
     const attempts = row.attempts + 1;
     const failed = attempts >= MAX_REFUND_ATTEMPTS;
-    db.prepare('UPDATE refunds SET attempts = ?, last_error = ?, status = ? WHERE id = ?').run(
+    db.prepare(`UPDATE refunds SET attempts = ?, last_error = ?, status = ? WHERE id = ? AND status = 'pending'`).run(
       attempts,
       String(err.message).slice(0, 500),
       failed ? 'failed' : 'pending',
@@ -304,7 +318,13 @@ async function processRefund(db, refundId) {
     return false;
   }
   transaction(db, () => {
-    const res = db.prepare(`UPDATE refunds SET status = 'done', attempts = attempts + 1, done_at = datetime('now') WHERE id = ? AND status = 'pending'`).run(row.id);
+    const res = db
+      .prepare(
+        `UPDATE refunds SET status = 'done', attempts = attempts + 1, done_at = datetime('now'),
+           provider_refund_id = ?, provider_status = ?, checked_at = datetime('now')
+         WHERE id = ? AND status = 'pending'`,
+      )
+      .run((result && result.id) || null, (result && result.status) || null, row.id);
     if (!res.changes) return;
     if (row.applies_to_booking) {
       const b = bookings.getById(db, row.booking_id);
@@ -319,6 +339,62 @@ async function processRefund(db, refundId) {
     bookings.logEvent(db, row.booking_id, row.actor, 'refunded', `Επιστροφή ${format.money(row.amount_cents)}${row.reason ? ` - ${row.reason}` : ''}`);
   });
   return true;
+}
+
+/**
+ * Μια επιστροφή που ο πάροχος δέχτηκε μπορεί να αποτύχει αργότερα (π.χ. η κάρτα έκλεισε).
+ * Ελέγχουμε όσες είναι ακόμη σε εξέλιξη· αν αποτύχουν, αναιρούμε την καταγραφή και
+ * ειδοποιούμε το γραφείο να επιστρέψει τα χρήματα με άλλο τρόπο.
+ */
+async function checkProviderRefunds(db, { limit = 20 } = {}) {
+  const rows = db
+    .prepare(
+      `SELECT * FROM refunds WHERE status = 'done' AND provider_refund_id IS NOT NULL
+         AND provider_status IN ('pending', 'requires_action') AND done_at > datetime('now', '-30 days')
+       ORDER BY COALESCE(checked_at, '') LIMIT ?`,
+    )
+    .all(limit);
+  for (const row of rows) {
+    const provider = providers.get(row.provider);
+    if (!provider || !provider.getRefund) continue;
+    let state;
+    try {
+      state = await provider.getRefund(row.provider_refund_id, row.payment_ref);
+    } catch (err) {
+      console.error(`[refund ${row.id}] Έλεγχος:`, err.message);
+      continue;
+    }
+    const failed = transaction(db, () => {
+      if (state.status !== 'failed') {
+        db.prepare(`UPDATE refunds SET provider_status = ?, checked_at = datetime('now') WHERE id = ?`).run(state.status, row.id);
+        return false;
+      }
+      const res = db
+        .prepare(`UPDATE refunds SET status = 'failed', provider_status = 'failed', last_error = ?, checked_at = datetime('now') WHERE id = ? AND status = 'done'`)
+        .run(state.reason || 'Ο πάροχος δεν μπόρεσε να ολοκληρώσει την επιστροφή', row.id);
+      if (!res.changes) return false;
+      if (row.applies_to_booking) {
+        const b = bookings.getById(db, row.booking_id);
+        const refunded = Math.max(b.refunded_cents - row.amount_cents, 0);
+        db.prepare('UPDATE bookings SET refunded_cents = ?, payment_status = ? WHERE id = ?').run(
+          refunded,
+          recalcPaymentStatus(b.paid_cents, refunded),
+          b.id,
+        );
+      }
+      bookings.logEvent(db, row.booking_id, 'system', 'refund_failed', `Η επιστροφή ${format.money(row.amount_cents)} απέτυχε στον πάροχο`);
+      return true;
+    });
+    if (failed) {
+      const b = bookings.getById(db, row.booking_id);
+      mailer.sendInBackground({
+        to: config.mail.adminNotify,
+        subject: `ΑΠΟΤΥΧΙΑ επιστροφής χρημάτων - κράτηση ${b.reference}`,
+        template: 'admin-refund-problem',
+        data: { booking: b, refund: { ...row, last_error: state.reason || 'Απέτυχε στον πάροχο μετά την αποδοχή' }, failed: true },
+      });
+    }
+  }
 }
 
 async function processPendingRefunds(db, { limit = 20 } = {}) {
@@ -481,6 +557,7 @@ module.exports = {
   recordManualRefund,
   processRefund,
   processPendingRefunds,
+  checkProviderRefunds,
   pendingRefundCents,
   reconcileOpenCheckouts,
   expireOpenCheckouts,

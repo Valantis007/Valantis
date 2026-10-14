@@ -33,8 +33,9 @@ function createApp({ db, uploadDir = config.uploadDir }) {
       contentSecurityPolicy: {
         directives: {
           'img-src': ["'self'", 'data:'],
-          // Μετά την υποβολή της κράτησης γίνεται ανακατεύθυνση στη σελίδα πληρωμής του Stripe.
-          'form-action': ["'self'", 'https://checkout.stripe.com'],
+          // Μετά την υποβολή της φόρμας γίνεται ανακατεύθυνση στη σελίδα πληρωμής του παρόχου
+          // (οι browsers εφαρμόζουν το form-action και στις ανακατευθύνσεις).
+          'form-action': ["'self'", 'https://checkout.stripe.com', 'https://checkout.revolut.com', 'https://sandbox-checkout.revolut.com'],
           'upgrade-insecure-requests': config.isProduction ? [] : null,
         },
       },

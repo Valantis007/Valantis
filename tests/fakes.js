@@ -101,10 +101,16 @@ function fakeStripe({ webhookSecret = 'whsec_test' } = {}) {
         const pi = intents[params.payment_intent];
         const already = refunds.filter((r) => r.payment_intent === params.payment_intent).reduce((s, r) => s + r.amount, 0);
         if (!pi || already + params.amount > pi.amount_received) throw new Error('Refund exceeds charge');
-        const refund = { id: `re_${++n}`, ...params };
+        const refund = { id: `re_${++n}`, status: 'succeeded', ...params };
         refunds.push(refund);
         if (opts.idempotencyKey) refundKeys.set(opts.idempotencyKey, refund);
         return refund;
+      },
+      async list({ payment_intent: pi }) {
+        return { data: refunds.filter((r) => r.payment_intent === pi) };
+      },
+      async retrieve(id) {
+        return refunds.find((r) => r.id === id);
       },
     },
     webhooks: {

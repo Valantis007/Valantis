@@ -10,7 +10,7 @@ const PROVIDERS = { stripe, revolut };
 
 // Πάροχος με το όνομα αυτό, αν είναι ρυθμισμένος.
 function get(name) {
-  const p = PROVIDERS[name];
+  const p = Object.hasOwn(PROVIDERS, name) ? PROVIDERS[name] : null;
   return p && p.enabled() ? p : null;
 }
 

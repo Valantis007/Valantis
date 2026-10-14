@@ -14,9 +14,11 @@ async function main() {
   if (!config.baseUrl.startsWith('https://')) throw new Error('Το BASE_URL πρέπει να είναι δημόσια διεύθυνση https://');
   const client = createClient({ secretKey: config.revolut.secretKey, sandbox: config.revolut.sandbox });
   const url = `${config.baseUrl}/webhooks/revolut`;
-  const existing = (await client.listWebhooks()) || [];
+  const list = await client.listWebhooks();
+  const existing = Array.isArray(list) ? list : (list && list.webhooks) || [];
   const found = existing.find((w) => w.url === url);
-  const hook = found || (await client.createWebhook(url, EVENTS));
+  // Η λίστα δεν περιέχει το signing secret: το διαβάζουμε από το συγκεκριμένο webhook.
+  const hook = found ? await client.getWebhook(found.id) : await client.createWebhook(url, EVENTS);
   console.log(found ? 'Το webhook υπάρχει ήδη:' : 'Δημιουργήθηκε webhook:', url);
   console.log('\nΒάλτε στο αρχείο .env:\nREVOLUT_WEBHOOK_SECRET=' + hook.signing_secret);
 }

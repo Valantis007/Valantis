@@ -28,6 +28,8 @@ test('εγγύηση μέσω POS: μόνο πιστωτική, απαιτείτ
   await act('/deposit/pos', { amount: '300', approval_code: 'A1B2C3' });
   assert.equal(deposits.listForBooking(db, b.id).length, 0, 'χωρίς επιβεβαίωση πιστωτικής κάρτας απορρίπτεται');
   await act('/deposit/pos', { amount: '300', approval_code: 'A1B2C3', last4: '1234', credit_confirmed: '1' });
+  assert.equal(deposits.listForBooking(db, b.id).length, 0, 'ποσό μεγαλύτερο από την εγγύηση της κράτησης χωρίς συναίνεση απορρίπτεται');
+  await act('/deposit/pos', { amount: '300', approval_code: 'A1B2C3', last4: '1234', credit_confirmed: '1', over_note: 'Υπέγραψε για 300 €' });
   const dep = deposits.heldDeposit(db, b.id);
   assert.equal(dep.method, 'pos');
   assert.equal(dep.amount_cents, 30000);
@@ -61,7 +63,7 @@ test('online εγγύηση (Stripe): σύνδεσμος/QR, συναίνεση,
   const fake = h.useStripe(t);
   const { b, aa, page, act } = await scenario(app, db);
 
-  await act('/deposit/link', { amount: '400' });
+  await act('/deposit/link', { amount: '250' });
   const adminPage = await aa.get(page);
   assert.match(adminPage.text, /<svg/, 'εμφανίζεται QR code');
   const url = /https:\/\/rent\.example\.gr\/deposit\/([a-f0-9]{64})/.exec(adminPage.text);
@@ -71,7 +73,7 @@ test('online εγγύηση (Stripe): σύνδεσμος/QR, συναίνεση,
   const customer = h.agent(app);
   const landing = await customer.get(`/deposit/${token}`);
   assert.equal(landing.status, 200);
-  assert.match(landing.text, /400,00/);
+  assert.match(landing.text, /250,00/);
   // Χωρίς συναίνεση δεν προχωρά.
   const noConsent = await h.post(customer, `/deposit/${token}`, {}, `/deposit/${token}`);
   assert.equal(noConsent.status, 422);
@@ -80,6 +82,7 @@ test('online εγγύηση (Stripe): σύνδεσμος/QR, συναίνεση,
   const sessionId = /\/pay\/(cs_\d+)/.exec(go.headers.location)[1];
   const session = fake.sessions[sessionId];
   assert.equal(session.payment_intent_data.capture_method, 'manual');
+  assert.deepEqual(session.params.payment_method_types, ['card'], 'μόνο κάρτα, όχι άλλοι τρόποι πληρωμής');
   assert.deepEqual(session.payment_method_options.card.restrictions.funding_types_blocked, ['debit', 'prepaid']);
 
   // Χρεωστική κάρτα => αυτόματη ακύρωση της δέσμευσης και νέα προσπάθεια.
@@ -116,7 +119,7 @@ test('ζημιά: χρέωση μόνο με συναίνεση του πελά�
   const { b, act } = await scenario(app, db);
 
   // Online εγγύηση μέσω Revolut (προέγκριση).
-  const link = await deposits.createOnlineLink(db, b.id, { amountCents: 50000, actor: 'test' });
+  const link = await deposits.createOnlineLink(db, b.id, { amountCents: 25000, actor: 'test' });
   const url = await deposits.startOnlineHold(db, link.token);
   const orderId = /payment-link\/(ord_\d+)/.exec(url)[1];
   const order = fake.orders[orderId];
@@ -137,7 +140,7 @@ test('ζημιά: χρέωση μόνο με συναίνεση του πελά�
   const charge = deposits.chargesForBooking(db, b.id)[0];
   assert.equal(charge.status, 'proposed');
   await h.mailer.flush();
-  assert.ok(h.mailer.outbox.some((m) => m.subject.startsWith('Αναφορά ζημιάς')));
+  assert.ok(h.mailer.outbox.some((m) => m.subject.startsWith('Χρέωση για αποδοχή')));
 
   // Εκκαθάριση με εκκρεμή ζημιά: δεν επιτρέπεται χωρίς ρητή επιλογή.
   await act(`/deposit/${dep.id}/settle`, {});
@@ -159,15 +162,25 @@ test('ζημιά που αποδέχεται ο πελάτης online αφαιρ
   const { db, app } = h.setup();
   const fake = h.useRevolut(t);
   const { b, act } = await scenario(app, db);
-  const link = await deposits.createOnlineLink(db, b.id, { amountCents: 30000, actor: 'test' });
+  const link = await deposits.createOnlineLink(db, b.id, { amountCents: 25000, actor: 'test' });
   const orderId = /payment-link\/(ord_\d+)/.exec(await deposits.startOnlineHold(db, link.token))[1];
   fake.pay(orderId);
   await payments.reconcileCheckout(db, orderId);
   const dep = deposits.heldDeposit(db, b.id);
   await act('/pickup', { pickup_km: '100', collected_payment: '1' });
   await act('/return', { return_km: '300' });
+  // Πάνω από την απαλλαγή (250€) μόνο με αναφορά σε εξαίρεση των όρων.
   await act('/charges', { category: 'damage', description: 'Σπασμένος καθρέπτης', amount: '420', evidence: 'Πρακτικό 12, τιμολόγιο ανταλλακτικού' });
+  assert.equal(deposits.chargesForBooking(db, b.id).length, 0);
+  await act('/charges', {
+    category: 'damage',
+    description: 'Σπασμένος καθρέπτης',
+    amount: '420',
+    evidence: 'Πρακτικό 12, τιμολόγιο ανταλλακτικού',
+    beyond_excess: 'Οδήγηση υπό την επήρεια αλκοόλ (§7)',
+  });
   const charge = deposits.chargesForBooking(db, b.id)[0];
+  assert.match(charge.evidence, /Πέραν της απαλλαγής/);
 
   const customer = h.agent(app);
   await h.post(customer, '/manage', { reference: b.reference, email: b.email }, '/manage');
@@ -177,15 +190,15 @@ test('ζημιά που αποδέχεται ο πελάτης online αφαιρ
   await h.post(customer, `/booking/${b.reference}/charges/${charge.id}/respond`, { decision: 'accept', confirm: '1' }, `/booking/${b.reference}`);
   assert.equal(deposits.getCharge(db, b.id, charge.id).status, 'accepted');
 
-  // Η ζημιά (420€) ξεπερνά την εγγύηση (300€): παρακρατούνται 300€, μένουν 120€ προς πληρωμή.
+  // Η ζημιά (420€) ξεπερνά την εγγύηση (250€): παρακρατούνται 250€, μένουν 170€ προς πληρωμή.
   await act(`/deposit/${dep.id}/settle`, {});
-  assert.equal(fake.orders[orderId].captured, 30000);
-  assert.equal(deposits.outstandingCents(db, b.id), 12000);
+  assert.equal(fake.orders[orderId].captured, 25000);
+  assert.equal(deposits.outstandingCents(db, b.id), 17000);
   const page = await customer.get(`/booking/${b.reference}`);
-  assert.match(page.text, /Πληρωμή 120,00/);
+  assert.match(page.text, /Πληρωμή 170,00/);
   const pay = await h.post(customer, `/booking/${b.reference}/charges/pay`, {}, `/booking/${b.reference}`);
   const payOrder = /payment-link\/(ord_\d+)/.exec(pay.headers.location)[1];
-  assert.equal(fake.orders[payOrder].amount, 12000);
+  assert.equal(fake.orders[payOrder].amount, 17000);
   fake.pay(payOrder);
   await customer.get(`/booking/${b.reference}/payment/return`);
   assert.equal(deposits.outstandingCents(db, b.id), 0);
@@ -196,7 +209,7 @@ test('ακύρωση κράτησης αποδεσμεύει αυτόματα τ
   const { db, app } = h.setup();
   const fake = h.useRevolut(t);
   const { b, act } = await scenario(app, db);
-  const link = await deposits.createOnlineLink(db, b.id, { amountCents: 30000, actor: 'test' });
+  const link = await deposits.createOnlineLink(db, b.id, { amountCents: 25000, actor: 'test' });
   const orderId = /payment-link\/(ord_\d+)/.exec(await deposits.startOnlineHold(db, link.token))[1];
   fake.pay(orderId);
   await payments.reconcileCheckout(db, orderId);
@@ -210,7 +223,7 @@ test('αυτόματη αποδέσμευση online εγγύησης μετά �
   const { db, app } = h.setup();
   const fake = h.useRevolut(t);
   const { b, act } = await scenario(app, db);
-  const link = await deposits.createOnlineLink(db, b.id, { amountCents: 30000, actor: 'test' });
+  const link = await deposits.createOnlineLink(db, b.id, { amountCents: 25000, actor: 'test' });
   const orderId = /payment-link\/(ord_\d+)/.exec(await deposits.startOnlineHold(db, link.token))[1];
   fake.pay(orderId);
   await payments.reconcileCheckout(db, orderId);
