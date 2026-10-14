@@ -1,0 +1,54 @@
+<%- include('../partials/header') %>
+<div class="container section narrow-wide">
+  <div class="section-head">
+    <div>
+      <h1>Κράτηση <span class="ref"><%= booking.reference %></span></h1>
+      <span class="status status-<%= booking.status %>"><%= format.label('status', booking.status) %></span>
+    </div>
+    <a class="btn" href="/booking/<%= booking.reference %>/print" target="_blank">Εκτύπωση</a>
+  </div>
+
+  <% if (booking.status === 'pending_payment') { %>
+    <div class="alert alert-warning">
+      Η κράτηση δεν έχει ολοκληρωθεί — εκκρεμεί η πληρωμή.
+      <% if (canPay) { %>Το αυτοκίνητο είναι δεσμευμένο για εσάς έως τις <strong><%= new Date(booking.hold_expires_at).toLocaleTimeString('el-GR', { timeZone: config.rules.timezone, hour: '2-digit', minute: '2-digit' }) %></strong>.<% } %>
+    </div>
+    <% if (canPay) { %>
+      <form method="post" action="/booking/<%= booking.reference %>/pay" class="inline-form">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button class="btn btn-primary" type="submit">Πληρωμή <%= format.money(booking.total_cents) %></button>
+      </form>
+    <% } %>
+  <% } else if (booking.status === 'expired') { %>
+    <div class="alert alert-error">Η κράτηση έληξε επειδή δεν ολοκληρώθηκε η πληρωμή. <a href="/cars">Κάντε νέα αναζήτηση</a>.</div>
+  <% } else if (booking.status === 'confirmed') { %>
+    <div class="alert alert-success">Η κράτησή σας είναι επιβεβαιωμένη. Σας περιμένουμε στις <strong><%= format.dateTime(booking.pickup_at) %></strong> στο σημείο «<%= booking.pickup_location_name %>».</div>
+  <% } %>
+
+  <%- include('_details', { booking, extras }) %>
+
+  <% if (['confirmed', 'pending_payment'].includes(booking.status)) { %>
+    <div class="card pad">
+      <h2 class="h4">Τι να έχετε μαζί σας</h2>
+      <ul class="checklist">
+        <li>Δίπλωμα οδήγησης (και Διεθνή Άδεια για διπλώματα εκτός ΕΕ)</li>
+        <li>Ταυτότητα ή διαβατήριο</li>
+        <li>Πιστωτική κάρτα στο όνομα του οδηγού για την εγγύηση</li>
+        <li>Τον κωδικό κράτησης <strong><%= booking.reference %></strong></li>
+      </ul>
+    </div>
+    <div class="card pad">
+      <h2 class="h4">Ακύρωση</h2>
+      <% if (cancellation.allowed) { %>
+        <p>Μπορείτε να ακυρώσετε δωρεάν<%= booking.paid_cents ? ' και να λάβετε πίσω ολόκληρο το ποσό' : '' %>.</p>
+        <form method="post" action="/booking/<%= booking.reference %>/cancel" data-confirm="Σίγουρα θέλετε να ακυρώσετε την κράτηση;">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="btn btn-danger" type="submit">Ακύρωση κράτησης</button>
+        </form>
+      <% } else { %>
+        <p class="muted"><%= cancellation.reason %></p>
+      <% } %>
+    </div>
+  <% } %>
+</div>
+<%- include('../partials/footer') %>

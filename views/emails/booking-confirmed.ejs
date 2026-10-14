@@ -1,0 +1,14 @@
+<%- include('_top') %>
+<p>Αγαπητέ/ή <%= booking.first_name %>,</p>
+<p>Σας ευχαριστούμε! Η κράτησή σας <strong>επιβεβαιώθηκε</strong>.</p>
+<%- include('_booking-table', { booking, extras }) %>
+<p><strong>Τι να έχετε μαζί σας στην παραλαβή:</strong></p>
+<ul>
+  <li>Δίπλωμα οδήγησης (και Διεθνή Άδεια για διπλώματα εκτός ΕΕ)</li>
+  <li>Ταυτότητα ή διαβατήριο</li>
+  <li>Πιστωτική κάρτα στο όνομα του οδηγού για την εγγύηση</li>
+</ul>
+<p>Δωρεάν ακύρωση έως <%= config.rules.freeCancellationHours %> ώρες πριν την παραλαβή. Για να δείτε ή να ακυρώσετε την κράτηση, επισκεφθείτε τη σελίδα
+<a href="<%= baseUrl %>/manage"><%= baseUrl %>/manage</a> με τον κωδικό <strong><%= booking.reference %></strong> και το email σας.</p>
+<p>Καλό ταξίδι!<br><%= company.name %></p>
+<%- include('_bottom') %>

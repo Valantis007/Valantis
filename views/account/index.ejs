@@ -1,0 +1,55 @@
+<%- include('../partials/header') %>
+<div class="container section">
+  <h1>Γεια σας, <%= user.first_name %></h1>
+  <div class="layout-sidebar reverse">
+    <section>
+      <h2 class="h3">Οι κρατήσεις μου</h2>
+      <% if (!bookings.length) { %>
+        <div class="card pad empty"><p>Δεν έχετε κρατήσεις ακόμη.</p><a class="btn btn-primary" href="/cars">Βρείτε αυτοκίνητο</a></div>
+      <% } %>
+      <div class="stack">
+        <% bookings.forEach(function (b) { %>
+          <a class="card booking-item" href="/booking/<%= b.reference %>">
+            <img src="<%= b.image || `/img/cars/${b.category}.svg` %>" alt="" class="thumb">
+            <div>
+              <strong><%= b.make %> <%= b.model %></strong> <span class="status status-<%= b.status %>"><%= format.label('status', b.status) %></span><br>
+              <span class="small"><%= format.dateTime(b.pickup_at) %> → <%= format.dateTime(b.return_at) %> · <%= b.pickup_location_name %></span><br>
+              <span class="small muted">Κωδικός <%= b.reference %> · <%= format.money(b.total_cents) %></span>
+            </div>
+          </a>
+        <% }) %>
+      </div>
+    </section>
+    <aside class="stack">
+      <form method="post" action="/account/profile" class="card pad stack">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <h2 class="h4">Στοιχεία</h2>
+        <p class="small muted"><%= user.email %></p>
+        <div class="field"><label for="first_name">Όνομα</label><input id="first_name" name="first_name" value="<%= profile.first_name %>" required><% if (profileErrors.first_name) { %><span class="error"><%= profileErrors.first_name %></span><% } %></div>
+        <div class="field"><label for="last_name">Επώνυμο</label><input id="last_name" name="last_name" value="<%= profile.last_name %>" required><% if (profileErrors.last_name) { %><span class="error"><%= profileErrors.last_name %></span><% } %></div>
+        <div class="field"><label for="phone">Τηλέφωνο</label><input id="phone" name="phone" type="tel" value="<%= profile.phone %>"><% if (profileErrors.phone) { %><span class="error"><%= profileErrors.phone %></span><% } %></div>
+        <button class="btn" type="submit">Αποθήκευση</button>
+      </form>
+      <form method="post" action="/account/password" class="card pad stack">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <h2 class="h4">Αλλαγή κωδικού</h2>
+        <div class="field"><label for="current_password">Τρέχων κωδικός</label><input id="current_password" name="current_password" type="password" required autocomplete="current-password"><% if (passwordErrors.current_password) { %><span class="error"><%= passwordErrors.current_password %></span><% } %></div>
+        <div class="field"><label for="password">Νέος κωδικός</label><input id="password" name="password" type="password" required autocomplete="new-password"><% if (passwordErrors.password) { %><span class="error"><%= passwordErrors.password %></span><% } %></div>
+        <div class="field"><label for="password_confirm">Επιβεβαίωση</label><input id="password_confirm" name="password_confirm" type="password" required autocomplete="new-password"><% if (passwordErrors.password_confirm) { %><span class="error"><%= passwordErrors.password_confirm %></span><% } %></div>
+        <button class="btn" type="submit">Αλλαγή κωδικού</button>
+      </form>
+      <% if (user.role !== 'admin') { %>
+      <details class="card pad">
+        <summary>Διαγραφή λογαριασμού</summary>
+        <form method="post" action="/account/delete" class="stack" data-confirm="Ο λογαριασμός θα διαγραφεί οριστικά. Συνέχεια;">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <p class="small muted">Οι κρατήσεις σας θα διατηρηθούν όπως απαιτεί η φορολογική νομοθεσία, αλλά δεν θα συνδέονται πλέον με λογαριασμό.</p>
+          <div class="field"><label for="del_password">Κωδικός</label><input id="del_password" name="current_password" type="password" required></div>
+          <button class="btn btn-danger" type="submit">Οριστική διαγραφή</button>
+        </form>
+      </details>
+      <% } %>
+    </aside>
+  </div>
+</div>
+<%- include('../partials/footer') %>

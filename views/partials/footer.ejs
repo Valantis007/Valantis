@@ -1,0 +1,32 @@
+  </main>
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div>
+        <strong><%= company.name %></strong>
+        <p class="muted small"><%= company.legalName %><% if (company.vat) { %><br>ΑΦΜ <%= company.vat %><% if (company.taxOffice) { %> · <%= company.taxOffice %><% } %><% } %><% if (company.gemi) { %><br>ΓΕΜΗ <%= company.gemi %><% } %></p>
+      </div>
+      <div>
+        <strong>Επικοινωνία</strong>
+        <p class="small">
+          <% if (company.address) { %><%= company.address %><br><% } %>
+          <% if (company.phone) { %><a href="tel:<%= company.phone.replace(/\s/g, '') %>"><%= company.phone %></a><br><% } %>
+          <% if (company.email) { %><a href="mailto:<%= company.email %>"><%= company.email %></a><% } %>
+        </p>
+      </div>
+      <div>
+        <strong>Πληροφορίες</strong>
+        <p class="small">
+          <a href="/terms">Όροι ενοικίασης</a><br>
+          <a href="/privacy">Πολιτική απορρήτου & cookies</a><br>
+          <a href="/faq">Συχνές ερωτήσεις</a>
+        </p>
+      </div>
+      <div>
+        <strong>Ωράριο</strong>
+        <p class="small">Καθημερινά <%= String(config.rules.openingHour).padStart(2, '0') %>:00 - <%= config.rules.closingHour %>:00</p>
+      </div>
+    </div>
+    <div class="container footer-bottom small muted">© <%= new Date().getFullYear() %> <%= company.legalName %>. Όλες οι τιμές περιλαμβάνουν ΦΠΑ <%= config.rules.vatPercent %>%.</div>
+  </footer>
+</body>
+</html>

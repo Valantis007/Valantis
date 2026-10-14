@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="el">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Κράτηση <%= booking.reference %> | <%= company.name %></title>
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="/js/app.js" defer></script>
+</head>
+<body class="print-page">
+  <div class="container narrow-wide section">
+    <div class="section-head">
+      <div>
+        <strong><%= company.name %></strong><br>
+        <span class="small muted"><%= company.legalName %><% if (company.vat) { %> · ΑΦΜ <%= company.vat %><% } %><br><%= company.address %> · <%= company.phone %> · <%= company.email %></span>
+      </div>
+      <button class="btn no-print" type="button" data-print>Εκτύπωση</button>
+    </div>
+    <h1>Επιβεβαίωση κράτησης <span class="ref"><%= booking.reference %></span></h1>
+    <p>Κατάσταση: <strong><%= format.label('status', booking.status) %></strong></p>
+    <%- include('_details', { booking, extras }) %>
+    <p class="small muted">Το έγγραφο αυτό δεν αποτελεί φορολογικό παραστατικό. Η απόδειξη/τιμολόγιο εκδίδεται κατά την πληρωμή.
+      Δωρεάν ακύρωση έως <%= rules.freeCancellationHours %> ώρες πριν την παραλαβή.</p>
+  </div>
+</body>
+</html>

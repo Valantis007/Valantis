@@ -1,0 +1,69 @@
+'use strict';
+
+const crypto = require('node:crypto');
+const rateLimit = require('express-rate-limit');
+const config = require('../config');
+
+// ---------- CSRF ----------
+// Κάθε φόρμα περιέχει ένα κρυφό token που ταιριάζει με αυτό του session.
+// Έτσι μια κακόβουλη ιστοσελίδα δεν μπορεί να υποβάλει φόρμες εκ μέρους του χρήστη.
+
+function csrfToken(req) {
+  if (!req.session.csrfToken) req.session.csrfToken = crypto.randomBytes(32).toString('hex');
+  return req.session.csrfToken;
+}
+
+function tokenMatches(req) {
+  const expected = req.session && req.session.csrfToken;
+  const sent = (req.body && req.body._csrf) || req.get('x-csrf-token');
+  if (!expected || typeof sent !== 'string' || sent.length !== expected.length) return false;
+  return crypto.timingSafeEqual(Buffer.from(sent), Buffer.from(expected));
+}
+
+function csrfError() {
+  const err = new Error('Η φόρμα έληξε. Ανανεώστε τη σελίδα και δοκιμάστε ξανά.');
+  err.status = 403;
+  return err;
+}
+
+// Για φόρμες multipart (ανέβασμα αρχείων) ο έλεγχος γίνεται στη διαδρομή, μετά το multer.
+function csrfProtection(req, res, next) {
+  res.locals.csrfToken = csrfToken(req);
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
+  if (req.is('multipart/form-data')) return next();
+  if (!tokenMatches(req)) return next(csrfError());
+  return next();
+}
+
+function verifyCsrf(req, res, next) {
+  if (!tokenMatches(req)) return next(csrfError());
+  return next();
+}
+
+// ---------- Όρια αιτημάτων ----------
+function limiter(windowMinutes, limit) {
+  return rateLimit({
+    windowMs: windowMinutes * 60 * 1000,
+    limit: config.isTest ? 10000 : limit,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    handler: (req, res) => {
+      res.status(429).render('pages/error', {
+        title: 'Πολλές προσπάθειες',
+        status: 429,
+        message: 'Κάνατε πολλές προσπάθειες σε λίγο χρόνο. Περιμένετε λίγα λεπτά και δοκιμάστε ξανά.',
+      });
+    },
+  });
+}
+
+const limits = {
+  login: limiter(15, 10),
+  register: limiter(60, 10),
+  passwordReset: limiter(60, 5),
+  lookup: limiter(15, 20),
+  contact: limiter(60, 5),
+  booking: limiter(15, 20),
+};
+
+module.exports = { csrfProtection, verifyCsrf, limits };

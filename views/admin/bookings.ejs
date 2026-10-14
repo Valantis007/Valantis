@@ -1,0 +1,25 @@
+<%- include('../partials/header') %>
+<div class="container section">
+  <%- include('_nav') %>
+  <div class="section-head">
+    <h1>Κρατήσεις <span class="muted small">(<%= total %>)</span></h1>
+    <a class="btn" href="/cars">+ Νέα κράτηση (τηλεφωνική)</a>
+  </div>
+  <form method="get" class="card pad filter-row">
+    <div class="field"><label for="q">Αναζήτηση</label><input id="q" name="q" value="<%= filters.q %>" placeholder="Κωδικός, όνομα, email, τηλέφωνο, πινακίδα"></div>
+    <div class="field"><label for="status">Κατάσταση</label>
+      <select id="status" name="status"><option value="">Όλες</option>
+        <% statuses.forEach(function (s) { %><option value="<%= s %>" <%= filters.status === s ? 'selected' : '' %>><%= format.label('status', s) %></option><% }) %>
+      </select></div>
+    <div class="field"><label for="from">Παραλαβή από</label><input id="from" name="from" type="date" value="<%= filters.from %>"></div>
+    <div class="field"><label for="to">έως</label><input id="to" name="to" type="date" value="<%= filters.to %>"></div>
+    <div class="field submit"><button class="btn btn-primary" type="submit">Φιλτράρισμα</button></div>
+  </form>
+  <%- include('_booking-table', { rows }) %>
+  <% if (pages > 1) { %>
+    <nav class="pagination">
+      <% for (let p = 1; p <= pages; p++) { %><a href="?<%= qs %><%= qs ? '&' : '' %>page=<%= p %>" class="<%= p === page ? 'active' : '' %>"><%= p %></a><% } %>
+    </nav>
+  <% } %>
+</div>
+<%- include('../partials/footer') %>

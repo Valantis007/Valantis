@@ -1,0 +1,15 @@
+<%- include('../partials/header') %>
+<div class="container section narrow">
+  <h1>Επαναφορά κωδικού</h1>
+  <% if (sent) { %>
+    <div class="alert alert-success">Αν υπάρχει λογαριασμός με το email <strong><%= email %></strong>, θα λάβετε σε λίγα λεπτά σύνδεσμο για να ορίσετε νέο κωδικό. Ο σύνδεσμος ισχύει για 1 ώρα.</div>
+  <% } else { %>
+    <p>Συμπληρώστε το email του λογαριασμού σας και θα σας στείλουμε σύνδεσμο επαναφοράς.</p>
+    <form method="post" action="/forgot-password" class="card pad stack">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" required autocomplete="email"></div>
+      <button class="btn btn-primary" type="submit">Αποστολή συνδέσμου</button>
+    </form>
+  <% } %>
+</div>
+<%- include('../partials/footer') %>

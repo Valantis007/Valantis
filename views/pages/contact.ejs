@@ -1,0 +1,46 @@
+<%- include('../partials/header') %>
+<div class="container section two-col">
+  <div>
+    <h1>Επικοινωνία</h1>
+    <p>Είμαστε στη διάθεσή σας για κάθε ερώτηση σχετικά με κρατήσεις, τιμές ή ειδικά αιτήματα.</p>
+    <ul class="contact-list">
+      <% if (company.phone) { %><li><strong>Τηλέφωνο:</strong> <a href="tel:<%= company.phone.replace(/\s/g, '') %>"><%= company.phone %></a></li><% } %>
+      <% if (company.email) { %><li><strong>Email:</strong> <a href="mailto:<%= company.email %>"><%= company.email %></a></li><% } %>
+      <% if (company.address) { %><li><strong>Διεύθυνση:</strong> <%= company.address %></li><% } %>
+      <li><strong>Ωράριο:</strong> καθημερινά <%= String(config.rules.openingHour).padStart(2, '0') %>:00 - <%= config.rules.closingHour %>:00</li>
+    </ul>
+  </div>
+  <form method="post" action="/contact" class="card pad stack" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="hp" aria-hidden="true"><label>Ιστοσελίδα <input name="website" tabindex="-1" autocomplete="off"></label></div>
+    <div class="field">
+      <label for="name">Ονοματεπώνυμο</label>
+      <input id="name" name="name" value="<%= values.name || '' %>" required autocomplete="name">
+      <% if (errors.name) { %><span class="error"><%= errors.name %></span><% } %>
+    </div>
+    <div class="grid-2">
+      <div class="field">
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" value="<%= values.email || '' %>" required autocomplete="email">
+        <% if (errors.email) { %><span class="error"><%= errors.email %></span><% } %>
+      </div>
+      <div class="field">
+        <label for="phone">Τηλέφωνο (προαιρετικό)</label>
+        <input id="phone" name="phone" type="tel" value="<%= values.phone || '' %>" autocomplete="tel">
+      </div>
+    </div>
+    <div class="field">
+      <label for="subject">Θέμα</label>
+      <input id="subject" name="subject" value="<%= values.subject || '' %>" required>
+      <% if (errors.subject) { %><span class="error"><%= errors.subject %></span><% } %>
+    </div>
+    <div class="field">
+      <label for="body">Μήνυμα</label>
+      <textarea id="body" name="body" rows="6" required><%= values.body || '' %></textarea>
+      <% if (errors.body) { %><span class="error"><%= errors.body %></span><% } %>
+    </div>
+    <p class="small muted">Τα στοιχεία σας χρησιμοποιούνται μόνο για να απαντήσουμε στο μήνυμά σας. <a href="/privacy">Πολιτική απορρήτου</a></p>
+    <button class="btn btn-primary" type="submit">Αποστολή</button>
+  </form>
+</div>
+<%- include('../partials/footer') %>

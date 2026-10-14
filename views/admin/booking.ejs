@@ -1,0 +1,89 @@
+<%- include('../partials/header') %>
+<% const b = booking; %>
+<div class="container section">
+  <%- include('_nav') %>
+  <p><a href="/admin/bookings">← Όλες οι κρατήσεις</a></p>
+  <div class="section-head">
+    <h1>Κράτηση <span class="ref"><%= b.reference %></span> <span class="status status-<%= b.status %>"><%= format.label('status', b.status) %></span></h1>
+    <a class="btn" href="/booking/<%= b.reference %>/print" target="_blank">Εκτύπωση</a>
+  </div>
+  <div class="layout-sidebar reverse">
+    <div class="stack">
+      <%- include('../booking/_details', { booking: b, extras }) %>
+      <div class="card pad">
+        <h2 class="h4">Στοιχεία οδηγού (για το συμβόλαιο)</h2>
+        <dl class="kv">
+          <dt>Ημ. γέννησης</dt><dd><%= format.date(b.birth_date) %></dd>
+          <dt>Δίπλωμα</dt><dd><%= b.license_number %> · <%= b.license_country %> · έκδοση <%= format.date(b.license_issued) %></dd>
+          <dt>Αυτοκίνητο</dt><dd><%= b.make %> <%= b.model %> · <strong><%= b.plate %></strong></dd>
+          <% if (b.pickup_km !== null) { %><dt>Χλμ. παράδοσης</dt><dd><%= b.pickup_km %></dd><% } %>
+          <% if (b.return_km !== null) { %><dt>Χλμ. επιστροφής</dt><dd><%= b.return_km %> (<%= b.return_km - (b.pickup_km || 0) %> km)</dd><% } %>
+          <% if (b.notes) { %><dt>Σημειώσεις πελάτη</dt><dd><%= b.notes %></dd><% } %>
+          <dt>Δημιουργήθηκε</dt><dd><%= format.utcTimestamp(b.created_at, config.rules.timezone) %></dd>
+          <% if (b.stripe_payment_intent) { %><dt>Stripe</dt><dd class="small"><%= b.stripe_payment_intent %></dd><% } %>
+        </dl>
+      </div>
+      <div class="card pad">
+        <h2 class="h4">Ιστορικό</h2>
+        <ul class="timeline">
+          <% events.forEach(function (ev) { %>
+            <li><span class="muted small"><%= format.utcTimestamp(ev.created_at, config.rules.timezone) %> · <%= ev.actor %></span><br><strong><%= format.label('event', ev.action) %></strong><% if (ev.note) { %> — <%= ev.note %><% } %></li>
+          <% }) %>
+        </ul>
+      </div>
+    </div>
+    <aside class="stack">
+      <% if (b.status === 'confirmed') { %>
+        <form method="post" action="/admin/bookings/<%= b.id %>/pickup" class="card pad stack">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <h2 class="h4">Παράδοση στον πελάτη</h2>
+          <div class="field"><label for="pickup_km">Χιλιόμετρα</label><input id="pickup_km" name="pickup_km" type="number" min="0" required></div>
+          <% if (b.payment_status !== 'paid') { %>
+            <label class="check"><input type="checkbox" name="collected_payment" value="1"><span>Εισπράχθηκε η πληρωμή <%= format.money(b.total_cents) %></span></label>
+          <% } %>
+          <button class="btn btn-primary" type="submit">Παράδοση</button>
+        </form>
+      <% } %>
+      <% if (b.status === 'active') { %>
+        <form method="post" action="/admin/bookings/<%= b.id %>/return" class="card pad stack">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <h2 class="h4">Επιστροφή αυτοκινήτου</h2>
+          <div class="field"><label for="return_km">Χιλιόμετρα</label><input id="return_km" name="return_km" type="number" min="<%= b.pickup_km || 0 %>" required></div>
+          <button class="btn btn-primary" type="submit">Ολοκλήρωση ενοικίασης</button>
+        </form>
+      <% } %>
+      <% if (b.payment_status === 'unpaid' && ['confirmed', 'active', 'completed'].includes(b.status)) { %>
+        <form method="post" action="/admin/bookings/<%= b.id %>/mark-paid" class="card pad stack" data-confirm="Καταχώρηση είσπραξης <%= format.money(b.total_cents) %>;">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <h2 class="h4">Πληρωμή</h2>
+          <button class="btn" type="submit">Σημείωση ως εξοφλημένη</button>
+        </form>
+      <% } %>
+      <% if (['confirmed', 'active'].includes(b.status)) { %>
+        <form method="post" action="/admin/bookings/<%= b.id %>/resend" class="card pad">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="btn btn-block" type="submit">Επαναποστολή email επιβεβαίωσης</button>
+        </form>
+      <% } %>
+      <% if (['pending_payment', 'confirmed'].includes(b.status)) { %>
+        <form method="post" action="/admin/bookings/<%= b.id %>/cancel" class="card pad stack" data-confirm="Ακύρωση της κράτησης; Ο πελάτης θα ενημερωθεί με email.">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <h2 class="h4">Ακύρωση</h2>
+          <div class="field"><label for="reason">Αιτία (θα σταλεί στον πελάτη)</label><input id="reason" name="reason" maxlength="300"></div>
+          <% if (b.paid_cents - b.refunded_cents > 0) { %>
+            <label class="check"><input type="checkbox" name="refund" value="1" checked><span>Επιστροφή χρημάτων στην κάρτα</span></label>
+            <div class="field"><label for="refund_amount">Ποσό επιστροφής (κενό = ολόκληρο <%= format.money(b.paid_cents - b.refunded_cents) %>)</label><input id="refund_amount" name="refund_amount" inputmode="decimal" placeholder="π.χ. 50.00"></div>
+          <% } %>
+          <button class="btn btn-danger" type="submit">Ακύρωση κράτησης</button>
+        </form>
+      <% } %>
+      <form method="post" action="/admin/bookings/<%= b.id %>/notes" class="card pad stack">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <h2 class="h4">Εσωτερικές σημειώσεις</h2>
+        <textarea name="admin_notes" rows="4"><%= b.admin_notes || '' %></textarea>
+        <button class="btn" type="submit">Αποθήκευση</button>
+      </form>
+    </aside>
+  </div>
+</div>
+<%- include('../partials/footer') %>

@@ -1,0 +1,23 @@
+<%- include('../partials/header') %>
+<div class="container section">
+  <%- include('_nav') %>
+  <h1>Πρόσθετα</h1>
+  <div class="stack">
+    <% rows.concat([null]).forEach(function (r) { %>
+      <form method="post" action="/admin/extras<%= r ? `/${r.id}` : '' %>" class="card pad inline-grid">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="field"><label>Όνομα</label><input name="name" value="<%= r ? r.name : '' %>" required></div>
+        <div class="field grow"><label>Περιγραφή</label><input name="description" value="<%= r ? r.description : '' %>"></div>
+        <div class="field"><label>Τιμή (€)</label><input name="price" inputmode="decimal" value="<%= r ? format.centsToInput(r.price_cents) : '' %>" size="6" required></div>
+        <div class="field"><label>Χρέωση</label><select name="pricing">
+          <option value="per_day" <%= r && r.pricing === 'per_day' ? 'selected' : '' %>>ανά ημέρα</option>
+          <option value="per_rental" <%= r && r.pricing === 'per_rental' ? 'selected' : '' %>>ανά ενοικίαση</option></select></div>
+        <div class="field"><label>Μέγ. ποσότητα</label><input name="max_qty" type="number" min="1" max="10" value="<%= r ? r.max_qty : 1 %>" style="width:5em"></div>
+        <div class="field"><label>Σειρά</label><input name="sort_order" type="number" value="<%= r ? r.sort_order : rows.length + 1 %>" style="width:5em"></div>
+        <label class="check"><input type="checkbox" name="active" value="1" <%= !r || r.active ? 'checked' : '' %>><span>Ενεργό</span></label>
+        <button class="btn <%= r ? '' : 'btn-primary' %>" type="submit"><%= r ? 'Αποθήκευση' : '+ Προσθήκη' %></button>
+      </form>
+    <% }) %>
+  </div>
+</div>
+<%- include('../partials/footer') %>

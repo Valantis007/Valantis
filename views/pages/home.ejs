@@ -1,0 +1,55 @@
+<%- include('../partials/header') %>
+<section class="hero">
+  <div class="container">
+    <div class="hero-text">
+      <h1>Ενοικίαση αυτοκινήτου, απλά και με διαφάνεια</h1>
+      <p class="lead">Δείτε την τελική τιμή πριν κλείσετε. Χωρίς κρυφές χρεώσεις, με δωρεάν ακύρωση έως <%= config.rules.freeCancellationHours %> ώρες πριν την παραλαβή.</p>
+    </div>
+    <div class="card search-card">
+      <%- include('../partials/search-form', { locations, values: search, errors: {} }) %>
+    </div>
+  </div>
+</section>
+
+<section class="container section">
+  <div class="usp-grid">
+    <div class="usp"><h3>Τελική τιμή από την αρχή</h3><p>Η τιμή που βλέπετε περιλαμβάνει ΦΠΑ, βασική ασφάλεια και απεριόριστα χιλιόμετρα.</p></div>
+    <div class="usp"><h3>Δωρεάν ακύρωση</h3><p>Ακυρώστε online έως <%= config.rules.freeCancellationHours %> ώρες πριν και παίρνετε πίσω όλο το ποσό.</p></div>
+    <div class="usp"><h3>Ασφαλής πληρωμή</h3><p><%= paymentsEnabled ? 'Πληρώστε online με κάρτα μέσω Stripe ή' : 'Πληρώστε' %> κατά την παραλαβή του αυτοκινήτου.</p></div>
+    <div class="usp"><h3>Παράδοση όπου βρίσκεστε</h3><p>Παραλαβή από γραφείο, αεροδρόμιο, λιμάνι ή παράδοση στο ξενοδοχείο σας.</p></div>
+  </div>
+</section>
+
+<% if (featured.length) { %>
+<section class="container section">
+  <div class="section-head">
+    <h2>Ο στόλος μας</h2>
+    <a href="/cars">Όλα τα αυτοκίνητα →</a>
+  </div>
+  <div class="car-grid">
+    <% featured.forEach(function (car) { %>
+      <article class="card car-card">
+        <a href="/cars/<%= car.id %>" class="car-image"><img src="<%= car.image || `/img/cars/${car.category}.svg` %>" alt="<%= car.make %> <%= car.model %>" loading="lazy"></a>
+        <div class="car-body">
+          <span class="badge"><%= format.label('category', car.category) %></span>
+          <h3><a href="/cars/<%= car.id %>"><%= car.make %> <%= car.model %></a></h3>
+          <p class="muted small">ή παρόμοιο</p>
+          <%- include('../partials/car-specs', { car }) %>
+          <p class="price">από <strong><%= format.money(car.daily_rate_cents) %></strong> / ημέρα</p>
+        </div>
+      </article>
+    <% }) %>
+  </div>
+</section>
+<% } %>
+
+<section class="container section steps">
+  <h2>Πώς λειτουργεί</h2>
+  <ol class="steps-list">
+    <li><strong>Αναζήτηση</strong><span>Επιλέξτε ημερομηνίες και σημεία παραλαβής/επιστροφής.</span></li>
+    <li><strong>Επιλογή</strong><span>Διαλέξτε αυτοκίνητο και πρόσθετα — βλέπετε αμέσως την τελική τιμή.</span></li>
+    <li><strong>Κράτηση</strong><span>Συμπληρώστε τα στοιχεία οδηγού και λάβετε άμεσα επιβεβαίωση με email.</span></li>
+    <li><strong>Παραλαβή</strong><span>Φέρτε δίπλωμα, ταυτότητα/διαβατήριο και πιστωτική κάρτα για την εγγύηση.</span></li>
+  </ol>
+</section>
+<%- include('../partials/footer') %>

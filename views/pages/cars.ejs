@@ -1,0 +1,94 @@
+<%- include('../partials/header') %>
+<section class="search-bar">
+  <div class="container">
+    <%- include('../partials/search-form', { locations, values: searchValues, errors, compact: true, buttonLabel: 'Ενημέρωση' }) %>
+  </div>
+</section>
+<div class="container section layout-sidebar">
+  <aside class="filters card">
+    <form method="get" action="/cars">
+      <% ['pickup_location','return_location','pickup_date','pickup_time','return_date','return_time'].forEach(function (k) { if (search.values[k] && search.provided) { %>
+        <input type="hidden" name="<%= k %>" value="<%= search.values[k] %>">
+      <% } }) %>
+      <h2 class="h4">Φίλτρα</h2>
+      <div class="field">
+        <label for="f-category">Κατηγορία</label>
+        <select id="f-category" name="category">
+          <option value="">Όλες</option>
+          <% categories.forEach(function (c) { %><option value="<%= c %>" <%= filters.category === c ? 'selected' : '' %>><%= format.label('category', c) %></option><% }) %>
+        </select>
+      </div>
+      <div class="field">
+        <label for="f-transmission">Κιβώτιο</label>
+        <select id="f-transmission" name="transmission">
+          <option value="">Όλα</option>
+          <option value="manual" <%= filters.transmission === 'manual' ? 'selected' : '' %>>Χειροκίνητο</option>
+          <option value="automatic" <%= filters.transmission === 'automatic' ? 'selected' : '' %>>Αυτόματο</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="f-seats">Θέσεις (τουλάχιστον)</label>
+        <select id="f-seats" name="seats">
+          <option value="">Όλα</option>
+          <% [4,5,7,9].forEach(function (n) { %><option value="<%= n %>" <%= filters.seats === n ? 'selected' : '' %>><%= n %>+</option><% }) %>
+        </select>
+      </div>
+      <div class="field">
+        <label for="f-sort">Ταξινόμηση</label>
+        <select id="f-sort" name="sort">
+          <option value="price_asc" <%= filters.sort === 'price_asc' ? 'selected' : '' %>>Τιμή: χαμηλή → υψηλή</option>
+          <option value="price_desc" <%= filters.sort === 'price_desc' ? 'selected' : '' %>>Τιμή: υψηλή → χαμηλή</option>
+          <option value="seats" <%= filters.sort === 'seats' ? 'selected' : '' %>>Περισσότερες θέσεις</option>
+        </select>
+      </div>
+      <button class="btn btn-block" type="submit">Εφαρμογή</button>
+    </form>
+  </aside>
+
+  <section>
+    <% if (search.ok) { %>
+      <p class="results-summary">
+        <strong><%= cars.length %></strong> διαθέσιμα αυτοκίνητα για <strong><%= time.rentalDays(search.pickupAt, search.returnAt) %> ημέρες</strong>
+        · <%= format.dateTime(search.pickupAt) %> → <%= format.dateTime(search.returnAt) %>
+        <% if (unavailableCount) { %><span class="muted">(<%= unavailableCount %> δεν είναι διαθέσιμα)</span><% } %>
+      </p>
+    <% } else { %>
+      <div class="alert alert-info">Επιλέξτε σημείο και ημερομηνίες για να δείτε διαθεσιμότητα και τελικές τιμές.</div>
+    <% } %>
+
+    <% if (!cars.length) { %>
+      <div class="empty card">
+        <h2 class="h4">Δεν βρέθηκαν διαθέσιμα αυτοκίνητα</h2>
+        <p>Δοκιμάστε διαφορετικές ημερομηνίες ή αφαιρέστε κάποιο φίλτρο.</p>
+      </div>
+    <% } %>
+
+    <div class="car-list">
+      <% cars.forEach(function (car) { %>
+        <article class="card car-row">
+          <a href="/cars/<%= car.id %><%= search.ok ? `?${query}` : '' %>" class="car-image"><img src="<%= car.image || `/img/cars/${car.category}.svg` %>" alt="<%= car.make %> <%= car.model %>" loading="lazy"></a>
+          <div class="car-body">
+            <span class="badge"><%= format.label('category', car.category) %></span>
+            <h2 class="h3"><a href="/cars/<%= car.id %><%= search.ok ? `?${query}` : '' %>"><%= car.make %> <%= car.model %></a> <span class="muted small">ή παρόμοιο</span></h2>
+            <%- include('../partials/car-specs', { car }) %>
+            <p class="small muted">Ελάχιστη ηλικία οδηγού <%= car.min_driver_age %> · <%= car.mileage_policy %> · Εγγύηση <%= format.money(car.deposit_cents) %></p>
+          </div>
+          <div class="car-price">
+            <% if (car.quote) { %>
+              <div class="total"><%= format.money(car.quote.totalCents) %></div>
+              <div class="small muted">σύνολο για <%= car.quote.days %> <%= car.quote.days === 1 ? 'ημέρα' : 'ημέρες' %></div>
+              <div class="small"><%= format.money(car.quote.avgDailyCents) %> / ημέρα</div>
+              <% if (car.quote.discountPercent) { %><div class="small success">-<%= car.quote.discountPercent %>% έκπτωση διάρκειας</div><% } %>
+              <a class="btn btn-primary" href="/booking/new?car_id=<%= car.id %>&<%= query %>">Κράτηση</a>
+            <% } else { %>
+              <div class="total">από <%= format.money(car.daily_rate_cents) %></div>
+              <div class="small muted">ανά ημέρα</div>
+              <a class="btn" href="/cars/<%= car.id %>">Λεπτομέρειες</a>
+            <% } %>
+          </div>
+        </article>
+      <% }) %>
+    </div>
+  </section>
+</div>
+<%- include('../partials/footer') %>

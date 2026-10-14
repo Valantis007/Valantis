@@ -1,0 +1,8 @@
+<%- include('_top') %>
+<p>Αγαπητέ/ή <%= booking.first_name %>,</p>
+<p>Η κράτηση <strong><%= booking.reference %></strong> (<%= booking.make %> <%= booking.model %>, <%= format.dateTime(booking.pickup_at) %>) <strong>ακυρώθηκε</strong>.</p>
+<% if (reason) { %><p>Αιτία: <%= reason %></p><% } %>
+<% if (refundedCents > 0) { %><p>Επιστρέψαμε <strong><%= format.money(refundedCents) %></strong> στην κάρτα σας. Το ποσό θα εμφανιστεί στον λογαριασμό σας σε 5-10 εργάσιμες ημέρες.</p><% } %>
+<p>Αν δεν ζητήσατε εσείς την ακύρωση ή έχετε απορίες, επικοινωνήστε μαζί μας.</p>
+<p><%= company.name %></p>
+<%- include('_bottom') %>

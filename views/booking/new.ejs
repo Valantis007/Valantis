@@ -1,0 +1,99 @@
+<%- include('../partials/header') %>
+<% const d = driver || {}; const e = errors || {};
+   function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+   function err(name) { return e[name] ? `<span class="error" id="err-${name}">${esc(e[name])}</span>` : ''; } %>
+<div class="container section">
+  <p><a href="/cars/<%= car.id %>?<%= query %>">← Πίσω</a></p>
+  <h1>Ολοκλήρωση κράτησης</h1>
+  <% if (formError) { %><div class="alert alert-error" role="alert"><%= formError %></div><% } %>
+  <% if (Object.keys(e).length) { %><div class="alert alert-error" role="alert">Ελέγξτε τα πεδία που επισημαίνονται παρακάτω.</div><% } %>
+
+  <form method="post" action="/booking" class="booking-layout" data-booking-form novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <input type="hidden" name="car_id" value="<%= car.id %>">
+    <% ['pickup_location','return_location','pickup_date','pickup_time','return_date','return_time'].forEach(function (k) { %>
+      <input type="hidden" name="<%= k %>" value="<%= search.values[k] %>">
+    <% }) %>
+
+    <div class="stack">
+      <% if (extras.length) { %>
+      <section class="card pad">
+        <h2 class="h3">Πρόσθετα</h2>
+        <div class="extras-list">
+          <% extras.forEach(function (x) { const qty = selected[x.id] || 0; %>
+            <div class="extra">
+              <div>
+                <strong><%= x.name %></strong>
+                <span class="muted small"><%= format.money(x.price_cents) %> <%= format.label('pricing', x.pricing) %></span>
+                <% if (x.description) { %><p class="small muted"><%= x.description %></p><% } %>
+              </div>
+              <% if (x.max_qty > 1) { %>
+                <select name="extra_<%= x.id %>" aria-label="Ποσότητα: <%= x.name %>" data-extra>
+                  <% for (let i = 0; i <= x.max_qty; i++) { %><option value="<%= i %>" <%= qty === i ? 'selected' : '' %>><%= i %></option><% } %>
+                </select>
+              <% } else { %>
+                <label class="switch"><input type="checkbox" name="extra_<%= x.id %>" value="1" <%= qty ? 'checked' : '' %> data-extra><span>Προσθήκη</span></label>
+              <% } %>
+            </div>
+          <% }) %>
+        </div>
+      </section>
+      <% } %>
+
+      <section class="card pad">
+        <h2 class="h3">Στοιχεία κύριου οδηγού</h2>
+        <% if (!user) { %><p class="small muted">Έχετε λογαριασμό; <a href="/login">Συνδεθείτε</a> για να συμπληρωθούν αυτόματα τα στοιχεία σας.</p><% } %>
+        <div class="grid-2">
+          <div class="field"><label for="first_name">Όνομα *</label><input id="first_name" name="first_name" value="<%= d.first_name || '' %>" required autocomplete="given-name"><%- err('first_name') %></div>
+          <div class="field"><label for="last_name">Επώνυμο *</label><input id="last_name" name="last_name" value="<%= d.last_name || '' %>" required autocomplete="family-name"><%- err('last_name') %></div>
+          <div class="field"><label for="email">Email *</label><input id="email" name="email" type="email" value="<%= d.email || '' %>" required autocomplete="email"><%- err('email') %></div>
+          <div class="field"><label for="phone">Κινητό τηλέφωνο *</label><input id="phone" name="phone" type="tel" value="<%= d.phone || '' %>" required autocomplete="tel" placeholder="+30 69..."><%- err('phone') %></div>
+          <div class="field"><label for="birth_date">Ημερομηνία γέννησης *</label><input id="birth_date" name="birth_date" type="date" value="<%= d.birth_date || '' %>" required autocomplete="bday"><span class="hint">Ελάχιστη ηλικία για αυτό το αυτοκίνητο: <%= car.min_driver_age %></span><%- err('birth_date') %></div>
+        </div>
+        <h3 class="h4">Δίπλωμα οδήγησης</h3>
+        <div class="grid-3">
+          <div class="field"><label for="license_number">Αριθμός διπλώματος *</label><input id="license_number" name="license_number" value="<%= d.license_number || '' %>" required><%- err('license_number') %></div>
+          <div class="field"><label for="license_country">Χώρα έκδοσης *</label><input id="license_country" name="license_country" value="<%= d.license_country || '' %>" required><%- err('license_country') %></div>
+          <div class="field"><label for="license_issued">Ημερομηνία έκδοσης *</label><input id="license_issued" name="license_issued" type="date" value="<%= d.license_issued || '' %>" required><%- err('license_issued') %></div>
+        </div>
+        <div class="grid-2">
+          <div class="field"><label for="flight_number">Αριθμός πτήσης / πλοίου</label><input id="flight_number" name="flight_number" value="<%= d.flight_number || '' %>" placeholder="π.χ. A3 123"><span class="hint">Για να σας περιμένουμε σε περίπτωση καθυστέρησης.</span></div>
+          <div class="field"><label for="notes">Σημειώσεις / ειδικά αιτήματα</label><textarea id="notes" name="notes" rows="2"><%= d.notes || '' %></textarea></div>
+        </div>
+      </section>
+
+      <section class="card pad">
+        <h2 class="h3">Πληρωμή</h2>
+        <div class="radio-cards">
+          <% if (paymentsEnabled) { %>
+            <label class="radio-card"><input type="radio" name="payment_method" value="card" <%= d.payment_method === 'card' ? 'checked' : '' %>>
+              <span><strong>Κάρτα online</strong><span class="small muted">Ασφαλής πληρωμή μέσω Stripe (Visa, Mastercard, Apple Pay, Google Pay).</span></span></label>
+          <% } %>
+          <label class="radio-card"><input type="radio" name="payment_method" value="pay_at_pickup" <%= d.payment_method === 'pay_at_pickup' || !paymentsEnabled ? 'checked' : '' %>>
+            <span><strong>Πληρωμή κατά την παραλαβή</strong><span class="small muted">Μετρητά ή κάρτα στο γραφείο μας.</span></span></label>
+        </div>
+        <%- err('payment_method') %>
+        <p class="small muted">Κατά την παραλαβή θα δεσμευτεί εγγύηση <%= format.money(car.deposit_cents) %> σε πιστωτική κάρτα στο όνομα του οδηγού.</p>
+        <label class="check"><input type="checkbox" name="terms" value="1" <%= d.terms ? 'checked' : '' %> required>
+          <span>Έχω διαβάσει και αποδέχομαι τους <a href="/terms" target="_blank">όρους ενοικίασης</a> και την <a href="/privacy" target="_blank">πολιτική απορρήτου</a>. *</span></label>
+        <%- err('terms') %>
+      </section>
+    </div>
+
+    <aside class="card pad sticky summary">
+      <img src="<%= car.image || `/img/cars/${car.category}.svg` %>" alt="" class="summary-img">
+      <h2 class="h3"><%= car.make %> <%= car.model %></h2>
+      <p class="small muted"><%= format.label('category', car.category) %> · <%= format.label('transmission', car.transmission) %> · <%= car.seats %> θέσεις</p>
+      <dl class="trip">
+        <div><dt>Παραλαβή</dt><dd><%= format.dateTime(search.pickupAt) %><br><span class="muted"><%= search.pickupLocation.name %></span></dd></div>
+        <div><dt>Επιστροφή</dt><dd><%= format.dateTime(search.returnAt) %><br><span class="muted"><%= search.returnLocation.name %></span></dd></div>
+      </dl>
+      <%- include('_quote', { quote }) %>
+      <button type="submit" class="btn btn-primary btn-block" data-submit>
+        <%= paymentsEnabled && d.payment_method === 'card' ? 'Συνέχεια στην πληρωμή' : 'Ολοκλήρωση κράτησης' %>
+      </button>
+      <p class="small muted center">Δωρεάν ακύρωση έως <%= config.rules.freeCancellationHours %> ώρες πριν την παραλαβή.</p>
+    </aside>
+  </form>
+</div>
+<%- include('../partials/footer') %>

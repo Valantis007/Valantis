@@ -1,0 +1,21 @@
+<%- include('../partials/header') %>
+<div class="container section narrow">
+  <h1>Δημιουργία λογαριασμού</h1>
+  <p class="muted">Με λογαριασμό βλέπετε όλες τις κρατήσεις σας και κλείνετε πιο γρήγορα την επόμενη.</p>
+  <form method="post" action="/register" class="card pad stack" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="grid-2">
+      <div class="field"><label for="first_name">Όνομα</label><input id="first_name" name="first_name" value="<%= values.first_name || '' %>" required autocomplete="given-name"><% if (errors.first_name) { %><span class="error"><%= errors.first_name %></span><% } %></div>
+      <div class="field"><label for="last_name">Επώνυμο</label><input id="last_name" name="last_name" value="<%= values.last_name || '' %>" required autocomplete="family-name"><% if (errors.last_name) { %><span class="error"><%= errors.last_name %></span><% } %></div>
+    </div>
+    <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" value="<%= values.email || '' %>" required autocomplete="email"><% if (errors.email) { %><span class="error"><%= errors.email %></span><% } %></div>
+    <div class="field"><label for="phone">Κινητό (προαιρετικό)</label><input id="phone" name="phone" type="tel" value="<%= values.phone || '' %>" autocomplete="tel"><% if (errors.phone) { %><span class="error"><%= errors.phone %></span><% } %></div>
+    <div class="field"><label for="password">Κωδικός</label><input id="password" name="password" type="password" required autocomplete="new-password" minlength="10"><span class="hint">Τουλάχιστον 10 χαρακτήρες, με γράμματα και αριθμούς.</span><% if (errors.password) { %><span class="error"><%= errors.password %></span><% } %></div>
+    <div class="field"><label for="password_confirm">Επιβεβαίωση κωδικού</label><input id="password_confirm" name="password_confirm" type="password" required autocomplete="new-password"><% if (errors.password_confirm) { %><span class="error"><%= errors.password_confirm %></span><% } %></div>
+    <label class="check"><input type="checkbox" name="terms" value="1" required><span>Αποδέχομαι την <a href="/privacy" target="_blank">πολιτική απορρήτου</a>.</span></label>
+    <% if (errors.terms) { %><span class="error"><%= errors.terms %></span><% } %>
+    <button class="btn btn-primary" type="submit">Δημιουργία λογαριασμού</button>
+  </form>
+  <p>Έχετε ήδη λογαριασμό; <a href="/login">Συνδεθείτε</a>.</p>
+</div>
+<%- include('../partials/footer') %>

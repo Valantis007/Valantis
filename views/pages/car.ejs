@@ -1,0 +1,41 @@
+<%- include('../partials/header') %>
+<div class="container section">
+  <p><a href="/cars<%= search.ok ? `?${query}` : '' %>">← Πίσω στα αποτελέσματα</a></p>
+  <div class="car-detail">
+    <div>
+      <div class="card car-hero"><img src="<%= car.image || `/img/cars/${car.category}.svg` %>" alt="<%= car.make %> <%= car.model %>"></div>
+      <div class="card pad">
+        <span class="badge"><%= format.label('category', car.category) %></span>
+        <h1><%= car.make %> <%= car.model %> <span class="muted small">(<%= car.year %>) ή παρόμοιο</span></h1>
+        <%- include('../partials/car-specs', { car, full: true }) %>
+        <% if (car.description) { %><p><%= car.description %></p><% } %>
+        <h2 class="h4">Περιλαμβάνονται στην τιμή</h2>
+        <ul class="checklist">
+          <li><%= car.mileage_policy %></li>
+          <li>Βασική ασφάλεια (CDW) & αστική ευθύνη</li>
+          <li>Οδική βοήθεια 24/7</li>
+          <li>ΦΠΑ <%= config.rules.vatPercent %>%</li>
+        </ul>
+        <h2 class="h4">Απαιτήσεις</h2>
+        <ul class="checklist muted">
+          <li>Ελάχιστη ηλικία οδηγού: <%= car.min_driver_age %> ετών</li>
+          <li>Δίπλωμα οδήγησης τουλάχιστον <%= config.rules.minLicenseYears %> έτους</li>
+          <li>Εγγύηση <%= format.money(car.deposit_cents) %> (δέσμευση σε πιστωτική κάρτα κατά την παραλαβή)</li>
+        </ul>
+      </div>
+    </div>
+    <aside class="card pad sticky">
+      <h2 class="h3">Τιμή & διαθεσιμότητα</h2>
+      <%- include('../partials/search-form', { locations, values: searchValues, errors, stacked: true, action: `/cars/${car.id}`, buttonLabel: 'Έλεγχος διαθεσιμότητας' }) %>
+      <% if (search.ok && available === false) { %>
+        <div class="alert alert-error">Το αυτοκίνητο δεν είναι διαθέσιμο για αυτές τις ημερομηνίες. <a href="/cars?<%= query %>">Δείτε διαθέσιμα αυτοκίνητα</a>.</div>
+      <% } else if (quote) { %>
+        <%- include('../booking/_quote', { quote }) %>
+        <a class="btn btn-primary btn-block" href="/booking/new?car_id=<%= car.id %>&<%= query %>">Συνέχεια στην κράτηση</a>
+      <% } else { %>
+        <p class="price">από <strong><%= format.money(car.daily_rate_cents) %></strong> / ημέρα</p>
+      <% } %>
+    </aside>
+  </div>
+</div>
+<%- include('../partials/footer') %>

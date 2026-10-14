@@ -1,0 +1,20 @@
+<%- include('../partials/header') %>
+<div class="container section">
+  <%- include('_nav') %>
+  <h1>Πίνακας ελέγχου</h1>
+  <div class="stats">
+    <div class="stat card"><span class="stat-value"><%= stats.active %></span><span class="stat-label">Αυτοκίνητα σε ενοικίαση</span></div>
+    <div class="stat card"><span class="stat-value"><%= stats.confirmed %></span><span class="stat-label">Επιβεβαιωμένες κρατήσεις</span></div>
+    <div class="stat card"><span class="stat-value"><%= format.money(stats.monthRevenue) %></span><span class="stat-label">Τζίρος μήνα (με ΦΠΑ)</span></div>
+    <div class="stat card"><span class="stat-value"><%= stats.fleet %></span><span class="stat-label">Ενεργά αυτοκίνητα</span></div>
+    <a class="stat card" href="/admin/messages"><span class="stat-value"><%= stats.unreadMessages %></span><span class="stat-label">Μηνύματα σε εκκρεμότητα</span></a>
+  </div>
+
+  <h2 class="h3">Παραδόσεις σήμερα (και εκπρόθεσμες)</h2>
+  <%- include('_booking-table', { rows: pickups }) %>
+  <h2 class="h3">Επιστροφές σήμερα (και εκπρόθεσμες)</h2>
+  <%- include('_booking-table', { rows: returns }) %>
+  <h2 class="h3">Επόμενες κρατήσεις</h2>
+  <%- include('_booking-table', { rows: upcoming }) %>
+</div>
+<%- include('../partials/footer') %>

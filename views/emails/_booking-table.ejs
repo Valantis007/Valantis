@@ -1,0 +1,11 @@
+<table role="presentation" width="100%" cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-size:14px;margin:12px 0;">
+  <tr><td style="color:#6b7280;width:40%;">Κωδικός κράτησης</td><td><strong style="font-size:18px;letter-spacing:1px;"><%= booking.reference %></strong></td></tr>
+  <tr><td style="color:#6b7280;">Αυτοκίνητο</td><td><%= booking.make %> <%= booking.model %> ή παρόμοιο (<%= format.label('category', booking.category) %>)</td></tr>
+  <tr><td style="color:#6b7280;">Παραλαβή</td><td><strong><%= format.dateTime(booking.pickup_at) %></strong><br><%= booking.pickup_location_name %><br><span style="color:#6b7280;"><%= booking.pickup_location_address %></span></td></tr>
+  <tr><td style="color:#6b7280;">Επιστροφή</td><td><strong><%= format.dateTime(booking.return_at) %></strong><br><%= booking.return_location_name %></td></tr>
+  <tr><td style="color:#6b7280;">Οδηγός</td><td><%= booking.first_name %> <%= booking.last_name %> · <%= booking.phone %></td></tr>
+  <% if (locals.extras && extras.length) { %><tr><td style="color:#6b7280;">Πρόσθετα</td><td><% extras.forEach(function (x) { %><%= x.name %><%= x.qty > 1 ? ` ×${x.qty}` : '' %> (<%= format.money(x.total_cents) %>)<br><% }) %></td></tr><% } %>
+  <tr><td style="color:#6b7280;">Σύνολο (με ΦΠΑ)</td><td><strong><%= format.money(booking.total_cents) %></strong></td></tr>
+  <tr><td style="color:#6b7280;">Πληρωμή</td><td><%= format.label('paymentMethod', booking.payment_method) %> — <%= format.label('paymentStatus', booking.payment_status) %></td></tr>
+  <tr><td style="color:#6b7280;">Εγγύηση</td><td><%= format.money(booking.deposit_cents) %> (δέσμευση σε πιστωτική κάρτα κατά την παραλαβή)</td></tr>
+</table>

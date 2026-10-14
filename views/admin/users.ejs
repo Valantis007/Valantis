@@ -1,0 +1,35 @@
+<%- include('../partials/header') %>
+<div class="container section">
+  <%- include('_nav') %>
+  <h1>Χρήστες</h1>
+  <form method="get" class="card pad filter-row">
+    <div class="field grow"><label for="q">Αναζήτηση</label><input id="q" name="q" value="<%= q %>" placeholder="Email ή επώνυμο"></div>
+    <div class="field submit"><button class="btn" type="submit">Αναζήτηση</button></div>
+  </form>
+  <div class="table-wrap">
+  <table class="table">
+    <thead><tr><th>Όνομα</th><th>Email</th><th>Τηλέφωνο</th><th>Κρατήσεις</th><th>Εγγραφή</th><th>Ρόλος</th></tr></thead>
+    <tbody>
+      <% rows.forEach(function (u) { %>
+        <tr>
+          <td><%= u.first_name %> <%= u.last_name %></td>
+          <td><a href="/admin/bookings?q=<%= encodeURIComponent(u.email) %>"><%= u.email %></a></td>
+          <td><%= u.phone || '' %></td>
+          <td><%= u.booking_count %></td>
+          <td class="small"><%= format.utcTimestamp(u.created_at, config.rules.timezone) %></td>
+          <td>
+            <% if (u.id === user.id) { %>Διαχειριστής (εσείς)<% } else { %>
+            <form method="post" action="/admin/users/<%= u.id %>/role" class="inline-form" data-confirm="Αλλαγή ρόλου χρήστη <%= u.email %>;">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <select name="role"><option value="customer" <%= u.role === 'customer' ? 'selected' : '' %>>Πελάτης</option><option value="admin" <%= u.role === 'admin' ? 'selected' : '' %>>Διαχειριστής</option></select>
+              <button class="btn btn-small" type="submit">OK</button>
+            </form>
+            <% } %>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  </div>
+</div>
+<%- include('../partials/footer') %>

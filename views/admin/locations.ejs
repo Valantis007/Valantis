@@ -1,0 +1,20 @@
+<%- include('../partials/header') %>
+<div class="container section">
+  <%- include('_nav') %>
+  <h1>Σημεία παραλαβής / επιστροφής</h1>
+  <p class="muted small">Η χρέωση σημείου προστίθεται μία φορά ανά κράτηση (η μεγαλύτερη από παραλαβή/επιστροφή).</p>
+  <div class="stack">
+    <% rows.concat([null]).forEach(function (r) { %>
+      <form method="post" action="/admin/locations<%= r ? `/${r.id}` : '' %>" class="card pad inline-grid">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="field"><label>Όνομα</label><input name="name" value="<%= r ? r.name : '' %>" required></div>
+        <div class="field grow"><label>Διεύθυνση / οδηγίες</label><input name="address" value="<%= r ? r.address : '' %>"></div>
+        <div class="field"><label>Χρέωση (€)</label><input name="fee" inputmode="decimal" value="<%= r ? format.centsToInput(r.fee_cents) : '0.00' %>" size="6"></div>
+        <div class="field"><label>Σειρά</label><input name="sort_order" type="number" value="<%= r ? r.sort_order : rows.length + 1 %>" style="width:5em"></div>
+        <label class="check"><input type="checkbox" name="active" value="1" <%= !r || r.active ? 'checked' : '' %>><span>Ενεργό</span></label>
+        <button class="btn <%= r ? '' : 'btn-primary' %>" type="submit"><%= r ? 'Αποθήκευση' : '+ Προσθήκη' %></button>
+      </form>
+    <% }) %>
+  </div>
+</div>
+<%- include('../partials/footer') %>
