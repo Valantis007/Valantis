@@ -22,7 +22,7 @@
     <ul class="small">
       <li><strong>Εγγύηση <%= format.money(booking.deposit_cents) %>:</strong> δέσμευση (όχι χρέωση) σε πιστωτική κάρτα στο όνομα του κύριου οδηγού, κατά την παραλαβή ή online. Αποδεσμεύεται μετά την επιστροφή.</li>
       <li><strong>Απαλλαγή ζημιών:</strong> <%= format.money(booking.excess_cents ?? booking.deposit_cents) %> (μέγιστη συμμετοχή σας σε ζημιές, εκτός από τις εξαιρέσεις των όρων §7).</li>
-      <li><strong>Ακύρωση:</strong> δεν υφίσταται δικαίωμα υπαναχώρησης 14 ημερών (ενοικίαση για συγκεκριμένες ημερομηνίες). Δωρεάν ακύρωση έως <%= rules.freeCancellationHours %> ώρες πριν την παραλαβή· μετά, χρέωση <%= format.money(booking.late_cancel_fee_cents || 0) %>.</li>
+      <li><strong>Ακύρωση:</strong> δεν υφίσταται δικαίωμα υπαναχώρησης 14 ημερών (ενοικίαση για συγκεκριμένες ημερομηνίες). Δωρεάν ακύρωση έως <%= rules.freeCancellationHours %> ώρες πριν την παραλαβή<% if (booking.late_cancel_fee_cents) { %>· μετά, ή σε μη εμφάνιση, παρακρατείται <%= format.money(booking.late_cancel_fee_cents) %> από ό,τι έχετε προπληρώσει (αν πληρώνετε στην παραλαβή, δεν οφείλεται χρέωση)<% } %>.</li>
       <li>Όροι ενοικίασης έκδοση <%= booking.terms_version || config.termsVersion %>: <%= config.baseUrl %>/terms</li>
     </ul>
     <p class="small muted">Το έγγραφο αυτό δεν αποτελεί φορολογικό παραστατικό. Η απόδειξη/τιμολόγιο εκδίδεται κατά την πληρωμή.</p>

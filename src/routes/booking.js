@@ -181,19 +181,19 @@ module.exports = function bookingRoutes(db) {
       title: `Κράτηση ${booking.reference}`,
       booking,
       extras: bookings.getExtras(db, booking.id),
-      cancellation: bookings.customerCancellation(booking),
+      cancellation: bookings.customerCancellation(booking, undefined, { pendingRefundCents: payments.pendingRefundCents(db, booking.id) }),
       canPay: booking.status === 'pending_payment' && booking.hold_expires_at > Date.now() && providers.onlineEnabled(),
       deposit: deposits.listForBooking(db, booking.id)[0] || null,
       charges,
       outstanding,
-      canPayCharges: outstanding > 0 && !deposits.activeDeposit(db, booking.id) && providers.onlineEnabled(),
+      canPayCharges: outstanding > 0 && !deposits.heldDeposit(db, booking.id) && !deposits.unknownCapture(db, booking.id) && providers.onlineEnabled(),
       pendingRefundCents: payments.pendingRefundCents(db, booking.id),
     });
   });
 
   router.post('/:ref/cancel', async (req, res) => {
     const { booking } = req;
-    const check = bookings.customerCancellation(booking);
+    const check = bookings.customerCancellation(booking, undefined, { pendingRefundCents: payments.pendingRefundCents(db, booking.id) });
     if (!check.allowed) {
       req.flash('error', check.reason);
       return res.redirect(303, `/booking/${booking.reference}`);
@@ -203,12 +203,10 @@ module.exports = function bookingRoutes(db) {
       return res.redirect(303, `/booking/${booking.reference}`);
     }
     try {
-      const refundable = booking.paid_cents - booking.refunded_cents;
       const result = await payments.cancelBooking(db, booking.id, {
         actor: actorOf(req),
         reason: check.feeCents ? `Ακύρωση από τον πελάτη (χρέωση ακύρωσης ${format.money(check.feeCents)})` : 'Ακύρωση από τον πελάτη',
-        refundCents: check.feeCents ? Math.max(refundable - check.feeCents, 0) : null,
-        refund: refundable - check.feeCents > 0,
+        retainCents: check.feeCents,
       });
       let msg = 'Η κράτηση ακυρώθηκε.';
       if (result.refundedCents) {

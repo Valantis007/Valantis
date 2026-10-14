@@ -190,7 +190,7 @@ module.exports = function publicRoutes(db) {
     if (Object.keys(errors).length) {
       return res.status(422).render('pages/contact', { title: 'Επικοινωνία', values, errors });
     }
-    db.prepare('INSERT INTO messages (name, email, phone, subject, body, kind, booking_reference) VALUES (?, ?, ?, ?, ?, ?, ?)').run(
+    db.prepare('INSERT INTO messages (name, email, phone, subject, body, kind, booking_reference, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(
       values.name,
       values.email,
       values.phone || null,
@@ -198,6 +198,7 @@ module.exports = function publicRoutes(db) {
       values.body,
       values.kind,
       values.booking_reference || null,
+      req.user ? req.user.id : null,
     );
     // Επιβεβαίωση λήψης στον πελάτη (υποχρεωτική για παράπονα).
     mailer.sendInBackground({

@@ -206,7 +206,7 @@ async function startChargesPayment(db, bookingId) {
   const outstanding = deposits.outstandingCharges(db, booking.id);
   const amount = outstanding.reduce((sum, c) => sum + (c.amount_cents - c.paid_cents), 0);
   if (amount <= 0) throw new BookingError('Δεν υπάρχουν χρεώσεις προς πληρωμή.');
-  if (deposits.heldDeposit(db, booking.id)) {
+  if (deposits.heldDeposit(db, booking.id) || deposits.unknownCapture(db, booking.id)) {
     throw new BookingError('Οι χρεώσεις θα αφαιρεθούν πρώτα από την εγγύηση. Θα σας ενημερώσουμε για τυχόν υπόλοιπο.');
   }
   for (const row of openCheckouts(db, booking.id, 'charge')) {
@@ -299,6 +299,7 @@ async function runRefund(db, refundId) {
     if (!provider) throw new Error(`Ο πάροχος ${row.provider} δεν είναι ρυθμισμένος`);
     // Ο πάροχος ελέγχει πρώτα αν η επιστροφή `refund-<id>` έγινε ήδη: ποτέ διπλή επιστροφή.
     result = await provider.refund(row.payment_ref, row.amount_cents, `refund-${row.id}`, { attempt: row.attempts });
+    if (result && result.status === 'failed') throw new Error('Ο πάροχος απέρριψε την επιστροφή');
   } catch (err) {
     const attempts = row.attempts + 1;
     const failed = attempts >= MAX_REFUND_ATTEMPTS;
@@ -340,7 +341,14 @@ async function runRefund(db, refundId) {
     }
     if (row.checkout_id) setCheckoutStatus(db, row.checkout_id, 'refunded');
     if (row.applies_to_booking) {
-      fiscal.record(db, { bookingId: row.booking_id, kind: 'credit', amountCents: row.amount_cents, description: `Επιστροφή χρημάτων${row.reason ? ` - ${row.reason}` : ''}`, source: row.provider });
+      fiscal.record(db, {
+        bookingId: row.booking_id,
+        kind: 'credit',
+        amountCents: row.amount_cents,
+        description: `Επιστροφή χρημάτων${row.reason ? ` - ${row.reason}` : ''}`,
+        source: row.provider,
+        refundId: row.id,
+      });
     }
     bookings.logEvent(db, row.booking_id, row.actor, 'refunded', `Επιστροφή ${format.money(row.amount_cents)}${row.reason ? ` - ${row.reason}` : ''}`);
   });
@@ -388,16 +396,22 @@ async function checkProviderRefunds(db, { limit = 20 } = {}) {
           b.id,
         );
       }
+      if (row.checkout_id) setCheckoutStatus(db, row.checkout_id, 'refund_pending');
+      // Το πιστωτικό δεν πρέπει να εκδοθεί (ή πρέπει να αντιλογιστεί αν εκδόθηκε ήδη).
+      db.prepare('DELETE FROM fiscal_docs WHERE refund_id = ? AND issued_at IS NULL').run(row.id);
+      const issued = db.prepare('SELECT mark FROM fiscal_docs WHERE refund_id = ? AND issued_at IS NOT NULL').get(row.id);
       bookings.logEvent(db, row.booking_id, 'system', 'refund_failed', `Η επιστροφή ${format.money(row.amount_cents)} απέτυχε στον πάροχο`);
-      return true;
+      return { issuedMark: issued ? issued.mark || '-' : null };
     });
     if (failed) {
       const b = bookings.getById(db, row.booking_id);
+      let message = state.reason || 'Απέτυχε στον πάροχο μετά την αποδοχή';
+      if (failed.issuedMark) message += `. Το πιστωτικό (ΜΑΡΚ ${failed.issuedMark}) έχει ήδη εκδοθεί: ενημερώστε τον λογιστή.`;
       mailer.sendInBackground({
         to: config.mail.adminNotify,
         subject: `ΑΠΟΤΥΧΙΑ επιστροφής χρημάτων - κράτηση ${b.reference}`,
         template: 'admin-refund-problem',
-        data: { booking: b, refund: { ...row, last_error: state.reason || 'Απέτυχε στον πάροχο μετά την αποδοχή' }, failed: true },
+        data: { booking: b, refund: { ...row, last_error: message }, failed: true },
       });
     }
   }
@@ -462,7 +476,9 @@ function recordManualRefund(db, bookingId, amountCents, { actor, note }) {
  *
  * @returns {{ booking, refundedCents, refundPendingCents, refundDueCents }}
  */
-async function cancelBooking(db, bookingId, { actor, reason = null, refund = true, refundCents = null, notify = true, allowExpiredPaid = false }) {
+// `retainCents`: ποσό που παρακρατείται (π.χ. χρέωση ακύρωσης). Υπολογίζεται μέσα στη συναλλαγή,
+// μετά την αφαίρεση των επιστροφών που εκκρεμούν, ώστε να μην επιστραφεί ποτέ.
+async function cancelBooking(db, bookingId, { actor, reason = null, refund = true, refundCents = null, retainCents = 0, notify = true, allowExpiredPaid = false }) {
   const claim = transaction(db, () => {
     const b = bookings.getById(db, bookingId);
     const allowed = ['pending_payment', 'confirmed'];
@@ -474,7 +490,7 @@ async function cancelBooking(db, bookingId, { actor, reason = null, refund = tru
       .run(b.id, b.status);
     if (!res.changes) throw new BookingError('Η κράτηση άλλαξε στο μεταξύ. Ανανεώστε τη σελίδα.', 'conflict');
 
-    const refundable = b.paid_cents - b.refunded_cents - pendingRefundCents(db, b.id);
+    const refundable = Math.max(b.paid_cents - b.refunded_cents - pendingRefundCents(db, b.id) - retainCents, 0);
     let amount = 0;
     if (refund && refundable > 0) amount = refundCents === null ? refundable : Math.min(Math.max(refundCents, 0), refundable);
     let refundId = null;

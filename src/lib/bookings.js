@@ -271,20 +271,28 @@ function createBooking(db, { car, search, extras, driver, userId = null, nowMs =
   });
 }
 
-function notifyConfirmed(db, booking) {
-  const extras = getExtras(db, booking.id);
-  mailer
+// Email επιβεβαίωσης με τους όρους ενοικίασης συνημμένους (σταθερό μέσο, ν. 2251/1994).
+function sendConfirmation(booking, extras) {
+  return mailer
     .termsAttachment()
-    .catch(() => null)
+    .catch((err) => {
+      console.error('[email] Αποτυχία δημιουργίας συνημμένων όρων:', err.message);
+      return null;
+    })
     .then((terms) =>
       mailer.sendInBackground({
         to: booking.email,
         subject: `Επιβεβαίωση κράτησης ${booking.reference}`,
         template: 'booking-confirmed',
-        data: { booking, extras },
+        data: { booking, extras, termsAttached: Boolean(terms) },
         attachments: terms ? [terms] : undefined,
       }),
     );
+}
+
+function notifyConfirmed(db, booking) {
+  const extras = getExtras(db, booking.id);
+  sendConfirmation(booking, extras);
   mailer.sendInBackground({
     to: config.mail.adminNotify,
     subject: `Νέα κράτηση ${booking.reference} - ${booking.make} ${booking.model}`,
@@ -304,15 +312,17 @@ function isOnlinePayment(booking) {
 
 // Ακύρωση από τον πελάτη: δωρεάν έως το όριο· μετά (και έως την ώρα παραλαβής) με τη
 // σταθερή χρέωση που γνωστοποιήθηκε στην κράτηση, μόνο αν έχει προπληρωθεί.
-function customerCancellation(booking, now = time.nowLocal()) {
+// `pendingRefundCents`: επιστροφές που εκκρεμούν (δεν μετράνε ως ποσό που έχει πληρωθεί).
+function customerCancellation(booking, now = time.nowLocal(), { pendingRefundCents = 0 } = {}) {
   if (booking.status === 'pending_payment') return { allowed: true, late: false, feeCents: 0 };
   if (booking.status !== 'confirmed') return { allowed: false, reason: 'Η κράτηση δεν μπορεί πλέον να ακυρωθεί online.' };
   if (hoursUntilPickup(booking, now) <= 0) {
     return { allowed: false, reason: 'Η ώρα παραλαβής έχει περάσει. Επικοινωνήστε μαζί μας.' };
   }
   if (hoursUntilPickup(booking, now) < config.rules.freeCancellationHours) {
-    const paid = booking.paid_cents - booking.refunded_cents;
-    const fee = paid > 0 ? Math.min(booking.late_cancel_fee_cents ?? Math.round(booking.base_cents / booking.days), paid) : 0;
+    const paid = booking.paid_cents - booking.refunded_cents - pendingRefundCents;
+    // Χρέωση που δεν γνωστοποιήθηκε (κρατήσεις παλαιότερης έκδοσης) δεν οφείλεται.
+    const fee = paid > 0 ? Math.min(booking.late_cancel_fee_cents ?? 0, paid) : 0;
     return { allowed: true, late: true, feeCents: fee };
   }
   return { allowed: true, late: false, feeCents: 0 };
@@ -353,6 +363,7 @@ module.exports = {
   getEvents,
   logEvent,
   notifyConfirmed,
+  sendConfirmation,
   customerCancellation,
   isOnlinePayment,
   expireStaleHolds,

@@ -60,6 +60,15 @@ function heldDeposit(db, bookingId) {
   return db.prepare(`SELECT * FROM deposits WHERE booking_id = ? AND status = 'held' ORDER BY id DESC LIMIT 1`).get(bookingId) || null;
 }
 
+// Εγγύηση που εισπράχθηκε στον πάροχο χωρίς να γνωρίζουμε το ποσό (π.χ. από τον πίνακα του
+// παρόχου): μέχρι να καταχωρήσει το γραφείο την εξόφληση, ο πελάτης δεν καλείται να πληρώσει.
+function unknownCapture(db, bookingId) {
+  return (
+    db.prepare(`SELECT * FROM deposits WHERE booking_id = ? AND status = 'captured' AND captured_cents = 0 ORDER BY id DESC LIMIT 1`).get(bookingId) ||
+    null
+  );
+}
+
 function chargesForBooking(db, bookingId) {
   return db.prepare('SELECT * FROM booking_charges WHERE booking_id = ? ORDER BY id').all(bookingId);
 }
@@ -347,29 +356,33 @@ async function syncHold(db, depositId) {
   const provider = providers.get(dep.method);
   if (!provider) return dep;
   const hold = await provider.getHold(dep.hold_ref);
-  db.prepare(`UPDATE deposits SET synced_at = datetime('now') WHERE id = ?`).run(dep.id);
+  // Στο μεταξύ μπορεί να ξεκίνησε ή να ολοκληρώθηκε εκκαθάριση: διαβάζουμε ξανά την εγγύηση.
+  const cur = getDeposit(db, depositId);
+  if (!cur || cur.status !== 'held') return cur;
+  db.prepare(`UPDATE deposits SET synced_at = datetime('now') WHERE id = ?`).run(cur.id);
   if (hold.status === 'held') {
-    if (hold.captureDeadlineMs && hold.captureDeadlineMs !== dep.capture_deadline_ms) {
-      db.prepare('UPDATE deposits SET capture_deadline_ms = ? WHERE id = ?').run(hold.captureDeadlineMs, dep.id);
+    if (hold.captureDeadlineMs && hold.captureDeadlineMs !== cur.capture_deadline_ms) {
+      db.prepare('UPDATE deposits SET capture_deadline_ms = ? WHERE id = ?').run(hold.captureDeadlineMs, cur.id);
     }
-  } else if (hold.status === 'released' && dep.capture_requested_cents === 0) {
+  } else if (hold.status === 'released' && cur.capture_requested_cents === 0) {
     // Δική μας αποδέσμευση της οποίας χάθηκε η απάντηση.
-    finalizeSettlement(db, dep, 0, 'system');
+    finalizeSettlement(db, cur, 0, 'system');
   } else if (['expired', 'released'].includes(hold.status)) {
-    markHoldGone(db, dep);
+    markHoldGone(db, cur);
   } else if (hold.status === 'captured') {
     // Σύλληψη που δεν καταγράψαμε (π.χ. χάθηκε η απάντηση του παρόχου ή έγινε από τον πίνακα
     // του παρόχου): εφαρμόζεται στις χρεώσεις ώστε να μην πληρώσει ο πελάτης δύο φορές.
-    const amount = hold.capturedCents || dep.capture_requested_cents || 0;
-    finalizeSettlement(db, dep, amount, 'system');
+    // Ποτέ δεν καταγράφεται ως αποδέσμευση, ακόμη κι αν το ποσό δεν είναι γνωστό.
+    const amount = hold.capturedCents || cur.capture_requested_cents || 0;
+    finalizeSettlement(db, cur, amount, 'system', { captured: true });
     if (!amount) {
       notifyAdmin('Σύλληψη εγγύησης με άγνωστο ποσό', {
         message: 'Η εγγύηση εισπράχθηκε στον πάροχο χωρίς να γνωρίζουμε το ποσό. Ελέγξτε τον πίνακα του παρόχου και καταχωρήστε την εξόφληση των χρεώσεων.',
-        bookingId: dep.booking_id,
+        bookingId: cur.booking_id,
       });
     }
   }
-  return getDeposit(db, dep.id);
+  return getDeposit(db, cur.id);
 }
 
 // ---------------------------------------------------------------------------
@@ -537,22 +550,25 @@ function claimSettlement(db, dep, requestedCents) {
   if (!res.changes) throw new BookingError('Η εγγύηση εκκαθαρίζεται ήδη ή έχει κλείσει. Ανανεώστε τη σελίδα.');
 }
 
-function unclaim(db, dep) {
-  db.prepare('UPDATE deposits SET settling_at = NULL WHERE id = ?').run(dep.id);
+// Απελευθέρωση του κλειδώματος. `forget`: ο πάροχος επιβεβαίωσε ότι η δέσμευση ισχύει ακόμη,
+// άρα το αίτημα δεν εκτελέστηκε. Αν δεν ξέρουμε (π.χ. ο πάροχος δεν απαντά), κρατάμε το ποσό
+// που ζητήθηκε ώστε ο συγχρονισμός να το εφαρμόσει σωστά αν τελικά εκτελέστηκε.
+function unclaim(db, dep, { forget = false } = {}) {
+  db.prepare(`UPDATE deposits SET settling_at = NULL${forget ? ', capture_requested_cents = NULL' : ''} WHERE id = ?`).run(dep.id);
 }
 
 /**
  * Καταγράφει το αποτέλεσμα της εκκαθάρισης ΜΙΑ φορά: παρακράτηση (captured) ή αποδέσμευση.
  * Επιστρέφει false αν το είχε ήδη καταγράψει άλλη διαδικασία (π.χ. webhook).
  */
-function finalizeSettlement(db, dep, capturedCents, actor) {
+function finalizeSettlement(db, dep, capturedCents, actor, { captured = capturedCents > 0 } = {}) {
   const result = transaction(db, () => {
     const res = db
       .prepare(
         `UPDATE deposits SET status = ?, captured_cents = ?, settled_at = datetime('now'), settling_at = NULL
          WHERE id = ? AND status = 'held'`,
       )
-      .run(capturedCents > 0 ? 'captured' : 'released', capturedCents, dep.id);
+      .run(captured ? 'captured' : 'released', capturedCents, dep.id);
     if (!res.changes) return null;
     const left = capturedCents > 0 ? allocateToCharges(db, dep.booking_id, capturedCents, dep.method === 'pos' ? 'pos' : 'deposit') : 0;
     fiscal.record(db, { bookingId: dep.booking_id, kind: 'receipt', amountCents: capturedCents, description: 'Χρεώσεις μετά την επιστροφή - παρακράτηση από την εγγύηση', source: dep.method });
@@ -563,7 +579,9 @@ function finalizeSettlement(db, dep, capturedCents, actor) {
       'deposit_settled',
       capturedCents > 0
         ? `Παρακράτηση ${format.money(capturedCents)} από την εγγύηση, αποδέσμευση ${format.money(Math.max(dep.amount_cents - capturedCents, 0))}`
-        : `Αποδέσμευση εγγύησης ${format.money(dep.amount_cents)}`,
+        : captured
+          ? 'Η εγγύηση εισπράχθηκε στον πάροχο με άγνωστο ποσό — καταχωρήστε την εξόφληση των χρεώσεων'
+          : `Αποδέσμευση εγγύησης ${format.money(dep.amount_cents)}`,
     );
     if (left > 0) {
       bookings.logEvent(db, dep.booking_id, 'system', 'deposit_overcaptured', `Παρακρατήθηκαν ${format.money(left)} περισσότερα από τις χρεώσεις`);
@@ -605,7 +623,7 @@ async function settleDeposit(db, depositId, { actor, force = false, posConfirmed
   if (dep.method !== 'pos') {
     const provider = providers.get(dep.method);
     if (!provider) {
-      unclaim(db, dep);
+      unclaim(db, dep, { forget: true });
       throw new BookingError('Ο πάροχος πληρωμών δεν είναι ρυθμισμένος.');
     }
     try {
@@ -619,7 +637,7 @@ async function settleDeposit(db, depositId, { actor, force = false, posConfirmed
       } else if (hold && hold.status === 'released' && capture === 0) {
         captured = 0;
       } else {
-        unclaim(db, dep);
+        unclaim(db, dep, { forget: Boolean(hold && hold.status === 'held') });
         if (hold && ['expired', 'released', 'captured'].includes(hold.status)) {
           if (hold.status === 'captured') await syncHold(db, dep.id).catch(() => null);
           else markHoldGone(db, dep);
@@ -670,7 +688,7 @@ async function releaseDeposit(db, depositId, { actor, reason = null }) {
   if (dep.method !== 'pos') {
     const provider = providers.get(dep.method);
     if (!provider) {
-      unclaim(db, dep);
+      unclaim(db, dep, { forget: true });
       throw new BookingError('Ο πάροχος πληρωμών δεν είναι ρυθμισμένος.');
     }
     try {
@@ -678,12 +696,12 @@ async function releaseDeposit(db, depositId, { actor, reason = null }) {
     } catch (err) {
       const hold = await provider.getHold(dep.hold_ref).catch(() => null);
       if (!hold || hold.status === 'held' || hold.status === 'pending') {
-        unclaim(db, dep);
+        unclaim(db, dep, { forget: Boolean(hold) });
         db.prepare(`UPDATE deposits SET release_failed_at = datetime('now') WHERE id = ?`).run(dep.id);
         throw new BookingError(`Ο πάροχος απέρριψε την αποδέσμευση: ${err.message}`);
       }
       if (hold.status !== 'released') {
-        unclaim(db, dep);
+        unclaim(db, dep, { forget: true });
         return syncHold(db, dep.id);
       }
       // Η αποδέσμευση έγινε: συνεχίζουμε κανονικά.
@@ -788,14 +806,18 @@ function attentionList(db, nowMs = Date.now()) {
     .prepare(
       `SELECT d.*, b.reference, b.status AS booking_status, b.return_at, b.pickup_at, b.first_name, b.last_name, b.deposit_cents AS required_cents
        FROM deposits d JOIN bookings b ON b.id = d.booking_id
-       WHERE d.status IN ('held', 'awaiting') ORDER BY b.return_at`,
+       WHERE d.status IN ('held', 'awaiting') OR (d.status = 'captured' AND d.captured_cents = 0) ORDER BY b.return_at`,
     )
     .all();
   const nowLocal = time.nowLocal(new Date(nowMs));
   const out = [];
   for (const r of rows) {
     const notes = [];
-    if (r.status === 'held') {
+    if (r.status === 'captured') {
+      if (outstandingCents(db, r.booking_id) > 0) {
+        notes.push('Η εγγύηση εισπράχθηκε στον πάροχο με άγνωστο ποσό: ελέγξτε το ποσό και καταχωρήστε την εξόφληση των χρεώσεων');
+      }
+    } else if (r.status === 'held') {
       if (r.capture_deadline_ms && r.capture_deadline_ms < nowMs + 24 * 3600 * 1000) notes.push('Η δέσμευση λήγει σε λιγότερο από 24 ώρες');
       else if (r.capture_deadline_ms) {
         const ret = time.localToDate(r.return_at);
@@ -830,6 +852,7 @@ module.exports = {
   listForBooking,
   activeDeposit,
   heldDeposit,
+  unknownCapture,
   chargesForBooking,
   outstandingCharges,
   outstandingCents,

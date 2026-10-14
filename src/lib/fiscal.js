@@ -7,7 +7,7 @@
 // ηλεκτρονικής τιμολόγησης / ΦΗΜ της επιχείρησης. Το γραφείο καταχωρεί τον ΜΑΡΚ μόλις
 // εκδοθεί, ώστε να φαίνεται τι εκκρεμεί. Ο λογιστής ορίζει τον ακριβή τύπο παραστατικού.
 
-function record(db, { bookingId, kind, amountCents, description, source }) {
+function record(db, { bookingId, kind, amountCents, description, source, refundId = null }) {
   if (!(amountCents > 0)) return null;
   let docKind = kind;
   if (kind === 'receipt') {
@@ -15,8 +15,8 @@ function record(db, { bookingId, kind, amountCents, description, source }) {
     if (b && b.invoice_requested) docKind = 'invoice';
   }
   const res = db
-    .prepare('INSERT INTO fiscal_docs (booking_id, kind, amount_cents, description, source) VALUES (?, ?, ?, ?, ?)')
-    .run(bookingId, docKind, amountCents, description, source);
+    .prepare('INSERT INTO fiscal_docs (booking_id, kind, amount_cents, description, source, refund_id) VALUES (?, ?, ?, ?, ?, ?)')
+    .run(bookingId, docKind, amountCents, description, source, refundId);
   return Number(res.lastInsertRowid);
 }
 

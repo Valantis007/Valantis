@@ -396,12 +396,7 @@ module.exports = function adminRoutes(db, { uploadDir }) {
     const b = req.booking;
     if (!['confirmed', 'active'].includes(b.status)) req.flash('error', 'Μόνο για επιβεβαιωμένες κρατήσεις.');
     else {
-      mailer.sendInBackground({
-        to: b.email,
-        subject: `Επιβεβαίωση κράτησης ${b.reference}`,
-        template: 'booking-confirmed',
-        data: { booking: b, extras: bookings.getExtras(db, b.id) },
-      });
+      bookings.sendConfirmation(b, bookings.getExtras(db, b.id));
       req.flash('success', 'Το email επιβεβαίωσης στάλθηκε ξανά.');
     }
     res.redirect(303, back(req));
@@ -469,8 +464,11 @@ module.exports = function adminRoutes(db, { uploadDir }) {
       if (dep.status === 'held' && deposits.outstandingCents(db, req.booking.id) > 0) {
         throw new bookings.BookingError('Υπάρχουν αποδεκτές χρεώσεις: χρησιμοποιήστε «Εκκαθάριση εγγύησης».');
       }
-      await deposits.releaseDeposit(db, dep.id, { actor: actor(req), reason: str(req.body.reason, 200) || 'Αποδέσμευση από το γραφείο' });
-      return dep.method === 'pos' && dep.status === 'held'
+      const after = await deposits.releaseDeposit(db, dep.id, { actor: actor(req), reason: str(req.body.reason, 200) || 'Αποδέσμευση από το γραφείο' });
+      if (after && after.status === 'captured') return 'Η εγγύηση είχε ήδη εισπραχθεί στον πάροχο — ελέγξτε τις χρεώσεις.';
+      if (after && after.status === 'expired') return 'Η δέσμευση είχε ήδη λήξει ή ακυρωθεί στον πάροχο.';
+      if (dep.status === 'awaiting') return 'Ο σύνδεσμος εγγύησης ακυρώθηκε.';
+      return dep.method === 'pos'
         ? 'Καταχωρήθηκε η αποδέσμευση. Ακυρώστε την προέγκριση και στο τερματικό POS.'
         : 'Η εγγύηση αποδεσμεύτηκε.';
     }),

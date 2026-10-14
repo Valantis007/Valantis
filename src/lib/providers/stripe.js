@@ -129,7 +129,8 @@ async function refund(paymentRef, amountCents, key, { attempt = 0 } = {}) {
   if (found) return { id: found.id, status: refundStatus(found.status) };
   const created = await client.refunds.create(
     { payment_intent: paymentRef, amount: amountCents, metadata: { refund_key: key } },
-    { idempotencyKey: `${key}-a${attempt}` },
+    // Η πρώτη προσπάθεια με το ίδιο κλειδί που χρησιμοποιούσαν οι παλαιότερες εκδόσεις.
+    { idempotencyKey: attempt ? `${key}-a${attempt}` : key },
   );
   return { id: created.id, status: refundStatus(created.status) };
 }

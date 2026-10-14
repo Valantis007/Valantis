@@ -360,6 +360,40 @@ const MIGRATIONS = [
   ALTER TABLE refunds ADD COLUMN provider_status TEXT;
   ALTER TABLE refunds ADD COLUMN checked_at TEXT;
   `,
+
+  // 6: Διορθώσεις δεδομένων για βάσεις που αναβαθμίζονται από παλαιότερη έκδοση.
+  `
+  -- Μηνύματα: σύνδεση με τον λογαριασμό που τα έστειλε (η λήψη δεδομένων δεν βασίζεται σε
+  -- email, που δεν επιβεβαιώνεται κατά την εγγραφή).
+  ALTER TABLE messages ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE SET NULL;
+  -- Πιστωτικό που αντιστοιχεί σε επιστροφή χρημάτων (για αναίρεση αν η επιστροφή αποτύχει).
+  ALTER TABLE fiscal_docs ADD COLUMN refund_id INTEGER;
+
+  -- Το LIKE της SQLite αγνοεί πεζά/κεφαλαία μόνο για λατινικούς χαρακτήρες.
+  UPDATE extras SET kind = 'child_seat' WHERE kind = 'other' AND (name LIKE '%κάθισμα%' OR name LIKE '%Κάθισμα%' OR name LIKE '%booster%');
+  UPDATE extras SET kind = 'damage_waiver' WHERE kind = 'other'
+    AND (name LIKE '%απαλλαγή%' OR name LIKE '%Απαλλαγή%' OR name LIKE '%ασφάλεια%' OR name LIKE '%Ασφάλεια%' OR name LIKE '%FDW%');
+  UPDATE extras SET kind = 'prepaid_fuel' WHERE kind = 'other' AND (name LIKE '%ρεζερβουάρ%' OR name LIKE '%Ρεζερβουάρ%');
+  UPDATE extras SET kind = 'driver' WHERE kind = 'other' AND (name LIKE '%οδηγός%' OR name LIKE '%Οδηγός%');
+  -- Η πλήρης απαλλαγή δεν αλλάζει την εγγύηση (η παλιά περιγραφή έλεγε το αντίθετο).
+  UPDATE extras SET description = 'Μηδενίζει τη συμμετοχή σας σε ζημιές του οχήματος, με τις εξαιρέσεις των όρων (§7). Δεν είναι ασφαλιστικό προϊόν: είναι συμβατική παραίτηση της εταιρείας από αξιώσεις για ζημιές. Η εγγύηση δεν αλλάζει.'
+    WHERE kind = 'damage_waiver' AND description LIKE '%εγγύηση%' AND description NOT LIKE '%εγγύηση δεν αλλάζει%';
+
+  -- Τα αρχικά ενδεικτικά πρόσθετα: η FDW δεν είναι «ασφάλεια» και το καύσιμο που δεν
+  -- χρησιμοποιήθηκε δεν επιστρέφεται (αλλάζουν μόνο αν έχουν ακόμη το αρχικό όνομα/κείμενο).
+  UPDATE extras SET name = 'Πλήρης Απαλλαγή Ευθύνης για Ζημιές (FDW) - συμμετοχή 0 €' WHERE name = 'Πλήρης ασφάλεια (μηδενική απαλλαγή)';
+  UPDATE extras SET name = 'Προπληρωμένο γεμάτο ρεζερβουάρ',
+    description = 'Παραλαμβάνετε με γεμάτο ρεζερβουάρ και επιστρέφετε με όσο καύσιμο θέλετε. Το καύσιμο που δεν χρησιμοποιήθηκε δεν επιστρέφεται. Εναλλακτικά, επιστρέψτε με την ίδια στάθμη χωρίς χρέωση.'
+    WHERE name = 'Γεμάτο ρεζερβουάρ κατά την παραλαβή' AND description = 'Επιστρέψτε το αυτοκίνητο με όσο καύσιμο θέλετε.';
+
+  -- Κρατήσεις πριν τη μετάβαση 4: δεν γνωστοποιήθηκε χρέωση ακύρωσης, άρα δεν οφείλεται.
+  UPDATE bookings SET late_cancel_fee_cents = 0 WHERE late_cancel_fee_cents IS NULL;
+  UPDATE bookings SET excess_cents = CASE
+      WHEN EXISTS (SELECT 1 FROM booking_extras be JOIN extras e ON e.id = be.extra_id
+                   WHERE be.booking_id = bookings.id AND e.kind = 'damage_waiver') THEN 0
+      ELSE (SELECT COALESCE(c.excess_cents, c.deposit_cents) FROM cars c WHERE c.id = bookings.car_id) END
+    WHERE excess_cents IS NULL;
+  `,
 ];
 
 function migrate(db) {
