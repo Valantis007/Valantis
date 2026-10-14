@@ -42,6 +42,7 @@ test('επαναφορά κωδικού με σύνδεσμο μίας χρήσ�
   const u = await h.createUser(db, { email: 'reset@example.com' });
   const agent = h.agent(app);
   await h.post(agent, '/forgot-password', { email: 'reset@example.com' }, '/forgot-password');
+  await h.mailer.flush();
   const mail = h.mailer.outbox.find((m) => m.to === 'reset@example.com');
   const token = /reset-password\/([a-f0-9]{64})/.exec(mail.html)[1];
 
@@ -80,7 +81,8 @@ test('η διαχείριση είναι προσβάσιμη μόνο σε δι
 
 test('διαχειριστής: παράδοση, επιστροφή, είσπραξη, ακύρωση', async () => {
   const { app, db } = h.setup();
-  const res = await h.post(h.agent(app), '/booking', { ...h.searchParams(), ...h.driver() });
+  // Παραλαβή σε 2 ημέρες: η παράδοση επιτρέπεται έως 12 ώρες νωρίτερα, οπότε τη μεταφέρουμε στο «τώρα».
+  const res = await h.post(h.agent(app), '/booking', { ...h.searchParams({ from: 2 }), ...h.driver() });
   const ref = /\/booking\/([A-Z0-9]{8})/.exec(res.headers.location)[1];
   const b = bookingsLib.getByReference(db, ref);
 
@@ -89,10 +91,17 @@ test('διαχειριστής: παράδοση, επιστροφή, είσπρ
   await h.login(aa, admin);
   const page = `/admin/bookings/${b.id}`;
 
+  // Παράδοση πολύ νωρίτερα από την προγραμματισμένη ώρα => άρνηση
+  await h.post(aa, `${page}/pickup`, { pickup_km: '12000', collected_payment: '1' }, page);
+  assert.equal(bookingsLib.getById(db, b.id).status, 'confirmed');
+  db.prepare('UPDATE bookings SET pickup_at = ? WHERE id = ?').run(h.time.addMinutes(h.time.nowLocal(), 60), b.id);
+
   // Παράδοση χωρίς είσπραξη => άρνηση
   await h.post(aa, `${page}/pickup`, { pickup_km: '12000' }, page);
   assert.equal(bookingsLib.getById(db, b.id).status, 'confirmed');
   await h.post(aa, `${page}/pickup`, { pickup_km: '12000', collected_payment: '1' }, page);
+  assert.equal(bookingsLib.getById(db, b.id).status, 'confirmed', 'χωρίς εγγύηση η παράδοση απορρίπτεται');
+  await h.post(aa, `${page}/pickup`, { pickup_km: '12000', collected_payment: '1', no_deposit: '1' }, page);
   let cur = bookingsLib.getById(db, b.id);
   assert.equal(cur.status, 'active');
   assert.equal(cur.payment_status, 'paid');

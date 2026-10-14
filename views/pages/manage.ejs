@@ -4,7 +4,7 @@
   <p>Συμπληρώστε τον κωδικό κράτησης (θα τον βρείτε στο email επιβεβαίωσης) και το email που δηλώσατε.</p>
   <% if (error) { %><div class="alert alert-error"><%= error %></div><% } %>
   <form method="post" action="/manage" class="card pad stack">
-    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
     <div class="field">
       <label for="reference">Κωδικός κράτησης</label>
       <input id="reference" name="reference" value="<%= values.reference || '' %>" required maxlength="8" autocomplete="off" class="uppercase" placeholder="π.χ. AB12CD34">

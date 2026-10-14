@@ -3,7 +3,6 @@
 const h = require('./helpers');
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const payments = require('../src/lib/payments');
 const bookingsLib = require('../src/lib/bookings');
 
 function bookingFromRedirect(db, res) {
@@ -44,6 +43,7 @@ test('κράτηση με πληρωμή στην παραλαβή: επιβεβ
   // Το σύνολο υπολογίζεται στον server (αγνοείται οτιδήποτε στέλνει ο browser).
   assert.equal(b.total_cents, b.base_cents - b.discount_cents + b.extras_cents + b.fees_cents);
   assert.equal(b.fees_cents, 2000 + 3000); // αεροδρόμιο + διαφορετική επιστροφή
+  await h.mailer.flush();
   assert.ok(h.mailer.outbox.some((m) => m.to === 'giorgos@example.com' && m.subject.includes(b.reference)));
 
   const page = await agent.get(`/booking/${b.reference}`);
@@ -98,6 +98,7 @@ test('ακύρωση από πελάτη: επιτρέπεται πριν το �
   const cancel = await h.post(agent, `/booking/${b.reference}/cancel`, {}, `/booking/${b.reference}`);
   assert.equal(cancel.status, 303);
   assert.equal(bookingsLib.getById(db, b.id).status, 'cancelled');
+  await h.mailer.flush();
   assert.ok(h.mailer.outbox.some((m) => m.subject.startsWith('Ακύρωση κράτησης')));
 
   // Το αυτοκίνητο είναι πάλι διαθέσιμο
@@ -129,92 +130,6 @@ test('πρόσβαση σε κράτηση: μόνο με κωδικό + email',
   const ok = await h.post(stranger, '/manage', { reference: b.reference.toLowerCase(), email: 'GIORGOS@example.com' }, '/manage');
   assert.equal(ok.status, 302);
   assert.equal((await stranger.get(`/booking/${b.reference}`)).status, 200);
-});
-
-test('πληρωμή με κάρτα (Stripe): δέσμευση, επιβεβαίωση από webhook, επιστροφή χρημάτων στην ακύρωση', async (t) => {
-  const { db, app } = h.setup();
-  const sessions = {};
-  const refunds = [];
-  payments.setClient({
-    checkout: {
-      sessions: {
-        create: async (params) => {
-          const s = { id: `cs_test_${Object.keys(sessions).length}`, url: 'https://checkout.stripe.com/pay/test', ...params };
-          sessions[s.id] = s;
-          return s;
-        },
-        retrieve: async (id) => sessions[id],
-      },
-    },
-    refunds: { create: async (p) => (refunds.push(p), { id: 're_1' }) },
-    webhooks: {
-      constructEvent: (raw, sig) => {
-        if (sig !== 'valid') throw new Error('bad signature');
-        return JSON.parse(raw.toString());
-      },
-    },
-  });
-  t.after(() => payments.setClient(null));
-
-  const agent = h.agent(app);
-  const res = await h.post(agent, '/booking', { ...h.searchParams({ from: 15 }), ...h.driver({ payment_method: 'card' }) });
-  assert.equal(res.status, 303);
-  assert.equal(res.headers.location, 'https://checkout.stripe.com/pay/test');
-  const b = db.prepare('SELECT * FROM bookings ORDER BY id DESC LIMIT 1').get();
-  assert.equal(b.status, 'pending_payment');
-  const session = sessions[b.stripe_session_id];
-  assert.equal(session.line_items[0].price_data.unit_amount, b.total_cents);
-
-  // Το αυτοκίνητο είναι δεσμευμένο όσο περιμένουμε την πληρωμή
-  const other = await h.post(h.agent(app), '/booking', { ...h.searchParams({ from: 15 }), ...h.driver() });
-  assert.equal(other.status, 409);
-
-  // Webhook με λάθος υπογραφή απορρίπτεται
-  const event = {
-    id: 'evt_1',
-    type: 'checkout.session.completed',
-    data: { object: { id: session.id, payment_status: 'paid', amount_total: b.total_cents, payment_intent: 'pi_1', metadata: { booking_reference: b.reference } } },
-  };
-  const bad = await h.request(app).post('/webhooks/stripe').set('stripe-signature', 'nope').set('content-type', 'application/json').send(JSON.stringify(event));
-  assert.equal(bad.status, 400);
-
-  const ok = await h.request(app).post('/webhooks/stripe').set('stripe-signature', 'valid').set('content-type', 'application/json').send(JSON.stringify(event));
-  assert.equal(ok.status, 200);
-  let paid = bookingsLib.getById(db, b.id);
-  assert.equal(paid.status, 'confirmed');
-  assert.equal(paid.payment_status, 'paid');
-  assert.equal(paid.paid_cents, b.total_cents);
-  const confirmations = h.mailer.outbox.filter((m) => m.subject === `Επιβεβαίωση κράτησης ${b.reference}`).length;
-
-  // Το ίδιο γεγονός ξανά (ή επιστροφή από τη σελίδα επιτυχίας) δεν διπλοκαταγράφει
-  await h.request(app).post('/webhooks/stripe').set('stripe-signature', 'valid').set('content-type', 'application/json').send(JSON.stringify(event));
-  session.payment_status = 'paid';
-  session.amount_total = b.total_cents;
-  session.payment_intent = 'pi_1';
-  await agent.get(`/booking/${b.reference}/payment/success?session_id=${session.id}`);
-  assert.equal(h.mailer.outbox.filter((m) => m.subject === `Επιβεβαίωση κράτησης ${b.reference}`).length, confirmations);
-
-  // Ακύρωση από τον πελάτη => αυτόματη επιστροφή χρημάτων
-  await h.post(agent, `/booking/${b.reference}/cancel`, {}, `/booking/${b.reference}`);
-  paid = bookingsLib.getById(db, b.id);
-  assert.equal(paid.status, 'cancelled');
-  assert.equal(paid.payment_status, 'refunded');
-  assert.deepEqual(refunds, [{ payment_intent: 'pi_1', amount: b.total_cents }]);
-});
-
-test('απλήρωτες κρατήσεις λήγουν και αποδεσμεύουν το αυτοκίνητο', async (t) => {
-  const { db, app } = h.setup();
-  payments.setClient({ checkout: { sessions: { create: async () => ({ id: 'cs_x', url: 'https://checkout.stripe.com/x' }) } } });
-  t.after(() => payments.setClient(null));
-  await h.post(h.agent(app), '/booking', { ...h.searchParams(), ...h.driver({ payment_method: 'card' }) });
-  const b = db.prepare('SELECT * FROM bookings').get();
-  assert.equal(bookingsLib.expireStaleHolds(db, Date.now()), 0);
-  assert.equal(bookingsLib.expireStaleHolds(db, b.hold_expires_at + 1), 1);
-  assert.equal(bookingsLib.getById(db, b.id).status, 'expired');
-  // Λήξη του hold => άλλος μπορεί να κλείσει το αυτοκίνητο
-  db.prepare('UPDATE bookings SET hold_expires_at = 0 WHERE id = ?').run(b.id);
-  const res = await h.post(h.agent(app), '/booking', { ...h.searchParams(), ...h.driver() });
-  assert.equal(res.status, 303);
 });
 
 test('φόρμες χωρίς CSRF token απορρίπτονται', async () => {

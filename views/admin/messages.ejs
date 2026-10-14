@@ -9,7 +9,7 @@
         <div class="section-head">
           <div><strong><%= m.subject %></strong><br><span class="small muted"><%= m.name %> · <a href="mailto:<%= m.email %>"><%= m.email %></a><% if (m.phone) { %> · <%= m.phone %><% } %> · <%= format.utcTimestamp(m.created_at, config.rules.timezone) %></span></div>
           <form method="post" action="/admin/messages/<%= m.id %>/handled">
-            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
             <button class="btn btn-small" type="submit"><%= m.handled ? 'Σήμανση ως εκκρεμές' : 'Σήμανση ως απαντημένο' %></button>
           </form>
         </div>

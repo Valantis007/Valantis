@@ -11,7 +11,7 @@
     </ul>
   </div>
   <form method="post" action="/contact" class="card pad stack" novalidate>
-    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
     <div class="hp" aria-hidden="true"><label>Ιστοσελίδα <input name="website" tabindex="-1" autocomplete="off"></label></div>
     <div class="field">
       <label for="name">Ονοματεπώνυμο</label>

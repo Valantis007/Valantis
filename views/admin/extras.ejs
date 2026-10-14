@@ -5,7 +5,7 @@
   <div class="stack">
     <% rows.concat([null]).forEach(function (r) { %>
       <form method="post" action="/admin/extras<%= r ? `/${r.id}` : '' %>" class="card pad inline-grid">
-        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
         <div class="field"><label>Όνομα</label><input name="name" value="<%= r ? r.name : '' %>" required></div>
         <div class="field grow"><label>Περιγραφή</label><input name="description" value="<%= r ? r.description : '' %>"></div>
         <div class="field"><label>Τιμή (€)</label><input name="price" inputmode="decimal" value="<%= r ? format.centsToInput(r.price_cents) : '' %>" size="6" required></div>

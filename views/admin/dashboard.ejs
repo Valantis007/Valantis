@@ -10,6 +10,26 @@
     <a class="stat card" href="/admin/messages"><span class="stat-value"><%= stats.unreadMessages %></span><span class="stat-label">Μηνύματα σε εκκρεμότητα</span></a>
   </div>
 
+  <% if (attention.deposits.length || attention.charges.length || refundProblems.length || refundsDue.length) { %>
+    <div class="card pad attention">
+      <h2 class="h3">Χρειάζονται ενέργεια</h2>
+      <ul class="plain">
+        <% attention.deposits.forEach(function (d) { %>
+          <li><a class="ref" href="/admin/bookings/<%= d.booking_id %>"><%= d.reference %></a> · Εγγύηση <%= format.money(d.amount_cents) %> (<%= format.label('depositMethod', d.method) %>) — <%= d.notes.join(' · ') %></li>
+        <% }) %>
+        <% attention.charges.forEach(function (c) { %>
+          <li><a class="ref" href="/admin/bookings/<%= c.booking_id %>"><%= c.reference %></a> · Χρέωση «<%= c.description %>» <%= format.money(c.amount_cents) %> — <%= format.label('chargeStatus', c.status) %><% if (c.status === 'proposed' && c.respond_by) { %> (προθεσμία <%= format.date(c.respond_by) %>)<% } %></li>
+        <% }) %>
+        <% refundProblems.forEach(function (r) { %>
+          <li><a class="ref" href="/admin/bookings/<%= r.booking_id %>"><%= r.reference %></a> · <span class="error">Επιστροφή <%= format.money(r.amount_cents) %> <%= r.status === 'failed' ? 'απέτυχε' : 'καθυστερεί' %></span> — <%= r.last_error %></li>
+        <% }) %>
+        <% refundsDue.forEach(function (r) { %>
+          <li><a class="ref" href="/admin/bookings/<%= r.id %>"><%= r.reference %></a> · Οφείλεται επιστροφή <%= format.money(r.due_cents) %> σε <%= r.first_name %> <%= r.last_name %> (εκτός συστήματος)</li>
+        <% }) %>
+      </ul>
+    </div>
+  <% } %>
+
   <h2 class="h3">Παραδόσεις σήμερα (και εκπρόθεσμες)</h2>
   <%- include('_booking-table', { rows: pickups }) %>
   <h2 class="h3">Επιστροφές σήμερα (και εκπρόθεσμες)</h2>

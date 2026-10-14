@@ -3,7 +3,7 @@
   <h1>Δημιουργία λογαριασμού</h1>
   <p class="muted">Με λογαριασμό βλέπετε όλες τις κρατήσεις σας και κλείνετε πιο γρήγορα την επόμενη.</p>
   <form method="post" action="/register" class="card pad stack" novalidate>
-    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
     <div class="grid-2">
       <div class="field"><label for="first_name">Όνομα</label><input id="first_name" name="first_name" value="<%= values.first_name || '' %>" required autocomplete="given-name"><% if (errors.first_name) { %><span class="error"><%= errors.first_name %></span><% } %></div>
       <div class="field"><label for="last_name">Επώνυμο</label><input id="last_name" name="last_name" value="<%= values.last_name || '' %>" required autocomplete="family-name"><% if (errors.last_name) { %><span class="error"><%= errors.last_name %></span><% } %></div>

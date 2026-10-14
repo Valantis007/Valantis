@@ -72,11 +72,69 @@ const labels = {
     returned: 'Επιστροφή αυτοκινήτου',
     cancelled: 'Ακύρωση',
     expired: 'Λήξη',
+    refunded: 'Επιστροφή χρημάτων',
+    refund_due: 'Οφειλόμενη επιστροφή',
+    payment_returned: 'Αυτόματη επιστροφή πληρωμής',
+    charges_paid: 'Πληρωμή χρεώσεων',
+    deposit_link: 'Σύνδεσμος εγγύησης',
+    deposit_link_cancelled: 'Ακύρωση συνδέσμου εγγύησης',
+    deposit_held: 'Δέσμευση εγγύησης',
+    deposit_rejected: 'Απόρριψη κάρτας εγγύησης',
+    deposit_expired: 'Λήξη δέσμευσης εγγύησης',
+    deposit_released: 'Αποδέσμευση εγγύησης',
+    deposit_settled: 'Εκκαθάριση εγγύησης',
+    charge_added: 'Νέα χρέωση',
+    charge_accepted: 'Αποδοχή χρέωσης από πελάτη',
+    charge_disputed: 'Αμφισβήτηση χρέωσης από πελάτη',
+    charge_accept: 'Καταγραφή συναίνεσης για χρέωση',
+    charge_withdraw: 'Απόσυρση χρέωσης',
+    charge_mark_paid: 'Εξόφληση χρέωσης εκτός συστήματος',
+  },
+  depositStatus: {
+    awaiting: 'Αναμονή έγκρισης από τον πελάτη',
+    held: 'Δεσμευμένη',
+    released: 'Αποδεσμεύτηκε',
+    captured: 'Εκκαθαρίστηκε (με παρακράτηση)',
+    expired: 'Έληξε',
+    failed: 'Απέτυχε',
+    cancelled: 'Ακυρώθηκε',
+  },
+  depositMethod: { pos: 'POS γραφείου', stripe: 'Online (Stripe)', revolut: 'Online (Revolut)' },
+  chargeCategory: {
+    fuel: 'Καύσιμο',
+    late_return: 'Καθυστέρηση επιστροφής',
+    cleaning: 'Ειδικός καθαρισμός',
+    fines_admin: 'Διαχείριση προστίμου / διοδίων',
+    damage: 'Ζημιά',
+    other: 'Άλλη χρέωση (βάσει όρων)',
+  },
+  chargeStatus: {
+    proposed: 'Αναμονή απάντησης πελάτη',
+    accepted: 'Αποδεκτή',
+    disputed: 'Αμφισβητείται',
+    withdrawn: 'Αποσύρθηκε',
+    charged: 'Εξοφλήθηκε',
+  },
+  refundStatus: { pending: 'Σε εξέλιξη', done: 'Ολοκληρώθηκε', failed: 'Απέτυχε' },
+  checkoutKind: { rental: 'Ενοικίαση', deposit: 'Εγγύηση', charge: 'Χρεώσεις' },
+  checkoutStatus: {
+    open: 'Ανοιχτή',
+    paid: 'Πληρώθηκε',
+    authorised: 'Δεσμεύτηκε',
+    expired: 'Έκλεισε',
+    refund_pending: 'Επιστρέφεται',
+    refunded: 'Επιστράφηκε',
   },
 };
+
+// Χρονοσφραγίδα σε χιλιοστά (π.χ. λήξη δέσμευσης) σε τοπική ώρα.
+function msDateTime(ms, timezone = 'Europe/Athens') {
+  if (!ms) return '';
+  return new Date(ms).toLocaleString('el-GR', { timeZone: timezone, dateStyle: 'short', timeStyle: 'short' });
+}
 
 function label(group, key) {
   return (labels[group] && labels[group][key]) || key;
 }
 
-module.exports = { money, centsToInput, parseMoneyToCents, date, dateTime, utcTimestamp, labels, label };
+module.exports = { money, centsToInput, parseMoneyToCents, date, dateTime, utcTimestamp, msDateTime, labels, label };

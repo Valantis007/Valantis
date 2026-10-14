@@ -21,11 +21,13 @@ function sha256(value) {
 // κρατώντας την πρόσβαση σε κρατήσεις που είχε ήδη ο επισκέπτης.
 function logIn(req, userId) {
   return new Promise((resolve, reject) => {
-    const keep = { bookingAccess: req.session.bookingAccess, returnTo: req.session.returnTo };
+    const keep = { bookingAccess: req.session.bookingAccess, returnTo: req.session.returnTo, csrfToken: req.session.csrfToken };
     req.session.regenerate((err) => {
       if (err) return reject(err);
       req.session.userId = userId;
       if (keep.bookingAccess) req.session.bookingAccess = keep.bookingAccess;
+      // Το ίδιο token, ώστε φόρμες ανοιχτές σε άλλες καρτέλες να συνεχίσουν να λειτουργούν.
+      if (keep.csrfToken) req.session.csrfToken = keep.csrfToken;
       resolve(safeReturnTo(keep.returnTo, '/account'));
     });
   });
@@ -35,7 +37,8 @@ module.exports = function authRoutes(db) {
   const router = express.Router();
 
   router.get('/login', (req, res) => {
-    if (req.user) return res.redirect('/account');
+    if (req.query.returnTo) req.session.returnTo = safeReturnTo(String(req.query.returnTo), '/account');
+    if (req.user) return res.redirect(safeReturnTo(req.session.returnTo, '/account'));
     res.render('auth/login', { title: 'Σύνδεση', values: {}, error: null });
   });
 
@@ -110,7 +113,7 @@ module.exports = function authRoutes(db) {
     res.render('auth/forgot', { title: 'Ξέχασα τον κωδικό', sent: false, email: '' });
   });
 
-  router.post('/forgot-password', limits.passwordReset, async (req, res) => {
+  router.post('/forgot-password', limits.passwordResetRequest, async (req, res) => {
     const email = str(req.body.email, 254).toLowerCase();
     const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
     if (user) {
@@ -141,7 +144,7 @@ module.exports = function authRoutes(db) {
     res.render('auth/reset', { title: 'Νέος κωδικός', valid: Boolean(user), token: req.params.token, errors: {} });
   });
 
-  router.post('/reset-password/:token', limits.passwordReset, async (req, res) => {
+  router.post('/reset-password/:token', limits.passwordResetSubmit, async (req, res) => {
     const user = userForToken(req.params.token);
     if (!user) return res.render('auth/reset', { title: 'Νέος κωδικός', valid: false, token: '', errors: {} });
     const password = String(req.body.password || '');

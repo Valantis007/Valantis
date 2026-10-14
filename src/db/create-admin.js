@@ -14,8 +14,13 @@ async function upsertAdmin(db, email, password) {
   const hash = await bcrypt.hash(String(password), 12);
   const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
   if (existing) {
-    db.prepare(`UPDATE users SET role = 'admin', password_hash = ? WHERE id = ?`).run(hash, existing.id);
-    return `Ο χρήστης ${email} είναι πλέον διαχειριστής.`;
+    // Ο λογαριασμός μπορεί να τον είχε δημιουργήσει οποιοσδήποτε (δεν υπάρχει επιβεβαίωση email):
+    // αλλάζουμε τον κωδικό και αποσυνδέουμε ΟΛΕΣ τις υπάρχουσες συνδέσεις του πριν γίνει διαχειριστής.
+    db.prepare(
+      `UPDATE users SET role = 'admin', password_hash = ?, reset_token_hash = NULL, reset_expires_at = NULL WHERE id = ?`,
+    ).run(hash, existing.id);
+    db.prepare(`DELETE FROM sessions WHERE json_extract(sess, '$.userId') = ?`).run(existing.id);
+    return `Ο υπάρχων λογαριασμός ${email} έγινε διαχειριστής με νέο κωδικό. Όλες οι προηγούμενες συνδέσεις του τερματίστηκαν.`;
   }
   db.prepare(
     `INSERT INTO users (email, password_hash, first_name, last_name, role) VALUES (?, ?, 'Διαχειριστής', '-', 'admin')`,

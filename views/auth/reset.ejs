@@ -5,7 +5,7 @@
     <div class="alert alert-error">Ο σύνδεσμος δεν είναι έγκυρος ή έχει λήξει. <a href="/forgot-password">Ζητήστε νέο σύνδεσμο</a>.</div>
   <% } else { %>
     <form method="post" action="/reset-password/<%= token %>" class="card pad stack">
-      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
       <div class="field"><label for="password">Νέος κωδικός</label><input id="password" name="password" type="password" required autocomplete="new-password" minlength="10"><span class="hint">Τουλάχιστον 10 χαρακτήρες, με γράμματα και αριθμούς.</span><% if (errors.password) { %><span class="error"><%= errors.password %></span><% } %></div>
       <div class="field"><label for="password_confirm">Επιβεβαίωση</label><input id="password_confirm" name="password_confirm" type="password" required autocomplete="new-password"><% if (errors.password_confirm) { %><span class="error"><%= errors.password_confirm %></span><% } %></div>
       <button class="btn btn-primary" type="submit">Αποθήκευση</button>

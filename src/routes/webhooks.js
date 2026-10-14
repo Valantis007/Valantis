@@ -1,58 +1,52 @@
 'use strict';
 
 const express = require('express');
+const providers = require('../lib/providers');
 const payments = require('../lib/payments');
-const bookings = require('../lib/bookings');
-const { transaction } = require('../db');
+const deposits = require('../lib/deposits');
 
-// Το Stripe ειδοποιεί εδώ για πληρωμές, ακόμη κι αν ο πελάτης κλείσει τον browser
-// πριν επιστρέψει στη σελίδα μας. Ρυθμίστε στο Stripe Dashboard το endpoint
-// https://<domain>/webhooks/stripe με τα γεγονότα checkout.session.completed,
-// checkout.session.async_payment_succeeded και checkout.session.expired.
+// Ειδοποιήσεις (webhooks) από τους παρόχους πληρωμών. Ενημερώνουν για πληρωμές ακόμη
+// κι αν ο πελάτης κλείσει τον browser πριν επιστρέψει στη σελίδα μας.
+//
+// Stripe:  https://<domain>/webhooks/stripe  — γεγονότα checkout.session.*, payment_intent.*, charge.expired
+// Revolut: https://<domain>/webhooks/revolut — γεγονότα ORDER_* (εγγραφή με: npm run revolut:webhook)
+//
+// Το περιεχόμενο της ειδοποίησης δεν θεωρείται αξιόπιστο: ελέγχεται η υπογραφή και
+// η πραγματική κατάσταση διαβάζεται πάντα από τον πάροχο.
 module.exports = function webhookRoutes(db) {
   const router = express.Router();
 
-  router.post('/stripe', express.raw({ type: 'application/json', limit: '1mb' }), async (req, res) => {
-    if (!payments.enabled()) return res.status(404).end();
-    let event;
+  router.post('/:provider', express.raw({ type: '*/*', limit: '1mb' }), async (req, res) => {
+    const provider = providers.get(req.params.provider);
+    if (!provider) return res.status(404).end();
+
+    let info;
     try {
-      event = payments.constructEvent(req.body, req.get('stripe-signature'));
+      info = provider.parseWebhook(req.body, req.headers);
     } catch (err) {
-      console.warn('[webhook] Μη έγκυρη υπογραφή:', err.message);
+      console.warn(`[webhook ${provider.name}] Μη έγκυρη υπογραφή:`, err.message);
       return res.status(400).send('Invalid signature');
     }
+    if (!info || !info.eventId) return res.status(204).end();
+    if (db.prepare('SELECT 1 FROM processed_webhooks WHERE event_id = ?').get(info.eventId)) {
+      return res.status(204).end();
+    }
 
-    const seen = db.prepare('SELECT 1 FROM processed_webhooks WHERE event_id = ?').get(event.id);
-    if (seen) return res.json({ received: true, duplicate: true });
-
-    const session = event.data && event.data.object;
-    const reference = session && session.metadata && session.metadata.booking_reference;
     try {
-      if (reference && ['checkout.session.completed', 'checkout.session.async_payment_succeeded'].includes(event.type)) {
-        if (session.payment_status === 'paid') {
-          await bookings.markPaidOnline(db, reference, {
-            amountCents: session.amount_total,
-            paymentIntent: session.payment_intent,
-            sessionId: session.id,
-            actor: 'stripe-webhook',
-          });
-        }
-      } else if (reference && event.type === 'checkout.session.expired') {
-        transaction(db, () => {
-          const booking = bookings.getByReference(db, reference);
-          if (booking && booking.status === 'pending_payment' && booking.stripe_session_id === session.id) {
-            db.prepare(`UPDATE bookings SET status = 'expired', hold_expires_at = NULL WHERE id = ?`).run(booking.id);
-            bookings.logEvent(db, booking.id, 'stripe-webhook', 'expired', 'Η σελίδα πληρωμής έληξε');
-          }
-        });
+      if (info.checkoutId && payments.getCheckoutRow(db, info.checkoutId)) {
+        await payments.reconcileCheckout(db, info.checkoutId, { actor: `${provider.name}-webhook` });
       }
-      db.prepare('INSERT OR IGNORE INTO processed_webhooks (event_id) VALUES (?)').run(event.id);
+      if (info.holdRef) {
+        const dep = db.prepare(`SELECT id FROM deposits WHERE hold_ref = ? AND status = 'held'`).get(info.holdRef);
+        if (dep) await deposits.syncHold(db, dep.id);
+      }
+      db.prepare('INSERT OR IGNORE INTO processed_webhooks (event_id) VALUES (?)').run(info.eventId);
     } catch (err) {
-      console.error('[webhook]', err);
-      // 500 => το Stripe θα ξαναστείλει το γεγονός αργότερα.
+      console.error(`[webhook ${provider.name}]`, err);
+      // 500 => ο πάροχος θα ξαναστείλει την ειδοποίηση αργότερα.
       return res.status(500).send('Error');
     }
-    res.json({ received: true });
+    res.status(204).end();
   });
 
   return router;

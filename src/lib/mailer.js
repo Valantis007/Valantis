@@ -15,6 +15,10 @@ const transport = smtpConfigured
       port: config.mail.port,
       secure: config.mail.secure,
       auth: config.mail.user ? { user: config.mail.user, pass: config.mail.pass } : undefined,
+      // Ένας αργός/μπλοκαρισμένος SMTP server δεν πρέπει να «κρεμάει» την εφαρμογή.
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 20000,
     })
   : nodemailer.createTransport({ jsonTransport: true });
 
@@ -48,4 +52,17 @@ async function send({ to, subject, template, data = {}, replyTo }) {
   }
 }
 
-module.exports = { send, outbox, smtpConfigured };
+// Αποστολή στο παρασκήνιο: η απάντηση στον χρήστη δεν περιμένει τον SMTP server.
+const pending = new Set();
+function sendInBackground(message) {
+  const p = send(message).finally(() => pending.delete(p));
+  pending.add(p);
+  return p;
+}
+
+// Για tests και ομαλό τερματισμό: περιμένει να σταλούν όσα είναι σε εξέλιξη.
+async function flush() {
+  while (pending.size) await Promise.allSettled([...pending]);
+}
+
+module.exports = { send, sendInBackground, flush, outbox, smtpConfigured };

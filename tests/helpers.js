@@ -2,6 +2,10 @@
 
 process.env.NODE_ENV = 'test';
 process.env.ONE_WAY_FEE = '30';
+process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test';
+process.env.REVOLUT_WEBHOOK_SECRET = 'wsk_test_secret';
+process.env.BASE_URL = 'https://rent.example.gr';
+process.env.ADMIN_NOTIFY_EMAIL = 'office@example.gr';
 
 const os = require('node:os');
 const fs = require('node:fs');
@@ -84,4 +88,46 @@ function agent(app) {
   return request.agent(app);
 }
 
-module.exports = { setup, daysFromNow, searchParams, driver, csrf, post, createUser, login, agent, request, mailer, time };
+// Ενεργοποιεί ψεύτικο Stripe/Revolut για ένα test και τον απενεργοποιεί στο τέλος.
+function useStripe(t) {
+  const { fakeStripe } = require('./fakes');
+  const providers = require('../src/lib/providers');
+  const fake = fakeStripe();
+  providers.PROVIDERS.stripe.setClient(fake.client);
+  providers.PROVIDERS.revolut.setClient(null);
+  t.after(() => providers.PROVIDERS.stripe.setClient(null));
+  return fake;
+}
+
+function useRevolut(t) {
+  const { fakeRevolut } = require('./fakes');
+  const providers = require('../src/lib/providers');
+  const fake = fakeRevolut();
+  providers.PROVIDERS.revolut.setClient(fake.client);
+  providers.PROVIDERS.stripe.setClient(null);
+  t.after(() => providers.PROVIDERS.revolut.setClient(null));
+  return fake;
+}
+
+function bookingRef(res) {
+  const m = /\/booking\/([A-Z0-9]{8})/.exec(res.headers.location || '');
+  return m ? m[1] : null;
+}
+
+module.exports = {
+  setup,
+  daysFromNow,
+  searchParams,
+  driver,
+  csrf,
+  post,
+  createUser,
+  login,
+  agent,
+  request,
+  mailer,
+  time,
+  useStripe,
+  useRevolut,
+  bookingRef,
+};

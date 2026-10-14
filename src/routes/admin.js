@@ -9,8 +9,13 @@ const multer = require('multer');
 const time = require('../lib/time');
 const format = require('../lib/format');
 const bookings = require('../lib/bookings');
-const { transaction } = require('../db');
-const { BLOCKING_SQL } = require('../lib/availability');
+const payments = require('../lib/payments');
+const deposits = require('../lib/deposits');
+const providers = require('../lib/providers');
+const mailer = require('../lib/mailer');
+const QRCode = require('qrcode');
+const { transaction, normalizeText } = require('../db');
+const { BLOCKING_SQL, OVERLAP_SQL, EFFECTIVE_RETURN_SQL, blockingParams } = require('../lib/availability');
 const { str, intOrNull, checkbox } = require('../lib/validation');
 const { requireAdmin } = require('../middleware/auth');
 const { verifyCsrf } = require('../middleware/security');
@@ -22,6 +27,19 @@ const FUELS = Object.keys(format.labels.fuel);
 const STATUSES = Object.keys(format.labels.status);
 const MD_RE = /^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 const PAGE_SIZE = 50;
+const EARLY_PICKUP_HOURS = 12;
+
+// Οι ελληνικές πινακίδες χρησιμοποιούν μόνο γράμματα που μοιάζουν με λατινικά.
+// Αποθηκεύουμε πάντα ελληνικά κεφαλαία χωρίς κενά/παύλες, ώστε «NBA 1001» = «ΝΒΑ1001».
+const LATIN_TO_GREEK = { A: 'Α', B: 'Β', E: 'Ε', Z: 'Ζ', H: 'Η', I: 'Ι', K: 'Κ', M: 'Μ', N: 'Ν', O: 'Ο', P: 'Ρ', T: 'Τ', Y: 'Υ', X: 'Χ' };
+function normalizePlate(value) {
+  return String(value || '')
+    .toLocaleUpperCase('el')
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .replace(/[\s-]/g, '')
+    .replace(/[ABEZHIKMNOPTYX]/g, (c) => LATIN_TO_GREEK[c]);
+}
 
 module.exports = function adminRoutes(db, { uploadDir }) {
   const router = express.Router();
@@ -30,11 +48,11 @@ module.exports = function adminRoutes(db, { uploadDir }) {
   const upload = multer({
     storage: multer.diskStorage({
       destination: uploadDir,
-      filename: (req, file, cb) => cb(null, `${crypto.randomBytes(12).toString('hex')}${IMAGE_TYPES[file.mimetype]}`),
+      filename: (req, file, cb) => cb(null, `${crypto.randomBytes(12).toString("hex")}${IMAGE_TYPES[file.mimetype]}`),
     }),
     limits: { fileSize: 5 * 1024 * 1024, files: 1 },
     fileFilter: (req, file, cb) => {
-      if (IMAGE_TYPES[file.mimetype]) return cb(null, true);
+      if (Object.hasOwn(IMAGE_TYPES, file.mimetype)) return cb(null, true);
       const err = new Error('Επιτρέπονται μόνο εικόνες JPG, PNG ή WEBP.');
       err.status = 400;
       return cb(err);
@@ -88,12 +106,30 @@ module.exports = function adminRoutes(db, { uploadDir }) {
         fleet: db.prepare('SELECT COUNT(*) n FROM cars WHERE active = 1').get().n,
         monthRevenue: db
           .prepare(
-            `SELECT COALESCE(SUM(total_cents), 0) s FROM bookings
-             WHERE status IN ('confirmed', 'active', 'completed') AND pickup_at >= ? AND pickup_at < ?`,
+            `SELECT COALESCE(SUM(CASE
+                WHEN status IN ('confirmed', 'active', 'completed') THEN total_cents - refunded_cents
+                WHEN status IN ('cancelled', 'expired') THEN paid_cents - refunded_cents
+                ELSE 0 END), 0) s
+             FROM bookings WHERE pickup_at >= ? AND pickup_at < ?`,
           )
           .get(monthStart, `${nextMonth}-01T00:00`).s,
         unreadMessages: db.prepare('SELECT COUNT(*) n FROM messages WHERE handled = 0').get().n,
       },
+      attention: deposits.attentionList(db),
+      refundProblems: db
+        .prepare(
+          `SELECT r.*, b.reference FROM refunds r JOIN bookings b ON b.id = r.booking_id
+           WHERE r.status = 'failed' OR (r.status = 'pending' AND r.attempts > 0) ORDER BY r.id DESC`,
+        )
+        .all(),
+      refundsDue: db
+        .prepare(
+          `SELECT b.id, b.reference, b.first_name, b.last_name, b.paid_cents - b.refunded_cents AS due_cents FROM bookings b
+           WHERE b.paid_cents > b.refunded_cents AND b.status IN ('cancelled', 'expired')
+             AND EXISTS (SELECT 1 FROM booking_events e WHERE e.booking_id = b.id AND e.action = 'refund_due')
+           ORDER BY b.id DESC`,
+        )
+        .all(),
     });
   });
 
@@ -114,9 +150,14 @@ module.exports = function adminRoutes(db, { uploadDir }) {
       params.status = filters.status;
     }
     if (filters.q) {
-      where.push(`(b.reference LIKE :q OR b.email LIKE :q OR b.last_name LIKE :q OR b.first_name LIKE :q
-        OR b.phone LIKE :q OR c.plate LIKE :q)`);
-      params.q = `%${filters.q.replace(/[%_]/g, '')}%`;
+      where.push(`(b.reference LIKE :q OR norm(b.email) LIKE :qn OR norm(b.last_name) LIKE :qn
+        OR norm(b.first_name) LIKE :qn OR norm(b.first_name || ' ' || b.last_name) LIKE :qn
+        OR replace(b.phone, ' ', '') LIKE :qphone OR c.plate LIKE :qplate)`);
+      const clean = filters.q.replace(/[%_]/g, '');
+      params.q = `%${clean}%`;
+      params.qn = `%${normalizeText(clean)}%`;
+      params.qphone = `%${clean.replace(/\s/g, '')}%`;
+      params.qplate = `%${normalizePlate(clean)}%`;
     }
     if (filters.from) {
       where.push('b.pickup_at >= :from');
@@ -154,24 +195,71 @@ module.exports = function adminRoutes(db, { uploadDir }) {
     next();
   }
 
-  router.get('/bookings/:id', loadBooking, (req, res) => {
+  router.get('/bookings/:id', loadBooking, async (req, res) => {
+    const b = req.booking;
+    // Φρέσκια εικόνα της online εγγύησης από τον πάροχο.
+    const held = deposits.heldDeposit(db, b.id);
+    if (held && held.method !== 'pos') await deposits.syncHold(db, held.id).catch((err) => console.warn('[deposit sync]', err.message));
+    // Σύνδεσμος εγγύησης που μόλις δημιουργήθηκε (εμφανίζεται μία φορά, με QR).
+    let newLink = null;
+    const pendingLink = req.session.newDepositLink;
+    if (pendingLink && pendingLink.bookingId === b.id) {
+      newLink = { url: pendingLink.url, qr: await QRCode.toString(pendingLink.url, { type: 'svg', margin: 1, width: 220 }) };
+      delete req.session.newDepositLink;
+    }
+    const allDeposits = deposits.listForBooking(db, b.id);
     res.render('admin/booking', {
-      title: `Κράτηση ${req.booking.reference}`,
-      booking: req.booking,
-      extras: bookings.getExtras(db, req.booking.id),
-      events: bookings.getEvents(db, req.booking.id),
+      title: `Κράτηση ${b.reference}`,
+      booking: bookings.getById(db, b.id),
+      extras: bookings.getExtras(db, b.id),
+      events: bookings.getEvents(db, b.id),
+      deposits: allDeposits,
+      activeDeposit: allDeposits.find((d) => ['awaiting', 'held'].includes(d.status)) || null,
+      charges: deposits.chargesForBooking(db, b.id),
+      outstandingCents: deposits.outstandingCents(db, b.id),
+      refunds: db.prepare('SELECT * FROM refunds WHERE booking_id = ? ORDER BY id DESC').all(b.id),
+      checkouts: db.prepare('SELECT * FROM checkouts WHERE booking_id = ? ORDER BY created_at DESC').all(b.id),
+      pendingRefundCents: payments.pendingRefundCents(db, b.id),
+      onlineProvider: providers.active(),
+      chargeCategories: deposits.CATEGORIES,
+      newLink,
+      today: time.datePart(time.nowLocal()),
     });
   });
 
   const back = (req) => `/admin/bookings/${req.booking.id}`;
 
+  // Εκτελεί μια ενέργεια και μετατρέπει τα «αναμενόμενα» σφάλματα σε μήνυμα.
+  function handle(fn) {
+    return async (req, res) => {
+      try {
+        const message = await fn(req, res);
+        if (res.headersSent) return;
+        if (message) req.flash('success', message);
+      } catch (err) {
+        if (!(err instanceof bookings.BookingError)) {
+          console.error('[admin]', err);
+          req.flash('error', `Σφάλμα: ${err.message}`);
+        } else {
+          req.flash('error', err.message);
+        }
+      }
+      if (!res.headersSent) res.redirect(303, back(req));
+    };
+  }
+
   router.post('/bookings/:id/pickup', loadBooking, (req, res) => {
     const b = req.booking;
     const km = intOrNull(req.body.pickup_km);
+    const depositOk = b.deposit_cents === 0 || deposits.heldDeposit(db, b.id) || checkbox(req.body.no_deposit);
     if (b.status !== 'confirmed') req.flash('error', 'Μόνο επιβεβαιωμένες κρατήσεις μπορούν να παραδοθούν.');
-    else if (km === null || km < 0) req.flash('error', 'Συμπληρώστε τα χιλιόμετρα κατά την παράδοση.');
+    else if (time.minutesBetween(time.nowLocal(), b.pickup_at) > EARLY_PICKUP_HOURS * 60) {
+      req.flash('error', `Η παραλαβή είναι προγραμματισμένη για ${format.dateTime(b.pickup_at)}. Παράδοση νωρίτερα από ${EARLY_PICKUP_HOURS} ώρες δεν επιτρέπεται — αλλάξτε πρώτα την κράτηση.`);
+    } else if (km === null || km < 0) req.flash('error', 'Συμπληρώστε τα χιλιόμετρα κατά την παράδοση.');
     else if (b.payment_status !== 'paid' && !checkbox(req.body.collected_payment)) {
       req.flash('error', 'Η κράτηση δεν έχει εξοφληθεί. Εισπράξτε το ποσό και επιλέξτε «Εισπράχθηκε η πληρωμή».');
+    } else if (!depositOk) {
+      req.flash('error', 'Δεν έχει δεσμευτεί εγγύηση. Δεσμεύστε την (POS ή online) ή επιλέξτε ρητά «Παράδοση χωρίς εγγύηση».');
     } else {
       transaction(db, () => {
         if (b.payment_status !== 'paid') {
@@ -179,7 +267,7 @@ module.exports = function adminRoutes(db, { uploadDir }) {
           bookings.logEvent(db, b.id, actor(req), 'paid', `Είσπραξη κατά την παραλαβή ${format.money(b.total_cents)}`);
         }
         db.prepare(`UPDATE bookings SET status = 'active', pickup_km = ? WHERE id = ?`).run(km, b.id);
-        bookings.logEvent(db, b.id, actor(req), 'picked_up', `Χιλιόμετρα: ${km}`);
+        bookings.logEvent(db, b.id, actor(req), 'picked_up', `Χιλιόμετρα: ${km}${depositOk && !deposits.heldDeposit(db, b.id) && b.deposit_cents > 0 ? ' - ΧΩΡΙΣ εγγύηση' : ''}`);
       });
       req.flash('success', 'Το αυτοκίνητο παραδόθηκε στον πελάτη.');
     }
@@ -196,7 +284,12 @@ module.exports = function adminRoutes(db, { uploadDir }) {
         db.prepare(`UPDATE bookings SET status = 'completed', return_km = ? WHERE id = ?`).run(km, b.id);
         bookings.logEvent(db, b.id, actor(req), 'returned', `Χιλιόμετρα: ${km} (${km - (b.pickup_km || 0)} km διανύθηκαν)`);
       });
-      req.flash('success', 'Η ενοικίαση ολοκληρώθηκε.');
+      req.flash(
+        'success',
+        deposits.heldDeposit(db, b.id)
+          ? 'Η ενοικίαση ολοκληρώθηκε. Καταχωρήστε τυχόν χρεώσεις και κλείστε την εγγύηση το συντομότερο.'
+          : 'Η ενοικίαση ολοκληρώθηκε.',
+      );
     }
     res.redirect(303, back(req));
   });
@@ -215,30 +308,64 @@ module.exports = function adminRoutes(db, { uploadDir }) {
     res.redirect(303, back(req));
   });
 
-  router.post('/bookings/:id/cancel', loadBooking, async (req, res) => {
-    const b = req.booking;
-    let refundCents = null;
-    if (str(req.body.refund_amount)) {
-      refundCents = format.parseMoneyToCents(req.body.refund_amount);
-      if (refundCents === null) {
-        req.flash('error', 'Μη έγκυρο ποσό επιστροφής.');
-        return res.redirect(303, back(req));
-      }
-    }
-    try {
-      await bookings.cancelBooking(db, b, {
+  function moneyField(value) {
+    if (!str(value)) return null;
+    const cents = format.parseMoneyToCents(value);
+    if (cents === null) throw new bookings.BookingError('Μη έγκυρο ποσό.');
+    return cents;
+  }
+
+  router.post(
+    '/bookings/:id/cancel',
+    loadBooking,
+    handle(async (req) => {
+      const result = await payments.cancelBooking(db, req.booking.id, {
         actor: actor(req),
         reason: str(req.body.reason, 300) || 'Ακύρωση από το γραφείο',
         refund: checkbox(req.body.refund),
-        refundCents,
+        refundCents: moneyField(req.body.refund_amount),
+        allowExpiredPaid: true,
       });
-      req.flash('success', 'Η κράτηση ακυρώθηκε και ο πελάτης ενημερώθηκε με email.');
-    } catch (err) {
-      console.error('[admin cancel]', err);
-      req.flash('error', `Η ακύρωση απέτυχε: ${err.message}`);
-    }
-    res.redirect(303, back(req));
-  });
+      let msg = 'Η κράτηση ακυρώθηκε και ο πελάτης ενημερώθηκε με email.';
+      if (result.refundedCents) msg += ` Επιστράφηκαν ${format.money(result.refundedCents)}.`;
+      if (result.refundPendingCents) msg += ` Η επιστροφή ${format.money(result.refundPendingCents)} δεν ολοκληρώθηκε ακόμη και θα ξαναδοκιμαστεί αυτόματα.`;
+      if (result.refundDueCents) msg += ` Οφείλεται επιστροφή ${format.money(result.refundDueCents)} εκτός συστήματος — καταχωρήστε την όταν γίνει.`;
+      return msg;
+    }),
+  );
+
+  router.post(
+    '/bookings/:id/refund',
+    loadBooking,
+    handle(async (req) => {
+      const amount = moneyField(req.body.amount);
+      const reason = str(req.body.reason, 300);
+      if (!reason) throw new bookings.BookingError('Συμπληρώστε την αιτία της επιστροφής.');
+      const { done } = await payments.refundBookingAmount(db, req.booking.id, amount, { actor: actor(req), reason });
+      return done ? `Επιστράφηκαν ${format.money(amount)} στην κάρτα του πελάτη.` : 'Η επιστροφή καταχωρήθηκε αλλά ο πάροχος δεν την ολοκλήρωσε ακόμη· θα ξαναδοκιμαστεί αυτόματα.';
+    }),
+  );
+
+  router.post(
+    '/bookings/:id/refund-manual',
+    loadBooking,
+    handle(async (req) => {
+      const amount = moneyField(req.body.amount);
+      payments.recordManualRefund(db, req.booking.id, amount, { actor: actor(req), note: str(req.body.note, 300) });
+      return `Καταχωρήθηκε επιστροφή ${format.money(amount)} εκτός συστήματος.`;
+    }),
+  );
+
+  router.post(
+    '/bookings/:id/refunds/:refundId/retry',
+    loadBooking,
+    handle(async (req) => {
+      const id = intOrNull(req.params.refundId) ?? -1;
+      db.prepare(`UPDATE refunds SET status = 'pending' WHERE id = ? AND booking_id = ? AND status = 'failed'`).run(id, req.booking.id);
+      const ok = await payments.processRefund(db, id);
+      return ok ? 'Η επιστροφή ολοκληρώθηκε.' : 'Η επιστροφή απέτυχε ξανά — δείτε το μήνυμα σφάλματος.';
+    }),
+  );
 
   router.post('/bookings/:id/notes', loadBooking, (req, res) => {
     db.prepare('UPDATE bookings SET admin_notes = ? WHERE id = ?').run(str(req.body.admin_notes, 4000) || null, req.booking.id);
@@ -246,11 +373,11 @@ module.exports = function adminRoutes(db, { uploadDir }) {
     res.redirect(303, back(req));
   });
 
-  router.post('/bookings/:id/resend', loadBooking, async (req, res) => {
+  router.post('/bookings/:id/resend', loadBooking, (req, res) => {
     const b = req.booking;
     if (!['confirmed', 'active'].includes(b.status)) req.flash('error', 'Μόνο για επιβεβαιωμένες κρατήσεις.');
     else {
-      await require('../lib/mailer').send({
+      mailer.sendInBackground({
         to: b.email,
         subject: `Επιβεβαίωση κράτησης ${b.reference}`,
         template: 'booking-confirmed',
@@ -260,6 +387,107 @@ module.exports = function adminRoutes(db, { uploadDir }) {
     }
     res.redirect(303, back(req));
   });
+
+  // ---------------- Εγγύηση ----------------
+  router.post(
+    '/bookings/:id/deposit/pos',
+    loadBooking,
+    handle(async (req) => {
+      deposits.recordPosHold(db, req.booking.id, {
+        amountCents: moneyField(req.body.amount),
+        approvalCode: str(req.body.approval_code, 40),
+        last4: str(req.body.last4, 4),
+        creditConfirmed: checkbox(req.body.credit_confirmed),
+        actor: actor(req),
+      });
+      return 'Η εγγύηση μέσω POS καταχωρήθηκε.';
+    }),
+  );
+
+  router.post(
+    '/bookings/:id/deposit/link',
+    loadBooking,
+    handle(async (req) => {
+      const link = await deposits.createOnlineLink(db, req.booking.id, {
+        amountCents: moneyField(req.body.amount),
+        actor: actor(req),
+        sendEmail: checkbox(req.body.send_email),
+      });
+      req.session.newDepositLink = { bookingId: req.booking.id, url: link.url };
+      return checkbox(req.body.send_email)
+        ? 'Ο σύνδεσμος εγγύησης δημιουργήθηκε και στάλθηκε στον πελάτη.'
+        : 'Ο σύνδεσμος εγγύησης δημιουργήθηκε. Δείξτε στον πελάτη το QR code.';
+    }),
+  );
+
+  router.post(
+    '/bookings/:id/deposit/:depositId/settle',
+    loadBooking,
+    handle(async (req) => {
+      const dep = deposits.getDeposit(db, intOrNull(req.params.depositId) ?? -1);
+      if (!dep || dep.booking_id !== req.booking.id) throw new bookings.BookingError('Η εγγύηση δεν βρέθηκε.');
+      const r = await deposits.settleDeposit(db, dep.id, {
+        actor: actor(req),
+        force: checkbox(req.body.force),
+        posConfirmed: checkbox(req.body.pos_confirmed),
+      });
+      let msg = r.capturedCents
+        ? `Παρακρατήθηκαν ${format.money(r.capturedCents)} και αποδεσμεύτηκαν ${format.money(r.releasedCents)}.`
+        : `Η εγγύηση αποδεσμεύτηκε (${format.money(r.releasedCents)}).`;
+      if (r.outstandingCents) msg += ` Εκκρεμούν χρεώσεις ${format.money(r.outstandingCents)} που πρέπει να εισπραχθούν χωριστά.`;
+      return msg;
+    }),
+  );
+
+  router.post(
+    '/bookings/:id/deposit/:depositId/release',
+    loadBooking,
+    handle(async (req) => {
+      const dep = deposits.getDeposit(db, intOrNull(req.params.depositId) ?? -1);
+      if (!dep || dep.booking_id !== req.booking.id) throw new bookings.BookingError('Η εγγύηση δεν βρέθηκε.');
+      if (dep.status === 'held' && deposits.outstandingCents(db, req.booking.id) > 0) {
+        throw new bookings.BookingError('Υπάρχουν αποδεκτές χρεώσεις: χρησιμοποιήστε «Εκκαθάριση εγγύησης».');
+      }
+      await deposits.releaseDeposit(db, dep.id, { actor: actor(req), reason: str(req.body.reason, 200) || 'Αποδέσμευση από το γραφείο' });
+      return dep.method === 'pos' && dep.status === 'held'
+        ? 'Καταχωρήθηκε η αποδέσμευση. Ακυρώστε την προέγκριση και στο τερματικό POS.'
+        : 'Η εγγύηση αποδεσμεύτηκε.';
+    }),
+  );
+
+  // ---------------- Χρεώσεις μετά την επιστροφή ----------------
+  router.post(
+    '/bookings/:id/charges',
+    loadBooking,
+    handle(async (req) => {
+      const charge = deposits.addCharge(db, req.booking.id, {
+        category: str(req.body.category, 20),
+        description: str(req.body.description, 300),
+        amountCents: moneyField(req.body.amount),
+        evidence: str(req.body.evidence, 2000),
+        customerConsent: str(req.body.customer_consent, 300),
+        actor: actor(req),
+      });
+      return charge.status === 'proposed'
+        ? `Η χρέωση ζημιάς στάλθηκε στον πελάτη για αποδοχή (προθεσμία ${format.date(charge.respond_by)}).`
+        : 'Η χρέωση καταχωρήθηκε.';
+    }),
+  );
+
+  router.post(
+    '/bookings/:id/charges/:chargeId/:action',
+    loadBooking,
+    handle(async (req) => {
+      const action = { accept: 'accept', withdraw: 'withdraw', 'mark-paid': 'mark_paid' }[req.params.action];
+      if (!action) throw new bookings.BookingError('Άγνωστη ενέργεια.');
+      deposits.adminChargeAction(db, req.booking.id, intOrNull(req.params.chargeId) ?? -1, action, {
+        consentNote: str(req.body.consent_note, 300),
+        method: str(req.body.method, 10),
+        actor: actor(req),
+      });
+      return 'Η χρέωση ενημερώθηκε.';
+    }),
+  );
 
   // ---------------- Στόλος ----------------
   router.get('/cars', (req, res) => {
@@ -278,9 +506,9 @@ module.exports = function adminRoutes(db, { uploadDir }) {
     if (car) {
       upcoming = db
         .prepare(
-          `SELECT * FROM bookings WHERE car_id = :car_id AND ${BLOCKING_SQL} AND return_at >= :today ORDER BY pickup_at`,
+          `SELECT * FROM bookings WHERE car_id = :car_id AND ${BLOCKING_SQL} AND ${EFFECTIVE_RETURN_SQL} >= :today ORDER BY pickup_at`,
         )
-        .all({ car_id: car.id, now_ms: Date.now(), today: time.datePart(time.nowLocal()) });
+        .all({ car_id: car.id, today: time.datePart(time.nowLocal()), ...blockingParams() });
       blocks = db.prepare('SELECT * FROM car_blocks WHERE car_id = ? ORDER BY start_at DESC').all(car.id);
     }
     res.status(status).render('admin/car-form', {
@@ -301,7 +529,7 @@ module.exports = function adminRoutes(db, { uploadDir }) {
       make: str(body.make, 60),
       model: str(body.model, 60),
       year: str(body.year, 4),
-      plate: str(body.plate, 15).toUpperCase(),
+      plate: normalizePlate(str(body.plate, 20)),
       category: str(body.category, 20),
       transmission: str(body.transmission, 20),
       fuel: str(body.fuel, 20),
@@ -325,7 +553,7 @@ module.exports = function adminRoutes(db, { uploadDir }) {
     if (!v.model) e.model = 'Υποχρεωτικό.';
     out.year = intOrNull(v.year);
     if (!(out.year >= 1990 && out.year <= new Date().getFullYear() + 1)) e.year = 'Μη έγκυρο έτος.';
-    if (!/^[A-ZΑ-Ω0-9 -]{3,15}$/.test(v.plate)) e.plate = 'Μη έγκυρη πινακίδα.';
+    if (!/^[A-ZΑ-Ω0-9]{3,12}$/.test(v.plate)) e.plate = 'Μη έγκυρη πινακίδα.';
     else if (db.prepare('SELECT 1 FROM cars WHERE plate = ? AND id != ?').get(v.plate, carId ?? -1)) {
       e.plate = 'Υπάρχει ήδη αυτοκίνητο με αυτή την πινακίδα.';
     }
@@ -374,6 +602,7 @@ module.exports = function adminRoutes(db, { uploadDir }) {
     if (carId) {
       const old = db.prepare('SELECT image FROM cars WHERE id = ?').get(carId);
       if (req.file) row.image = `/uploads/${req.file.filename}`;
+      else if (!old.image || old.image.startsWith('/img/cars/')) row.image = `/img/cars/${v.category}.svg`;
       db.prepare(`UPDATE cars SET ${Object.keys(row).map((c) => `${c} = :${c}`).join(', ')} WHERE id = :id`).run({ ...row, id: carId });
       if (req.file && old.image && old.image.startsWith('/uploads/')) {
         fs.rm(path.join(uploadDir, path.basename(old.image)), { force: true }, () => {});
@@ -447,9 +676,9 @@ module.exports = function adminRoutes(db, { uploadDir }) {
     }
     const clashes = db
       .prepare(
-        `SELECT reference FROM bookings WHERE car_id = :car_id AND ${BLOCKING_SQL} AND pickup_at < :end AND return_at > :start`,
+        `SELECT reference FROM bookings WHERE car_id = :car_id AND ${BLOCKING_SQL} AND ${OVERLAP_SQL}`,
       )
-      .all({ car_id: req.car.id, now_ms: Date.now(), start, end });
+      .all({ car_id: req.car.id, start, end, ...blockingParams() });
     if (clashes.length) {
       req.flash('error', `Υπάρχουν κρατήσεις σε αυτό το διάστημα: ${clashes.map((c) => c.reference).join(', ')}. Μεταφέρετε ή ακυρώστε τις πρώτα.`);
     } else {
@@ -576,10 +805,11 @@ module.exports = function adminRoutes(db, { uploadDir }) {
       .prepare(
         `SELECT u.id, u.email, u.first_name, u.last_name, u.phone, u.role, u.created_at,
            (SELECT COUNT(*) FROM bookings b WHERE b.user_id = u.id) AS booking_count
-         FROM users u WHERE (:q = '' OR u.email LIKE :like OR u.last_name LIKE :like)
+         FROM users u WHERE (:q = '' OR norm(u.email) LIKE :like OR norm(u.last_name) LIKE :like
+           OR norm(u.first_name || ' ' || u.last_name) LIKE :like)
          ORDER BY u.created_at DESC LIMIT 200`,
       )
-      .all({ q, like: `%${q.replace(/[%_]/g, '')}%` });
+      .all({ q, like: `%${normalizeText(q.replace(/[%_]/g, ''))}%` });
     res.render('admin/users', { title: 'Χρήστες', rows, q });
   });
 

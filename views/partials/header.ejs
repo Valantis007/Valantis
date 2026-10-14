@@ -28,7 +28,7 @@
           <% if (user.role === 'admin') { %><a href="/admin" class="<%= currentPath.startsWith('/admin') ? 'active' : '' %>">Διαχείριση</a><% } %>
           <a href="/account" class="<%= currentPath.startsWith('/account') ? 'active' : '' %>">Λογαριασμός</a>
           <form method="post" action="/logout" class="inline-form">
-            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
             <button type="submit" class="link-button">Αποσύνδεση</button>
           </form>
         <% } else { %>

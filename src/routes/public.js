@@ -8,7 +8,9 @@ const mailer = require('../lib/mailer');
 const { parseSearch, searchQuery } = require('../lib/search');
 const { availableCarIds } = require('../lib/availability');
 const bookings = require('../lib/bookings');
-const { str, isEmail, intOrNull } = require('../lib/validation');
+const deposits = require('../lib/deposits');
+const payments = require('../lib/payments');
+const { str, isEmail, intOrNull, checkbox } = require('../lib/validation');
 const { limits } = require('../middleware/security');
 
 const SORTS = {
@@ -56,7 +58,7 @@ module.exports = function publicRoutes(db) {
       category: str(req.query.category, 30),
       transmission: str(req.query.transmission, 20),
       seats: intOrNull(req.query.seats),
-      sort: SORTS[req.query.sort] ? req.query.sort : 'price_asc',
+      sort: Object.hasOwn(SORTS, String(req.query.sort || '')) ? String(req.query.sort) : 'price_asc',
     };
     let cars = db.prepare('SELECT * FROM cars WHERE active = 1').all();
     const categories = [...new Set(cars.map((c) => c.category))];
@@ -197,14 +199,64 @@ module.exports = function publicRoutes(db) {
     res.redirect('/contact');
   });
 
+  // ---------- Εγγύηση: έγκριση δέσμευσης από τον πελάτη (σύνδεσμος / QR) ----------
+  function renderDeposit(res, found, { status = 200, error = null, info = null } = {}) {
+    const { deposit, booking } = found;
+    res.status(status).render('pages/deposit', {
+      title: 'Εγγύηση ενοικίασης',
+      deposit,
+      booking,
+      window: deposits.holdWindow(booking),
+      error,
+      info,
+    });
+  }
+
+  router.get('/deposit/:token', (req, res, next) => {
+    const found = deposits.findByToken(db, req.params.token);
+    if (!found) return next();
+    renderDeposit(res, found);
+  });
+
+  router.post('/deposit/:token', limits.booking, async (req, res, next) => {
+    const found = deposits.findByToken(db, req.params.token);
+    if (!found) return next();
+    if (!checkbox(req.body.consent)) {
+      return renderDeposit(res, found, { status: 422, error: 'Για να συνεχίσετε πρέπει να συμφωνήσετε με τη δέσμευση του ποσού.' });
+    }
+    try {
+      return res.redirect(303, await deposits.startOnlineHold(db, req.params.token));
+    } catch (err) {
+      if (!(err instanceof bookings.BookingError)) console.error('[deposit]', err);
+      return renderDeposit(res, deposits.findByToken(db, req.params.token), {
+        status: 409,
+        error: err instanceof bookings.BookingError ? err.message : 'Δεν ήταν δυνατή η σύνδεση με την υπηρεσία πληρωμών. Δοκιμάστε ξανά.',
+      });
+    }
+  });
+
+  router.get('/deposit/:token/return', async (req, res, next) => {
+    const found = deposits.findByToken(db, req.params.token);
+    if (!found) return next();
+    const rows = db
+      .prepare(`SELECT id FROM checkouts WHERE kind = 'deposit' AND ref_id = ? AND status = 'open' ORDER BY created_at DESC`)
+      .all(found.deposit.id);
+    for (const row of rows) {
+      try {
+        await payments.reconcileCheckout(db, row.id, { actor: 'customer-return' });
+      } catch (err) {
+        console.error('[deposit return]', err.message);
+      }
+    }
+    const fresh = deposits.findByToken(db, req.params.token);
+    renderDeposit(res, fresh, {
+      info: fresh.deposit.status === 'awaiting' && !fresh.deposit.failure_reason ? 'Η έγκριση επεξεργάζεται. Ανανεώστε τη σελίδα σε λίγο.' : null,
+    });
+  });
+
   router.get('/terms', (req, res) => res.render('pages/terms', { title: 'Όροι ενοικίασης' }));
   router.get('/privacy', (req, res) => res.render('pages/privacy', { title: 'Πολιτική απορρήτου' }));
   router.get('/faq', (req, res) => res.render('pages/faq', { title: 'Συχνές ερωτήσεις' }));
-
-  router.get('/healthz', (req, res) => {
-    db.prepare('SELECT 1').get();
-    res.type('text').send('ok');
-  });
 
   return router;
 };

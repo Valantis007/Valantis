@@ -76,14 +76,37 @@ const config = {
     minLicenseYears: int('MIN_LICENSE_YEARS', 1),
     vatPercent: int('VAT_PERCENT', 24),
     durationDiscounts: parseDurationDiscounts(env.DURATION_DISCOUNTS || '7:5,14:10,28:15'),
-    paymentHoldMinutes: Math.max(int('PAYMENT_HOLD_MINUTES', 35), 31),
+    // Το Stripe απαιτεί η σελίδα πληρωμής να ισχύει τουλάχιστον 30 λεπτά, άρα ελάχιστο 35.
+    paymentHoldMinutes: Math.min(Math.max(int('PAYMENT_HOLD_MINUTES', 35), 35), 600),
     // Περίοδος χάριτος: μια καθυστέρηση έως 59 λεπτά δεν χρεώνεται ως επιπλέον ημέρα.
     graceMinutes: 59,
+  },
+
+  payments: {
+    // 'stripe' ή 'revolut'. Αν μείνει κενό, χρησιμοποιείται όποιος πάροχος έχει ρυθμιστεί (πρώτα το Stripe).
+    provider: (env.PAYMENT_PROVIDER || '').trim().toLowerCase(),
   },
 
   stripe: {
     secretKey: env.STRIPE_SECRET_KEY || '',
     webhookSecret: env.STRIPE_WEBHOOK_SECRET || '',
+    // Δέσμευση εγγύησης έως 30 ημέρες (απαιτεί έγκριση από το Stripe — τιμολόγηση IC+).
+    extendedAuthorization: env.STRIPE_EXTENDED_AUTHORIZATION === 'true',
+  },
+
+  revolut: {
+    secretKey: env.REVOLUT_SECRET_KEY || '',
+    webhookSecret: env.REVOLUT_WEBHOOK_SECRET || '',
+    sandbox: env.REVOLUT_SANDBOX === 'true',
+  },
+
+  deposits: {
+    // Το online link εγγύησης μπορεί να χρησιμοποιηθεί από τόσες ώρες πριν την παραλαβή.
+    linkOpensHoursBeforePickup: int('DEPOSIT_LINK_OPENS_HOURS', 48),
+    // Ημέρες που έχει ο πελάτης για να αποδεχθεί ή να αμφισβητήσει μια χρέωση ζημιάς.
+    damageResponseDays: int('DAMAGE_RESPONSE_DAYS', 7),
+    // Αυτόματη αποδέσμευση εγγύησης Χ ώρες μετά την επιστροφή αν δεν υπάρχουν χρεώσεις (0 = ποτέ).
+    autoReleaseHours: int('DEPOSIT_AUTO_RELEASE_HOURS', 48),
   },
 
   mail: {

@@ -22,7 +22,7 @@
     </section>
     <aside class="stack">
       <form method="post" action="/account/profile" class="card pad stack">
-        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
         <h2 class="h4">Στοιχεία</h2>
         <p class="small muted"><%= user.email %></p>
         <div class="field"><label for="first_name">Όνομα</label><input id="first_name" name="first_name" value="<%= profile.first_name %>" required><% if (profileErrors.first_name) { %><span class="error"><%= profileErrors.first_name %></span><% } %></div>
@@ -31,7 +31,7 @@
         <button class="btn" type="submit">Αποθήκευση</button>
       </form>
       <form method="post" action="/account/password" class="card pad stack">
-        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
         <h2 class="h4">Αλλαγή κωδικού</h2>
         <div class="field"><label for="current_password">Τρέχων κωδικός</label><input id="current_password" name="current_password" type="password" required autocomplete="current-password"><% if (passwordErrors.current_password) { %><span class="error"><%= passwordErrors.current_password %></span><% } %></div>
         <div class="field"><label for="password">Νέος κωδικός</label><input id="password" name="password" type="password" required autocomplete="new-password"><% if (passwordErrors.password) { %><span class="error"><%= passwordErrors.password %></span><% } %></div>
@@ -42,7 +42,7 @@
       <details class="card pad">
         <summary>Διαγραφή λογαριασμού</summary>
         <form method="post" action="/account/delete" class="stack" data-confirm="Ο λογαριασμός θα διαγραφεί οριστικά. Συνέχεια;">
-          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
           <p class="small muted">Οι κρατήσεις σας θα διατηρηθούν όπως απαιτεί η φορολογική νομοθεσία, αλλά δεν θα συνδέονται πλέον με λογαριασμό.</p>
           <div class="field"><label for="del_password">Κωδικός</label><input id="del_password" name="current_password" type="password" required></div>
           <button class="btn btn-danger" type="submit">Οριστική διαγραφή</button>

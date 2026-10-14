@@ -7,7 +7,6 @@ const { computeQuote } = require('./pricing');
 const { isCarAvailable } = require('./availability');
 const { transaction } = require('../db');
 const { str, isEmail, isPhone, intOrNull, checkbox } = require('./validation');
-const payments = require('./payments');
 const mailer = require('./mailer');
 
 const REF_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -225,15 +224,15 @@ function createBooking(db, { car, search, extras, driver, userId = null, nowMs =
   });
 }
 
-async function notifyConfirmed(db, booking) {
+function notifyConfirmed(db, booking) {
   const extras = getExtras(db, booking.id);
-  await mailer.send({
+  mailer.sendInBackground({
     to: booking.email,
     subject: `Επιβεβαίωση κράτησης ${booking.reference}`,
     template: 'booking-confirmed',
     data: { booking, extras },
   });
-  await mailer.send({
+  mailer.sendInBackground({
     to: config.mail.adminNotify,
     subject: `Νέα κράτηση ${booking.reference} - ${booking.make} ${booking.model}`,
     template: 'admin-new-booking',
@@ -241,49 +240,13 @@ async function notifyConfirmed(db, booking) {
   });
 }
 
-/**
- * Καταγράφει επιτυχή πληρωμή με κάρτα. Είναι ασφαλές να κληθεί πολλές φορές
- * (από τη σελίδα επιστροφής και από το webhook) — εφαρμόζεται μόνο μία.
- */
-async function markPaidOnline(db, reference, { amountCents, paymentIntent, sessionId, actor = 'stripe' }) {
-  const outcome = transaction(db, () => {
-    const booking = getByReference(db, reference);
-    if (!booking) return { result: 'not_found' };
-    if (booking.payment_status === 'paid' || booking.payment_status === 'refunded') return { result: 'already', booking };
-    if (booking.stripe_session_id && sessionId && booking.stripe_session_id !== sessionId) return { result: 'mismatch', booking };
-    if (amountCents !== booking.total_cents) return { result: 'mismatch', booking };
-
-    let stillValid = booking.status === 'pending_payment';
-    if (booking.status === 'expired') {
-      // Η πληρωμή ήρθε μετά τη λήξη: επιβεβαιώνουμε μόνο αν το αυτοκίνητο είναι ακόμη ελεύθερο.
-      stillValid = isCarAvailable(db, booking.car_id, booking.pickup_at, booking.return_at, { excludeBookingId: booking.id });
-    }
-    db.prepare(
-      `UPDATE bookings SET payment_status = 'paid', paid_cents = ?, stripe_payment_intent = ?,
-         status = CASE WHEN ? THEN 'confirmed' ELSE status END, hold_expires_at = NULL
-       WHERE id = ?`,
-    ).run(amountCents, paymentIntent || null, stillValid ? 1 : 0, booking.id);
-    logEvent(db, booking.id, actor, 'paid', `Πληρωμή ${(amountCents / 100).toFixed(2)} €`);
-    return { result: stillValid ? 'confirmed' : 'conflict', booking: getById(db, booking.id) };
-  });
-
-  if (outcome.result === 'confirmed') {
-    await notifyConfirmed(db, outcome.booking);
-  } else if (outcome.result === 'conflict') {
-    // Το αυτοκίνητο δόθηκε σε άλλον όσο ο πελάτης πλήρωνε: επιστροφή χρημάτων.
-    await cancelBooking(db, outcome.booking, {
-      actor: 'system',
-      reason: 'Η πληρωμή ολοκληρώθηκε αφού έληξε η προσωρινή δέσμευση και το αυτοκίνητο δεν ήταν πλέον διαθέσιμο.',
-      refund: true,
-      force: true,
-    });
-    outcome.booking = getById(db, outcome.booking.id);
-  }
-  return outcome;
-}
-
 function hoursUntilPickup(booking, now = time.nowLocal()) {
   return time.minutesBetween(now, booking.pickup_at) / 60;
+}
+
+// Πληρωμή που έγινε online (κάρτα μέσω Stripe/Revolut) και μπορεί να επιστραφεί αυτόματα.
+function isOnlinePayment(booking) {
+  return Boolean(booking.payment_provider && booking.payment_ref && booking.paid_cents > 0);
 }
 
 function customerCancellation(booking, now = time.nowLocal()) {
@@ -298,59 +261,25 @@ function customerCancellation(booking, now = time.nowLocal()) {
   return { allowed: true };
 }
 
-/**
- * Ακύρωση κράτησης, με προαιρετική επιστροφή χρημάτων μέσω Stripe.
- * Η επιστροφή γίνεται ΠΡΙΝ την αλλαγή κατάστασης: αν αποτύχει, η κράτηση μένει ως έχει.
- */
-async function cancelBooking(db, booking, { actor, reason = null, refund = true, refundCents = null, force = false }) {
-  if (!force && !['pending_payment', 'confirmed'].includes(booking.status)) {
-    throw new BookingError('Η κράτηση δεν μπορεί να ακυρωθεί σε αυτή την κατάσταση.');
-  }
-  let refunded = 0;
-  const refundable = booking.paid_cents - booking.refunded_cents;
-  if (refund && refundable > 0 && booking.payment_method === 'card' && booking.stripe_payment_intent) {
-    const amount = refundCents === null ? refundable : Math.min(Math.max(refundCents, 0), refundable);
-    if (amount > 0) {
-      if (!payments.enabled()) throw new BookingError('Το Stripe δεν είναι ρυθμισμένο - δεν είναι δυνατή η αυτόματη επιστροφή.');
-      await payments.refund(booking.stripe_payment_intent, amount);
-      refunded = amount;
-    }
-  }
-  transaction(db, () => {
-    const totalRefunded = booking.refunded_cents + refunded;
-    let paymentStatus = booking.payment_status;
-    if (refunded > 0) paymentStatus = totalRefunded >= booking.paid_cents ? 'refunded' : 'partially_refunded';
-    db.prepare(
-      `UPDATE bookings SET status = 'cancelled', cancelled_at = datetime('now'), hold_expires_at = NULL,
-         refunded_cents = ?, payment_status = ? WHERE id = ?`,
-    ).run(totalRefunded, paymentStatus, booking.id);
-    const note = [reason, refunded > 0 ? `Επιστροφή ${(refunded / 100).toFixed(2)} €` : null].filter(Boolean).join(' - ');
-    logEvent(db, booking.id, actor, 'cancelled', note || null);
-  });
-  const updated = getById(db, booking.id);
-  await mailer.send({
-    to: updated.email,
-    subject: `Ακύρωση κράτησης ${updated.reference}`,
-    template: 'booking-cancelled',
-    data: { booking: updated, refundedCents: refunded, reason },
-  });
-  return updated;
-}
-
 // Κρατήσεις που δεν πληρώθηκαν εγκαίρως αποδεσμεύουν το αυτοκίνητο.
+// Επιστρέφει τα id τους, ώστε να κλείσουν και οι σελίδες πληρωμής στον πάροχο.
 function expireStaleHolds(db, nowMs = Date.now()) {
   const stale = db
     .prepare(`SELECT id FROM bookings WHERE status = 'pending_payment' AND hold_expires_at <= ?`)
     .all(nowMs);
+  const expired = [];
   for (const { id } of stale) {
     transaction(db, () => {
       const res = db
-        .prepare(`UPDATE bookings SET status = 'expired' WHERE id = ? AND status = 'pending_payment'`)
+        .prepare(`UPDATE bookings SET status = 'expired', hold_expires_at = NULL WHERE id = ? AND status = 'pending_payment'`)
         .run(id);
-      if (res.changes) logEvent(db, id, 'system', 'expired', 'Δεν ολοκληρώθηκε η πληρωμή εγκαίρως');
+      if (res.changes) {
+        logEvent(db, id, 'system', 'expired', 'Δεν ολοκληρώθηκε η πληρωμή εγκαίρως');
+        expired.push(id);
+      }
     });
   }
-  return stale.length;
+  return expired;
 }
 
 module.exports = {
@@ -365,9 +294,8 @@ module.exports = {
   getExtras,
   getEvents,
   logEvent,
-  markPaidOnline,
   notifyConfirmed,
   customerCancellation,
-  cancelBooking,
+  isOnlinePayment,
   expireStaleHolds,
 };

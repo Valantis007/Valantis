@@ -1,0 +1,41 @@
+<%- include('../partials/header') %>
+<div class="container section narrow-wide">
+  <h1>Εγγύηση ενοικίασης</h1>
+  <p class="muted">Κράτηση <span class="ref"><%= booking.reference %></span> · <%= booking.make %> <%= booking.model %> · <%= format.dateTime(booking.pickup_at) %> → <%= format.dateTime(booking.return_at) %></p>
+
+  <% if (error) { %><div class="alert alert-error" role="alert"><%= error %></div><% } %>
+  <% if (info) { %><div class="alert alert-info"><%= info %></div><% } %>
+
+  <% if (deposit.status === 'awaiting') { %>
+    <% if (deposit.failure_reason) { %><div class="alert alert-warning"><%= deposit.failure_reason %></div><% } %>
+    <div class="card pad">
+      <p class="deposit-amount"><%= format.money(deposit.amount_cents) %></p>
+      <p><strong>Τι σημαίνει η εγγύηση:</strong> το ποσό <strong>δεσμεύεται</strong> (δεν χρεώνεται) στην πιστωτική σας κάρτα για όσο διαρκεί η ενοικίαση.</p>
+      <ul class="checklist">
+        <li>Γίνονται δεκτές <strong>μόνο πιστωτικές κάρτες</strong> στο όνομα του οδηγού. Χρεωστικές και προπληρωμένες κάρτες απορρίπτονται αυτόματα.</li>
+        <li>Μετά την επιστροφή του αυτοκινήτου το ποσό <strong>αποδεσμεύεται χωρίς καθυστέρηση</strong>. Η τράπεζά σας μπορεί να χρειαστεί λίγες ημέρες για να το εμφανίσει ως διαθέσιμο.</li>
+        <li>Από την εγγύηση μπορεί να αφαιρεθούν μόνο χρεώσεις που προβλέπονται στους <a href="/terms" target="_blank">όρους ενοικίασης</a> (π.χ. καύσιμο, καθυστέρηση), με αναλυτική ενημέρωση.</li>
+        <li>Χρέωση για <strong>ζημιά</strong> γίνεται μόνο με τη συναίνεσή σας. Θα λάβετε τεκμηρίωση και θα μπορείτε να την αμφισβητήσετε.</li>
+      </ul>
+      <% if (!window.open) { %>
+        <div class="alert alert-info">Η έγκριση της εγγύησης γίνεται από <strong><%= format.dateTime(window.opensAt) %></strong> έως την επιστροφή του αυτοκινήτου.</div>
+      <% } else { %>
+        <form method="post" action="" class="stack">
+          <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+          <label class="check"><input type="checkbox" name="consent" value="1" required>
+            <span>Συμφωνώ να δεσμευτεί το ποσό <strong><%= format.money(deposit.amount_cents) %></strong> στην πιστωτική μου κάρτα ως εγγύηση για την κράτηση <%= booking.reference %>, σύμφωνα με τους <a href="/terms" target="_blank">όρους ενοικίασης</a>.</span></label>
+          <button class="btn btn-primary" type="submit">Συνέχεια στην ασφαλή σελίδα πληρωμής</button>
+          <p class="small muted">Τα στοιχεία της κάρτας σας τα καταχωρείτε στην ασφαλή σελίδα του παρόχου πληρωμών (<%= format.label('depositMethod', deposit.method) %>). Δεν τα βλέπουμε και δεν τα αποθηκεύουμε.</p>
+        </form>
+      <% } %>
+    </div>
+  <% } else if (deposit.status === 'held') { %>
+    <div class="alert alert-success">Η εγγύηση <strong><%= format.money(deposit.amount_cents) %></strong> δεσμεύτηκε επιτυχώς<% if (deposit.card_last4) { %> στην κάρτα •••• <%= deposit.card_last4 %><% } %>. Ευχαριστούμε!</div>
+    <p>Θα αποδεσμευτεί μετά την επιστροφή του αυτοκινήτου. Μπορείτε να δείτε την κράτησή σας από τη σελίδα <a href="/manage">«Η κράτησή μου»</a>.</p>
+  <% } else if (['released', 'captured'].includes(deposit.status)) { %>
+    <div class="alert alert-info">Η εγγύηση έχει κλείσει: <%= format.label('depositStatus', deposit.status) %><% if (deposit.captured_cents) { %> — παρακράτηση <%= format.money(deposit.captured_cents) %><% } %>.</div>
+  <% } else { %>
+    <div class="alert alert-error">Αυτός ο σύνδεσμος δεν ισχύει πλέον. Επικοινωνήστε μαζί μας για νέο σύνδεσμο.</div>
+  <% } %>
+</div>
+<%- include('../partials/footer') %>

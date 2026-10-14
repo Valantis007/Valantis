@@ -16,12 +16,12 @@ function mdInSeason(md, season) {
 
 function seasonPercentFor(date, seasons) {
   const md = date.slice(5, 10);
-  let percent = 100;
+  let best = null;
   for (const season of seasons) {
     // Αν επικαλύπτονται περίοδοι, ισχύει η υψηλότερη.
-    if (mdInSeason(md, season) && (percent === 100 || season.percent > percent)) percent = season.percent;
+    if (mdInSeason(md, season) && (best === null || season.percent > best)) best = season.percent;
   }
-  return percent;
+  return best ?? 100;
 }
 
 function durationDiscountPercent(days, tiers = config.rules.durationDiscounts) {

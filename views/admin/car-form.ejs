@@ -8,7 +8,7 @@
   <% if (Object.keys(e).length) { %><div class="alert alert-error">Ελέγξτε τα πεδία με σφάλμα.</div><% } %>
   <div class="layout-sidebar reverse">
     <form method="post" action="<%= car ? `/admin/cars/${car.id}` : '/admin/cars' %>" enctype="multipart/form-data" class="card pad stack">
-      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
       <div class="grid-3">
         <div class="field"><label for="make">Μάρκα</label><input id="make" name="make" value="<%= v.make || '' %>" required><% if (e.make) { %><span class="error"><%= e.make %></span><% } %></div>
         <div class="field"><label for="model">Μοντέλο</label><input id="model" name="model" value="<%= v.model || '' %>" required><% if (e.model) { %><span class="error"><%= e.model %></span><% } %></div>
@@ -51,14 +51,14 @@
             <li>
               <span class="small"><%= format.dateTime(bl.start_at) %> → <%= format.dateTime(bl.end_at) %></span> <%= bl.reason %>
               <form method="post" action="/admin/cars/<%= car.id %>/blocks/<%= bl.id %>/delete" class="inline-form">
-                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
                 <button type="submit" class="link-button small">Αφαίρεση</button>
               </form>
             </li>
           <% }) %>
         </ul>
         <form method="post" action="/admin/cars/<%= car.id %>/blocks" class="stack">
-          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
           <div class="field"><label for="start_at">Από</label><input id="start_at" name="start_at" type="datetime-local" required></div>
           <div class="field"><label for="end_at">Έως</label><input id="end_at" name="end_at" type="datetime-local" required></div>
           <div class="field"><label for="block_reason">Αιτία</label><input id="block_reason" name="reason" placeholder="π.χ. Service"></div>

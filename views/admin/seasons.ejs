@@ -7,7 +7,7 @@
     <% rows.concat([null]).forEach(function (r) { %>
       <div class="card pad inline-grid">
         <form method="post" action="/admin/seasons<%= r ? `/${r.id}` : '' %>" class="inline-grid grow">
-          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
           <div class="field grow"><label>Όνομα</label><input name="name" value="<%= r ? r.name : '' %>" required></div>
           <div class="field"><label>Από (ΜΜ-ΗΗ)</label><input name="start_md" value="<%= r ? r.start_md : '' %>" pattern="\d{2}-\d{2}" placeholder="07-01" size="6" required></div>
           <div class="field"><label>Έως (ΜΜ-ΗΗ)</label><input name="end_md" value="<%= r ? r.end_md : '' %>" pattern="\d{2}-\d{2}" placeholder="08-31" size="6" required></div>
@@ -16,7 +16,7 @@
         </form>
         <% if (r) { %>
           <form method="post" action="/admin/seasons/<%= r.id %>/delete" data-confirm="Διαγραφή περιόδου;">
-            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
             <button class="btn btn-danger" type="submit">Διαγραφή</button>
           </form>
         <% } %>

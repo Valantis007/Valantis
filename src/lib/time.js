@@ -107,7 +107,21 @@ function isWithinOpeningHours(local) {
   return minutes >= config.rules.openingHour * 60 && minutes <= config.rules.closingHour * 60;
 }
 
+// Τοπική ώρα καταστήματος -> πραγματική στιγμή (UTC). Χρειάζεται για APIs τρίτων.
+function localToDate(local) {
+  const naive = toMs(local);
+  if (Number.isNaN(naive)) return null;
+  // Η διαφορά ώρας (με θερινή ώρα) υπολογίζεται για τη συγκεκριμένη στιγμή.
+  let guess = naive;
+  for (let i = 0; i < 2; i += 1) {
+    const offset = toMs(nowLocal(new Date(guess))) - Math.floor(guess / MINUTE) * MINUTE;
+    guess = naive - offset;
+  }
+  return new Date(guess);
+}
+
 module.exports = {
+  localToDate,
   toMs,
   fromMs,
   isValidLocal,

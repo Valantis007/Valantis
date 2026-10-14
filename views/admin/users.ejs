@@ -20,7 +20,7 @@
           <td>
             <% if (u.id === user.id) { %>Διαχειριστής (εσείς)<% } else { %>
             <form method="post" action="/admin/users/<%= u.id %>/role" class="inline-form" data-confirm="Αλλαγή ρόλου χρήστη <%= u.email %>;">
-              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
               <select name="role"><option value="customer" <%= u.role === 'customer' ? 'selected' : '' %>>Πελάτης</option><option value="admin" <%= u.role === 'admin' ? 'selected' : '' %>>Διαχειριστής</option></select>
               <button class="btn btn-small" type="submit">OK</button>
             </form>

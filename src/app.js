@@ -9,7 +9,7 @@ const helmet = require('helmet');
 const config = require('./config');
 const format = require('./lib/format');
 const time = require('./lib/time');
-const payments = require('./lib/payments');
+const providers = require('./lib/providers');
 const SqliteStore = require('./lib/sessionStore');
 const { csrfProtection } = require('./middleware/security');
 const { loadUser } = require('./middleware/auth');
@@ -41,13 +41,24 @@ function createApp({ db, uploadDir = config.uploadDir }) {
     }),
   );
 
-  // Το webhook του Stripe χρειάζεται το «ωμό» σώμα του αιτήματος για τον έλεγχο υπογραφής.
+  // Τα webhooks των παρόχων πληρωμών χρειάζονται το «ωμό» σώμα του αιτήματος για τον έλεγχο υπογραφής.
   app.use('/webhooks', require('./routes/webhooks')(db));
 
   app.use(express.static(path.join(__dirname, '..', 'public'), { maxAge: config.isProduction ? '7d' : 0 }));
   app.use('/uploads', express.static(uploadDir, { maxAge: config.isProduction ? '30d' : 0 }));
 
   app.use(express.urlencoded({ extended: false, limit: '100kb' }));
+  // Χωρίς σώμα (π.χ. multipart σε διαδρομή που δεν το δέχεται) το req.body είναι κενό αντικείμενο.
+  app.use((req, res, next) => {
+    if (req.body === undefined) req.body = {};
+    next();
+  });
+
+  // Έλεγχος λειτουργίας για monitoring / Docker, χωρίς session.
+  app.get('/healthz', (req, res) => {
+    db.prepare('SELECT 1').get();
+    res.type('text').send('ok');
+  });
 
   app.use(
     session({
@@ -86,7 +97,9 @@ function createApp({ db, uploadDir = config.uploadDir }) {
     res.locals.format = format;
     res.locals.time = time;
     res.locals.currentPath = req.path;
-    res.locals.paymentsEnabled = payments.enabled();
+    const activeProvider = providers.active();
+    res.locals.paymentsEnabled = Boolean(activeProvider);
+    res.locals.paymentProviderLabel = activeProvider ? activeProvider.label : '';
     res.locals.errors = {};
     next();
   });
@@ -123,7 +136,7 @@ function createApp({ db, uploadDir = config.uploadDir }) {
       time,
       currentPath: req.path,
       user: res.locals.user ?? null,
-      csrfToken: res.locals.csrfToken ?? '',
+      csrfToken: res.locals.csrfToken ?? (() => ''),
       takeFlash: res.locals.takeFlash ?? (() => []),
     });
     res.status(status);

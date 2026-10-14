@@ -5,6 +5,7 @@ const bcrypt = require('bcryptjs');
 const { requireLogin } = require('../middleware/auth');
 const { str, isPhone, passwordProblems } = require('../lib/validation');
 const { BCRYPT_ROUNDS } = require('./auth');
+const { transaction } = require('../db');
 
 module.exports = function accountRoutes(db) {
   const router = express.Router();
@@ -87,8 +88,18 @@ module.exports = function accountRoutes(db) {
       req.flash('error', 'Ο κωδικός είναι λάθος. Ο λογαριασμός δεν διαγράφηκε.');
       return res.redirect(303, '/account');
     }
-    db.prepare('DELETE FROM users WHERE id = ?').run(req.user.id);
-    db.prepare(`DELETE FROM sessions WHERE json_extract(sess, '$.userId') = ?`).run(req.user.id);
+    transaction(db, () => {
+      // Κρατήσεις χωρίς καμία πληρωμή (ακυρωμένες/ληγμένες) δεν χρειάζονται για φορολογικούς λόγους:
+      // διαγράφουμε τα προσωπικά τους στοιχεία. Οι υπόλοιπες διατηρούνται όπως απαιτεί ο νόμος.
+      db.prepare(
+        `UPDATE bookings SET first_name = 'Διαγραμμένος', last_name = 'πελάτης', email = 'deleted@invalid',
+           phone = '', birth_date = '', license_number = '', license_country = '', license_issued = '',
+           flight_number = NULL, notes = NULL
+         WHERE user_id = ? AND paid_cents = 0 AND status IN ('cancelled', 'expired')`,
+      ).run(req.user.id);
+      db.prepare('DELETE FROM users WHERE id = ?').run(req.user.id);
+      db.prepare(`DELETE FROM sessions WHERE json_extract(sess, '$.userId') = ?`).run(req.user.id);
+    });
     req.session.destroy((err) => {
       if (err) return next(err);
       res.clearCookie('sid');

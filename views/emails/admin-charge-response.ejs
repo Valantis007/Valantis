@@ -1,0 +1,7 @@
+<%- include('_top') %>
+<p><strong>Ο πελάτης <%= accept ? 'αποδέχθηκε' : 'ΑΜΦΙΣΒΗΤΕΙ' %> τη χρέωση ζημιάς</strong></p>
+<p>Κράτηση: <%= booking.reference %> · <%= booking.first_name %> <%= booking.last_name %> · <%= booking.phone %><br>
+Χρέωση: <%= charge.description %> — <%= format.money(charge.amount_cents) %>
+<% if (charge.customer_note) { %><br>Σχόλιο πελάτη: «<%= charge.customer_note %>»<% } %></p>
+<p><a href="<%= baseUrl %>/admin/bookings/<%= booking.id %>">Άνοιγμα στη διαχείριση</a></p>
+<%- include('_bottom') %>
