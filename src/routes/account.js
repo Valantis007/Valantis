@@ -76,6 +76,35 @@ module.exports = function accountRoutes(db) {
     res.redirect(303, '/account');
   });
 
+  // Φορητότητα / πρόσβαση (άρθρα 15 και 20 ΓΚΠΔ): όλα τα δεδομένα του λογαριασμού σε JSON.
+  router.get('/export', (req, res) => {
+    const user = db.prepare('SELECT id, email, first_name, last_name, phone, created_at FROM users WHERE id = ?').get(req.user.id);
+    const list = db
+      .prepare(
+        `SELECT b.reference, b.status, b.created_at, b.pickup_at, b.return_at, c.make, c.model,
+           pl.name AS pickup_location, rl.name AS return_location,
+           b.first_name, b.last_name, b.email, b.phone, b.birth_date, b.license_number, b.license_country, b.license_issued,
+           b.flight_number, b.notes, b.child_info, b.invoice_requested, b.invoice_vat, b.invoice_name, b.invoice_address,
+           b.invoice_tax_office, b.invoice_activity, b.total_cents, b.paid_cents, b.refunded_cents, b.payment_status,
+           b.payment_method, b.terms_version, b.terms_accepted_at, b.id
+         FROM bookings b JOIN cars c ON c.id = b.car_id
+           JOIN locations pl ON pl.id = b.pickup_location_id JOIN locations rl ON rl.id = b.return_location_id
+         WHERE b.user_id = ? ORDER BY b.id`,
+      )
+      .all(req.user.id);
+    const bookingsOut = list.map(({ id, ...b }) => ({
+      ...b,
+      extras: db.prepare('SELECT name, qty, total_cents FROM booking_extras WHERE booking_id = ?').all(id),
+      charges: db.prepare('SELECT category, description, amount_cents, status, paid_cents, created_at FROM booking_charges WHERE booking_id = ?').all(id),
+      deposits: db
+        .prepare('SELECT method, status, amount_cents, captured_cents, card_brand, card_last4, held_at, settled_at FROM deposits WHERE booking_id = ?')
+        .all(id),
+    }));
+    const messages = db.prepare('SELECT name, email, phone, subject, body, kind, booking_reference, created_at FROM messages WHERE email = ?').all(user.email);
+    res.set('Content-Disposition', `attachment; filename="ta-dedomena-mou-${new Date().toISOString().slice(0, 10)}.json"`);
+    res.type('application/json').send(JSON.stringify({ exportedAt: new Date().toISOString(), account: user, bookings: bookingsOut, messages }, null, 2));
+  });
+
   // Διαγραφή λογαριασμού (δικαίωμα διαγραφής - GDPR). Οι κρατήσεις διατηρούνται
   // χωρίς σύνδεση με τον λογαριασμό, επειδή απαιτούνται για φορολογικούς λόγους.
   router.post('/delete', async (req, res, next) => {
@@ -86,6 +115,21 @@ module.exports = function accountRoutes(db) {
     }
     if (!(await bcrypt.compare(String(req.body.current_password || ''), user.password_hash))) {
       req.flash('error', 'Ο κωδικός είναι λάθος. Ο λογαριασμός δεν διαγράφηκε.');
+      return res.redirect(303, '/account');
+    }
+    // Όσο εκκρεμεί κράτηση, εγγύηση ή χρέωση, ο λογαριασμός χρειάζεται για την εκτέλεσή της.
+    const open = db
+      .prepare(
+        `SELECT 1 FROM bookings b WHERE b.user_id = ? AND (
+           b.status IN ('pending_payment', 'confirmed', 'active')
+           OR EXISTS (SELECT 1 FROM deposits d WHERE d.booking_id = b.id AND d.status IN ('awaiting', 'held'))
+           OR EXISTS (SELECT 1 FROM booking_charges c WHERE c.booking_id = b.id
+                      AND (c.status IN ('proposed', 'disputed') OR (c.status = 'accepted' AND c.paid_cents < c.amount_cents))))
+         LIMIT 1`,
+      )
+      .get(req.user.id);
+    if (open) {
+      req.flash('error', 'Έχετε ενεργή κράτηση, εγγύηση ή εκκρεμή χρέωση. Ο λογαριασμός μπορεί να διαγραφεί μόλις ολοκληρωθούν (ή ακυρώστε πρώτα την κράτηση).');
       return res.redirect(303, '/account');
     }
     transaction(db, () => {

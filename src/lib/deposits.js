@@ -20,6 +20,7 @@ const format = require('./format');
 const providers = require('./providers');
 const bookings = require('./bookings');
 const mailer = require('./mailer');
+const fiscal = require('./fiscal');
 const { transaction } = require('../db');
 const { insertCheckout, getCheckoutRow, setCheckoutStatus, openCheckouts, expireOpenCheckouts } = require('./checkouts');
 
@@ -495,6 +496,7 @@ function adminChargeAction(db, bookingId, chargeId, action, { consentNote, metho
       db.prepare(
         `UPDATE booking_charges SET paid_cents = amount_cents, status = 'charged', charged_via = ?, charged_at = datetime('now') WHERE id = ?`,
       ).run(method === 'pos' ? 'pos' : 'other', charge.id);
+      fiscal.record(db, { bookingId, kind: 'receipt', amountCents: charge.amount_cents - charge.paid_cents, description: `Χρέωση: ${charge.description}`, source: method === 'pos' ? 'pos' : 'office' });
     } else {
       throw new BookingError('Άγνωστη ενέργεια.');
     }
@@ -553,6 +555,7 @@ function finalizeSettlement(db, dep, capturedCents, actor) {
       .run(capturedCents > 0 ? 'captured' : 'released', capturedCents, dep.id);
     if (!res.changes) return null;
     const left = capturedCents > 0 ? allocateToCharges(db, dep.booking_id, capturedCents, dep.method === 'pos' ? 'pos' : 'deposit') : 0;
+    fiscal.record(db, { bookingId: dep.booking_id, kind: 'receipt', amountCents: capturedCents, description: 'Χρεώσεις μετά την επιστροφή - παρακράτηση από την εγγύηση', source: dep.method });
     bookings.logEvent(
       db,
       dep.booking_id,

@@ -38,12 +38,17 @@
         <div class="field"><label for="password_confirm">Επιβεβαίωση</label><input id="password_confirm" name="password_confirm" type="password" required autocomplete="new-password"><% if (passwordErrors.password_confirm) { %><span class="error"><%= passwordErrors.password_confirm %></span><% } %></div>
         <button class="btn" type="submit">Αλλαγή κωδικού</button>
       </form>
+      <div class="card pad">
+        <h2 class="h4">Τα δεδομένα μου</h2>
+        <p class="small muted">Κατεβάστε όλα τα δεδομένα του λογαριασμού και των κρατήσεών σας (αρχείο JSON).</p>
+        <a class="btn" href="/account/export">Λήψη δεδομένων</a>
+      </div>
       <% if (user.role !== 'admin') { %>
       <details class="card pad">
         <summary>Διαγραφή λογαριασμού</summary>
         <form method="post" action="/account/delete" class="stack" data-confirm="Ο λογαριασμός θα διαγραφεί οριστικά. Συνέχεια;">
           <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
-          <p class="small muted">Οι κρατήσεις σας θα διατηρηθούν όπως απαιτεί η φορολογική νομοθεσία, αλλά δεν θα συνδέονται πλέον με λογαριασμό.</p>
+          <p class="small muted">Οι κρατήσεις σας θα διατηρηθούν όσο απαιτεί η φορολογική νομοθεσία, αλλά δεν θα συνδέονται πλέον με λογαριασμό. Τα στοιχεία διπλώματος, γέννησης και επικοινωνίας διαγράφονται αυτόματα <%= config.retention.operationalMonths %> μήνες μετά την επιστροφή. Δεν είναι δυνατή η διαγραφή όσο εκκρεμεί κράτηση, εγγύηση ή χρέωση.</p>
           <div class="field"><label for="del_password">Κωδικός</label><input id="del_password" name="current_password" type="password" required></div>
           <button class="btn btn-danger" type="submit">Οριστική διαγραφή</button>
         </form>

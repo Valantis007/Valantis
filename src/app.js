@@ -73,7 +73,7 @@ function createApp({ db, uploadDir = config.uploadDir }) {
         httpOnly: true,
         sameSite: 'lax',
         secure: config.isProduction && Boolean(config.trustProxy || config.baseUrl.startsWith('https')),
-        maxAge: 7 * 24 * 60 * 60 * 1000,
+        // Χωρίς maxAge: το cookie διαγράφεται όταν κλείσει ο browser («Να με θυμάσαι» => 30 ημέρες).
       },
     }),
   );

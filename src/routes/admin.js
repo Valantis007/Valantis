@@ -10,6 +10,7 @@ const time = require('../lib/time');
 const format = require('../lib/format');
 const bookings = require('../lib/bookings');
 const payments = require('../lib/payments');
+const fiscal = require('../lib/fiscal');
 const deposits = require('../lib/deposits');
 const providers = require('../lib/providers');
 const mailer = require('../lib/mailer');
@@ -40,6 +41,9 @@ function normalizePlate(value) {
     .replace(/[\s-]/g, '')
     .replace(/[ABEZHIKMNOPTYX]/g, (c) => LATIN_TO_GREEK[c]);
 }
+
+// Είδος πρόσθετου: damage_waiver μηδενίζει την απαλλαγή, child_seat ζητά στοιχεία παιδιού.
+const EXTRA_KINDS = ['damage_waiver', 'prepaid_fuel', 'child_seat', 'driver', 'other'];
 
 module.exports = function adminRoutes(db, { uploadDir }) {
   const router = express.Router();
@@ -116,6 +120,7 @@ module.exports = function adminRoutes(db, { uploadDir }) {
         unreadMessages: db.prepare('SELECT COUNT(*) n FROM messages WHERE handled = 0').get().n,
       },
       attention: deposits.attentionList(db),
+      fiscalPending: fiscal.pending(db),
       refundProblems: db
         .prepare(
           `SELECT r.*, b.reference FROM refunds r JOIN bookings b ON b.id = r.booking_id
@@ -131,6 +136,15 @@ module.exports = function adminRoutes(db, { uploadDir }) {
         )
         .all(),
     });
+  });
+
+  // Καταχώρηση ότι εκδόθηκε το παραστατικό (με τον ΜΑΡΚ του myDATA).
+  router.post('/fiscal/:id', (req, res) => {
+    const mark = str(req.body.mark, 40);
+    if (!mark) req.flash('error', 'Συμπληρώστε τον ΜΑΡΚ του παραστατικού.');
+    else if (fiscal.markIssued(db, intOrNull(req.params.id) ?? -1, { mark, actor: actor(req) })) req.flash('success', 'Το παραστατικό καταχωρήθηκε.');
+    else req.flash('error', 'Το παραστατικό δεν βρέθηκε ή έχει ήδη καταχωρηθεί.');
+    res.redirect(303, back(req));
   });
 
   // ---------------- Κρατήσεις ----------------
@@ -216,6 +230,7 @@ module.exports = function adminRoutes(db, { uploadDir }) {
       deposits: allDeposits,
       activeDeposit: allDeposits.find((d) => ['awaiting', 'held'].includes(d.status)) || null,
       charges: deposits.chargesForBooking(db, b.id),
+      fiscalDocs: fiscal.forBooking(db, b.id),
       outstandingCents: deposits.outstandingCents(db, b.id),
       refunds: db.prepare('SELECT * FROM refunds WHERE booking_id = ? ORDER BY id DESC').all(b.id),
       checkouts: db.prepare('SELECT * FROM checkouts WHERE booking_id = ? ORDER BY created_at DESC').all(b.id),
@@ -265,6 +280,7 @@ module.exports = function adminRoutes(db, { uploadDir }) {
         if (b.payment_status === 'unpaid') {
           db.prepare(`UPDATE bookings SET payment_status = 'paid', paid_cents = total_cents WHERE id = ?`).run(b.id);
           bookings.logEvent(db, b.id, actor(req), 'paid', `Είσπραξη κατά την παραλαβή ${format.money(b.total_cents)}`);
+          fiscal.record(db, { bookingId: b.id, kind: 'receipt', amountCents: b.total_cents, description: `Ενοικίαση ${b.reference} - είσπραξη στο γραφείο`, source: 'office' });
         }
         db.prepare(`UPDATE bookings SET status = 'active', pickup_km = ? WHERE id = ?`).run(km, b.id);
         bookings.logEvent(db, b.id, actor(req), 'picked_up', `Χιλιόμετρα: ${km}${depositOk && !deposits.heldDeposit(db, b.id) && b.deposit_cents > 0 ? ' - ΧΩΡΙΣ εγγύηση' : ''}`);
@@ -304,6 +320,7 @@ module.exports = function adminRoutes(db, { uploadDir }) {
       transaction(db, () => {
         db.prepare(`UPDATE bookings SET payment_status = 'paid', paid_cents = total_cents WHERE id = ?`).run(b.id);
         bookings.logEvent(db, b.id, actor(req), 'paid', `Είσπραξη ${format.money(b.total_cents)}`);
+        fiscal.record(db, { bookingId: b.id, kind: 'receipt', amountCents: b.total_cents, description: `Ενοικίαση ${b.reference} - είσπραξη στο γραφείο`, source: 'office' });
       });
       req.flash('success', 'Η πληρωμή καταχωρήθηκε.');
     }
@@ -544,6 +561,7 @@ module.exports = function adminRoutes(db, { uploadDir }) {
       air_conditioning: checkbox(body.air_conditioning),
       daily_rate: str(body.daily_rate, 10),
       deposit: str(body.deposit, 10),
+      excess: str(body.excess, 10),
       min_driver_age: str(body.min_driver_age, 2),
       mileage_policy: str(body.mileage_policy, 120),
       description: str(body.description, 2000),
@@ -575,6 +593,9 @@ module.exports = function adminRoutes(db, { uploadDir }) {
     if (!(out.daily_rate_cents > 0)) e.daily_rate = 'Συμπληρώστε τιμή (π.χ. 35.00).';
     out.deposit_cents = v.deposit === '' ? 0 : format.parseMoneyToCents(v.deposit);
     if (out.deposit_cents === null) e.deposit = 'Μη έγκυρο ποσό.';
+    // Κενό = ίση με την εγγύηση.
+    out.excess_cents = v.excess === '' ? null : format.parseMoneyToCents(v.excess);
+    if (v.excess !== '' && out.excess_cents === null) e.excess = 'Μη έγκυρο ποσό.';
     out.min_driver_age = intOrNull(v.min_driver_age);
     if (!(out.min_driver_age >= 18 && out.min_driver_age <= 30)) e.min_driver_age = '18 έως 30.';
     return { errors: e, parsed: out };
@@ -598,6 +619,7 @@ module.exports = function adminRoutes(db, { uploadDir }) {
       air_conditioning: v.air_conditioning ? 1 : 0,
       daily_rate_cents: parsed.daily_rate_cents,
       deposit_cents: parsed.deposit_cents,
+      excess_cents: parsed.excess_cents,
       min_driver_age: parsed.min_driver_age,
       mileage_policy: v.mileage_policy || 'Απεριόριστα χιλιόμετρα',
       description: v.description,
@@ -653,6 +675,7 @@ module.exports = function adminRoutes(db, { uploadDir }) {
       luggage: String(car.luggage),
       daily_rate: format.centsToInput(car.daily_rate_cents),
       deposit: format.centsToInput(car.deposit_cents),
+      excess: car.excess_cents === null || car.excess_cents === undefined ? '' : format.centsToInput(car.excess_cents),
       min_driver_age: String(car.min_driver_age),
       air_conditioning: Boolean(car.air_conditioning),
       active: Boolean(car.active),
@@ -764,6 +787,7 @@ module.exports = function adminRoutes(db, { uploadDir }) {
       if (!pricing) errors.pricing = 'Επιλέξτε τρόπο χρέωσης.';
       const maxQty = intOrNull(body.max_qty);
       if (!(maxQty >= 1 && maxQty <= 10)) errors.max_qty = 'Μέγιστη ποσότητα 1 έως 10.';
+      const kind = EXTRA_KINDS.includes(body.kind) ? body.kind : 'other';
       return {
         values,
         errors,
@@ -772,6 +796,7 @@ module.exports = function adminRoutes(db, { uploadDir }) {
           description: values.description,
           price_cents: price ?? 0,
           pricing: pricing ?? 'per_day',
+          kind,
           max_qty: maxQty ?? 1,
           sort_order: intOrNull(body.sort_order) ?? 0,
           active: checkbox(body.active) ? 1 : 0,

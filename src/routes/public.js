@@ -178,7 +178,7 @@ module.exports = function publicRoutes(db) {
       subject: str(req.body.subject, 150),
       body: str(req.body.body, 4000),
       kind: MESSAGE_KINDS.includes(req.body.kind) ? req.body.kind : 'question',
-      booking_reference: str(req.body.booking_reference, 8).toUpperCase().replace(/[^A-Z0-9]/g, ''),
+      booking_reference: str(req.body.booking_reference, 20).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8),
     };
     const errors = {};
     if (!values.name) errors.name = 'Συμπληρώστε το όνομά σας.';

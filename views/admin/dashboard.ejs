@@ -30,6 +30,36 @@
     </div>
   <% } %>
 
+  <% if (fiscalPending.length) { %>
+    <div class="card pad">
+      <h2 class="h3">Παραστατικά προς έκδοση (myDATA)</h2>
+      <p class="small muted">Εκδώστε το παραστατικό από το πρόγραμμα τιμολόγησης / ΦΗΜ και καταχωρήστε εδώ τον ΜΑΡΚ.</p>
+      <div class="table-wrap">
+        <table class="table small">
+          <thead><tr><th>Κράτηση</th><th>Είδος</th><th>Ποσό</th><th>Περιγραφή</th><th>Τρόπος</th><th>ΜΑΡΚ</th></tr></thead>
+          <tbody>
+            <% fiscalPending.forEach(function (f) { %>
+              <tr>
+                <td><a class="ref" href="/admin/bookings/<%= f.booking_id %>"><%= f.reference %></a><br><%= f.invoice_name || (f.first_name + ' ' + f.last_name) %><% if (f.invoice_vat) { %><br>ΑΦΜ <%= f.invoice_vat %><% } %></td>
+                <td><%= format.label('fiscalKind', f.kind) %></td>
+                <td><%= format.money(f.amount_cents) %></td>
+                <td><%= f.description %></td>
+                <td><%= f.source %></td>
+                <td>
+                  <form method="post" action="/admin/fiscal/<%= f.id %>" class="inline-form">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+                    <input name="mark" maxlength="40" aria-label="ΜΑΡΚ" required>
+                    <button class="btn btn-small" type="submit">OK</button>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% } %>
+
   <h2 class="h3">Παραδόσεις σήμερα (και εκπρόθεσμες)</h2>
   <%- include('_booking-table', { rows: pickups }) %>
   <h2 class="h3">Επιστροφές σήμερα (και εκπρόθεσμες)</h2>

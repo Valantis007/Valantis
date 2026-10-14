@@ -108,6 +108,11 @@ const labels = {
     damage: 'Ζημιά',
     other: 'Άλλη χρέωση (με αποδοχή πελάτη)',
   },
+  fiscalKind: {
+    receipt: 'Απόδειξη (ΑΠΥ)',
+    invoice: 'Τιμολόγιο παροχής υπηρεσιών',
+    credit: 'Πιστωτικό',
+  },
   chargeStatus: {
     proposed: 'Αναμονή απάντησης πελάτη',
     accepted: 'Αποδεκτή',

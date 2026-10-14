@@ -130,7 +130,7 @@ test('αναζήτηση κρατήσεων στη διαχείριση με ε�
 test('διαγραφή λογαριασμού: ανωνυμοποίηση απλήρωτων κρατήσεων, χωρίς επαναχρησιμοποίηση id', async () => {
   const { db, app } = h.setup();
   const agent = h.agent(app);
-  await h.post(agent, '/register', { first_name: 'Α', last_name: 'Β', email: 'del@example.com', password: 'Password123', password_confirm: 'Password123', terms: '1' }, '/register');
+  await h.post(agent, '/register', { first_name: 'Α', last_name: 'Β', email: 'del@example.com', password: 'Password123', password_confirm: 'Password123' }, '/register');
   const user = db.prepare('SELECT id FROM users WHERE email = ?').get('del@example.com');
   const res = await h.post(agent, '/booking', { ...h.searchParams(), ...h.driver({ email: 'del@example.com' }) });
   const ref = h.bookingRef(res);
@@ -140,7 +140,7 @@ test('διαγραφή λογαριασμού: ανωνυμοποίηση απλ
   assert.equal(b.user_id, null);
   assert.equal(b.license_number, '');
   assert.equal(b.email, 'deleted@invalid');
-  await h.post(h.agent(app), '/register', { first_name: 'Ν', last_name: 'Ο', email: 'new@example.com', password: 'Password123', password_confirm: 'Password123', terms: '1' }, '/register');
+  await h.post(h.agent(app), '/register', { first_name: 'Ν', last_name: 'Ο', email: 'new@example.com', password: 'Password123', password_confirm: 'Password123' }, '/register');
   const newUser = db.prepare('SELECT id FROM users WHERE email = ?').get('new@example.com');
   assert.ok(newUser.id > user.id);
 });
@@ -148,7 +148,7 @@ test('διαγραφή λογαριασμού: ανωνυμοποίηση απλ
 test('create-admin σε υπάρχοντα λογαριασμό τερματίζει όλες τις συνδέσεις του', async () => {
   const { db, app } = h.setup();
   const attacker = h.agent(app);
-  await h.post(attacker, '/register', { first_name: 'Χ', last_name: 'Ψ', email: 'info@example.gr', password: 'Password123', password_confirm: 'Password123', terms: '1' }, '/register');
+  await h.post(attacker, '/register', { first_name: 'Χ', last_name: 'Ψ', email: 'info@example.gr', password: 'Password123', password_confirm: 'Password123' }, '/register');
   assert.equal((await attacker.get('/admin')).status, 403);
   await upsertAdmin(db, 'info@example.gr', 'AnotherPass2026');
   const res = await attacker.get('/admin');

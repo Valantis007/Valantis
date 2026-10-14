@@ -19,12 +19,15 @@ function sha256(value) {
 
 // Νέο session ID μετά τη σύνδεση (προστασία από session fixation),
 // κρατώντας την πρόσβαση σε κρατήσεις που είχε ήδη ο επισκέπτης.
-function logIn(req, userId) {
+const REMEMBER_MS = 30 * 24 * 60 * 60 * 1000;
+
+function logIn(req, userId, { remember = false } = {}) {
   return new Promise((resolve, reject) => {
     const keep = { bookingAccess: req.session.bookingAccess, returnTo: req.session.returnTo, csrfToken: req.session.csrfToken };
     req.session.regenerate((err) => {
       if (err) return reject(err);
       req.session.userId = userId;
+      if (remember) req.session.cookie.maxAge = REMEMBER_MS;
       if (keep.bookingAccess) req.session.bookingAccess = keep.bookingAccess;
       // Το ίδιο token, ώστε φόρμες ανοιχτές σε άλλες καρτέλες να συνεχίσουν να λειτουργούν.
       if (keep.csrfToken) req.session.csrfToken = keep.csrfToken;
@@ -54,7 +57,7 @@ module.exports = function authRoutes(db) {
         error: 'Λάθος email ή κωδικός.',
       });
     }
-    const target = await logIn(req, user.id);
+    const target = await logIn(req, user.id, { remember: req.body.remember === '1' });
     res.redirect(303, user.role === 'admin' && target === '/account' ? '/admin' : target);
   });
 
@@ -79,7 +82,6 @@ module.exports = function authRoutes(db) {
     const pwProblem = passwordProblems(password);
     if (pwProblem) errors.password = pwProblem;
     else if (password !== req.body.password_confirm) errors.password_confirm = 'Οι κωδικοί δεν ταιριάζουν.';
-    if (!req.body.terms) errors.terms = 'Πρέπει να αποδεχθείτε την πολιτική απορρήτου.';
     if (!errors.email && db.prepare('SELECT 1 FROM users WHERE email = ?').get(values.email)) {
       errors.email = 'Υπάρχει ήδη λογαριασμός με αυτό το email. Συνδεθείτε ή επαναφέρετε τον κωδικό σας.';
     }

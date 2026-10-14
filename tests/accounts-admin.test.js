@@ -8,17 +8,17 @@ const bookingsLib = require('../src/lib/bookings');
 test('εγγραφή, αποσύνδεση, σύνδεση, κρατήσεις στον λογαριασμό', async () => {
   const { db, app } = h.setup();
   const agent = h.agent(app);
-  const weak = await h.post(agent, '/register', { first_name: 'Α', last_name: 'Β', email: 'a@example.com', password: 'short', password_confirm: 'short', terms: '1' }, '/register');
+  const weak = await h.post(agent, '/register', { first_name: 'Α', last_name: 'Β', email: 'a@example.com', password: 'short', password_confirm: 'short' }, '/register');
   assert.equal(weak.status, 422);
 
-  const reg = await h.post(agent, '/register', { first_name: 'Μαρία', last_name: 'Κ', email: 'Maria@Example.com', password: 'Kalimera2026', password_confirm: 'Kalimera2026', terms: '1' }, '/register');
+  const reg = await h.post(agent, '/register', { first_name: 'Μαρία', last_name: 'Κ', email: 'Maria@Example.com', password: 'Kalimera2026', password_confirm: 'Kalimera2026' }, '/register');
   assert.equal(reg.status, 303);
   const user = db.prepare('SELECT * FROM users WHERE email = ?').get('maria@example.com');
   assert.ok(user);
   assert.notEqual(user.password_hash, 'Kalimera2026');
 
   // Διπλό email
-  const dup = await h.post(h.agent(app), '/register', { first_name: 'Χ', last_name: 'Υ', email: 'maria@example.com', password: 'Kalimera2026', password_confirm: 'Kalimera2026', terms: '1' }, '/register');
+  const dup = await h.post(h.agent(app), '/register', { first_name: 'Χ', last_name: 'Υ', email: 'maria@example.com', password: 'Kalimera2026', password_confirm: 'Kalimera2026' }, '/register');
   assert.equal(dup.status, 422);
 
   // Η κράτηση συνδέεται με τον λογαριασμό

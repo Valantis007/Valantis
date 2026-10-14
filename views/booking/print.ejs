@@ -12,15 +12,20 @@
     <div class="section-head">
       <div>
         <strong><%= company.name %></strong><br>
-        <span class="small muted"><%= company.legalName %><% if (company.vat) { %> · ΑΦΜ <%= company.vat %><% } %><br><%= company.address %> · <%= company.phone %> · <%= company.email %></span>
+        <span class="small muted"><%= company.legalName %><% if (company.vat) { %> · ΑΦΜ <%= company.vat %><% } %><% if (company.gemi) { %> · ΓΕΜΗ <%= company.gemi %><% } %><% if (company.mhte) { %> · ΜΗΤΕ <%= company.mhte %><% } %><br><%= company.address %> · <%= company.phone %> · <%= company.email %></span>
       </div>
       <button class="btn no-print" type="button" data-print>Εκτύπωση</button>
     </div>
     <h1>Επιβεβαίωση κράτησης <span class="ref"><%= booking.reference %></span></h1>
     <p>Κατάσταση: <strong><%= format.label('status', booking.status) %></strong></p>
     <%- include('_details', { booking, extras }) %>
-    <p class="small muted">Το έγγραφο αυτό δεν αποτελεί φορολογικό παραστατικό. Η απόδειξη/τιμολόγιο εκδίδεται κατά την πληρωμή.
-      Δωρεάν ακύρωση έως <%= rules.freeCancellationHours %> ώρες πριν την παραλαβή.</p>
+    <ul class="small">
+      <li><strong>Εγγύηση <%= format.money(booking.deposit_cents) %>:</strong> δέσμευση (όχι χρέωση) σε πιστωτική κάρτα στο όνομα του κύριου οδηγού, κατά την παραλαβή ή online. Αποδεσμεύεται μετά την επιστροφή.</li>
+      <li><strong>Απαλλαγή ζημιών:</strong> <%= format.money(booking.excess_cents ?? booking.deposit_cents) %> (μέγιστη συμμετοχή σας σε ζημιές, εκτός από τις εξαιρέσεις των όρων §7).</li>
+      <li><strong>Ακύρωση:</strong> δεν υφίσταται δικαίωμα υπαναχώρησης 14 ημερών (ενοικίαση για συγκεκριμένες ημερομηνίες). Δωρεάν ακύρωση έως <%= rules.freeCancellationHours %> ώρες πριν την παραλαβή· μετά, χρέωση <%= format.money(booking.late_cancel_fee_cents || 0) %>.</li>
+      <li>Όροι ενοικίασης έκδοση <%= booking.terms_version || config.termsVersion %>: <%= config.baseUrl %>/terms</li>
+    </ul>
+    <p class="small muted">Το έγγραφο αυτό δεν αποτελεί φορολογικό παραστατικό. Η απόδειξη/τιμολόγιο εκδίδεται κατά την πληρωμή.</p>
   </div>
 </body>
 </html>

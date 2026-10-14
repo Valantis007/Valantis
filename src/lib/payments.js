@@ -13,6 +13,7 @@
 const config = require('../config');
 const providers = require('./providers');
 const bookings = require('./bookings');
+const fiscal = require('./fiscal');
 const deposits = require('./deposits');
 const mailer = require('./mailer');
 const format = require('./format');
@@ -116,6 +117,7 @@ async function handleRentalPaid(db, row, state, actor) {
          WHERE id = ?`,
       ).run(current.amount_cents, state.paymentRef, current.provider, current.id, b.id);
       bookings.logEvent(db, b.id, actor, 'paid', `Πληρωμή ${format.money(current.amount_cents)} (${current.provider})`);
+      fiscal.record(db, { bookingId: b.id, kind: 'receipt', amountCents: current.amount_cents, description: `Ενοικίαση ${b.reference} - πληρωμή online`, source: current.provider });
       return { result: 'confirmed', bookingId: b.id };
     }
 
@@ -252,6 +254,7 @@ async function handleChargePaid(db, row, state, actor) {
     }
     setCheckoutStatus(db, current.id, 'paid', state.paymentRef);
     deposits.allocateToCharges(db, current.booking_id, state.amountCents, 'payment_link', current.id);
+    fiscal.record(db, { bookingId: current.booking_id, kind: 'receipt', amountCents: state.amountCents, description: 'Χρεώσεις μετά την επιστροφή - πληρωμή online', source: current.provider });
     bookings.logEvent(db, current.booking_id, actor, 'charges_paid', `Πληρωμή χρεώσεων ${format.money(state.amountCents)} (${current.provider})`);
     return { result: 'paid' };
   });
@@ -336,6 +339,9 @@ async function runRefund(db, refundId) {
       );
     }
     if (row.checkout_id) setCheckoutStatus(db, row.checkout_id, 'refunded');
+    if (row.applies_to_booking) {
+      fiscal.record(db, { bookingId: row.booking_id, kind: 'credit', amountCents: row.amount_cents, description: `Επιστροφή χρημάτων${row.reason ? ` - ${row.reason}` : ''}`, source: row.provider });
+    }
     bookings.logEvent(db, row.booking_id, row.actor, 'refunded', `Επιστροφή ${format.money(row.amount_cents)}${row.reason ? ` - ${row.reason}` : ''}`);
   });
   return true;
@@ -441,6 +447,7 @@ function recordManualRefund(db, bookingId, amountCents, { actor, note }) {
       b.id,
     );
     bookings.logEvent(db, b.id, actor, 'refunded', `Επιστροφή εκτός συστήματος ${format.money(amountCents)}${note ? ` - ${note}` : ''}`);
+    fiscal.record(db, { bookingId: b.id, kind: 'credit', amountCents, description: `Επιστροφή χρημάτων εκτός συστήματος${note ? ` - ${note}` : ''}`, source: 'office' });
   });
 }
 

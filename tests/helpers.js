@@ -6,6 +6,8 @@ process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test';
 process.env.REVOLUT_WEBHOOK_SECRET = 'wsk_test_secret';
 process.env.BASE_URL = 'https://rent.example.gr';
 process.env.ADMIN_NOTIFY_EMAIL = 'office@example.gr';
+process.env.COMPANY_MHTE = '0933E60000123400';
+process.env.COMPANY_GEMI = '123456789000';
 
 const os = require('node:os');
 const fs = require('node:fs');
