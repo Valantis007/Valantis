@@ -300,6 +300,52 @@ const MIGRATIONS = [
   CREATE INDEX idx_refunds_status ON refunds (status);
   CREATE INDEX idx_refunds_booking ON refunds (booking_id);
   `,
+
+  // 4: Νομικές απαιτήσεις: απαλλαγή ζημιών, έκδοση όρων, τιμολόγιο, παραστατικά, διατήρηση δεδομένων.
+  `
+  -- Απαλλαγή (συμμετοχή του πελάτη σε ζημιές). NULL = ίση με την εγγύηση.
+  ALTER TABLE cars ADD COLUMN excess_cents INTEGER;
+  -- Είδος πρόσθετου: damage_waiver μηδενίζει την απαλλαγή, child_seat απαιτεί στοιχεία παιδιού.
+  ALTER TABLE extras ADD COLUMN kind TEXT NOT NULL DEFAULT 'other'
+    CHECK (kind IN ('damage_waiver', 'prepaid_fuel', 'child_seat', 'driver', 'other'));
+  UPDATE extras SET kind = 'damage_waiver' WHERE name LIKE '%απαλλαγή%' OR name LIKE '%ασφάλεια%';
+  UPDATE extras SET kind = 'child_seat' WHERE name LIKE '%κάθισμα%';
+  UPDATE extras SET kind = 'prepaid_fuel' WHERE name LIKE '%ρεζερβουάρ%';
+  UPDATE extras SET kind = 'driver' WHERE name LIKE '%οδηγός%';
+
+  -- Ό,τι γνωστοποιήθηκε στον πελάτη τη στιγμή της κράτησης (απόδειξη ενημέρωσης).
+  ALTER TABLE bookings ADD COLUMN terms_version TEXT;
+  ALTER TABLE bookings ADD COLUMN excess_cents INTEGER;
+  ALTER TABLE bookings ADD COLUMN late_cancel_fee_cents INTEGER;
+  ALTER TABLE bookings ADD COLUMN child_info TEXT;
+  -- Στοιχεία τιμολογίου (επαγγελματίες πελάτες).
+  ALTER TABLE bookings ADD COLUMN invoice_requested INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE bookings ADD COLUMN invoice_vat TEXT;
+  ALTER TABLE bookings ADD COLUMN invoice_name TEXT;
+  ALTER TABLE bookings ADD COLUMN invoice_address TEXT;
+  ALTER TABLE bookings ADD COLUMN invoice_tax_office TEXT;
+  ALTER TABLE bookings ADD COLUMN invoice_activity TEXT;
+  ALTER TABLE bookings ADD COLUMN personal_data_purged_at TEXT;
+
+  -- Παραστατικά που πρέπει να εκδοθούν (ΑΠΥ, πιστωτικά) για κάθε είσπραξη/επιστροφή.
+  CREATE TABLE fiscal_docs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    booking_id INTEGER NOT NULL REFERENCES bookings(id),
+    kind TEXT NOT NULL CHECK (kind IN ('receipt', 'credit', 'invoice')),
+    amount_cents INTEGER NOT NULL,
+    description TEXT NOT NULL,
+    source TEXT NOT NULL,
+    mark TEXT,
+    issued_at TEXT,
+    issued_by TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX idx_fiscal_docs_pending ON fiscal_docs (issued_at);
+
+  -- Φόρμα επικοινωνίας: είδος μηνύματος και κωδικός κράτησης (για παράπονα).
+  ALTER TABLE messages ADD COLUMN kind TEXT NOT NULL DEFAULT 'question';
+  ALTER TABLE messages ADD COLUMN booking_reference TEXT;
+  `,
 ];
 
 function migrate(db) {

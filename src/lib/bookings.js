@@ -58,7 +58,20 @@ function quoteFor(db, { car, search, extras = [] }) {
   });
 }
 
-function validateDriver(input, car, pickupAt, { paymentEnabled }) {
+// Έλεγχος ΑΦΜ (9 ψηφία με ψηφίο ελέγχου).
+function isValidGreekVat(vat) {
+  if (!/^\d{9}$/.test(vat) || vat === '000000000') return false;
+  let sum = 0;
+  for (let i = 0; i < 8; i += 1) sum += Number(vat[i]) * 2 ** (8 - i);
+  return (sum % 11) % 10 === Number(vat[8]);
+}
+
+function maskCardNumbers(text) {
+  return String(text || '').replace(/\b(?:\d[ -]?){13,19}\b/g, '[αφαιρέθηκε]');
+}
+
+function validateDriver(input, car, pickupAt, options) {
+  const { paymentEnabled } = options;
   const values = {
     first_name: str(input.first_name, 80),
     last_name: str(input.last_name, 80),
@@ -72,7 +85,17 @@ function validateDriver(input, car, pickupAt, { paymentEnabled }) {
     notes: str(input.notes, 1000),
     payment_method: str(input.payment_method, 20) || (paymentEnabled ? 'card' : 'pay_at_pickup'),
     terms: checkbox(input.terms),
+    child_info: str(input.child_info, 200),
+    invoice: checkbox(input.invoice),
+    invoice_vat: str(input.invoice_vat, 12).replace(/\D/g, ''),
+    invoice_name: str(input.invoice_name, 150),
+    invoice_address: str(input.invoice_address, 200),
+    invoice_tax_office: str(input.invoice_tax_office, 80),
+    invoice_activity: str(input.invoice_activity, 150),
   };
+  // Αριθμοί καρτών δεν πρέπει να καταλήγουν σε ελεύθερο κείμενο (PCI DSS).
+  values.notes = maskCardNumbers(values.notes);
+  values.child_info = maskCardNumbers(values.child_info);
   const errors = {};
   if (!values.first_name) errors.first_name = 'Συμπληρώστε το όνομα.';
   if (!values.last_name) errors.last_name = 'Συμπληρώστε το επώνυμο.';
@@ -106,6 +129,16 @@ function validateDriver(input, car, pickupAt, { paymentEnabled }) {
     values.license_issued < values.birth_date
   ) {
     errors.license_issued = 'Η ημερομηνία έκδοσης είναι πριν τη γέννηση.';
+  }
+  if (options.needsChildInfo && !values.child_info) {
+    errors.child_info = 'Συμπληρώστε ηλικία και βάρος του παιδιού, ώστε να σας δώσουμε το κατάλληλο κάθισμα.';
+  }
+  if (values.invoice) {
+    if (!isValidGreekVat(values.invoice_vat)) errors.invoice_vat = 'Μη έγκυρος ΑΦΜ.';
+    if (!values.invoice_name) errors.invoice_name = 'Συμπληρώστε την επωνυμία.';
+    if (!values.invoice_address) errors.invoice_address = 'Συμπληρώστε τη διεύθυνση.';
+    if (!values.invoice_tax_office) errors.invoice_tax_office = 'Συμπληρώστε τη ΔΟΥ.';
+    if (!values.invoice_activity) errors.invoice_activity = 'Συμπληρώστε τη δραστηριότητα.';
   }
   const allowedMethods = paymentEnabled ? ['card', 'pay_at_pickup'] : ['pay_at_pickup'];
   if (!allowedMethods.includes(values.payment_method)) errors.payment_method = 'Επιλέξτε τρόπο πληρωμής.';
@@ -173,12 +206,16 @@ function createBooking(db, { car, search, extras, driver, userId = null, nowMs =
           reference, user_id, car_id, pickup_location_id, return_location_id, pickup_at, return_at, days,
           first_name, last_name, email, phone, birth_date, license_number, license_country, license_issued,
           flight_number, notes, base_cents, discount_cents, extras_cents, fees_cents, total_cents, vat_cents,
-          deposit_cents, status, payment_method, payment_status, hold_expires_at, terms_accepted_at
+          deposit_cents, status, payment_method, payment_status, hold_expires_at, terms_accepted_at,
+          terms_version, excess_cents, late_cancel_fee_cents, child_info,
+          invoice_requested, invoice_vat, invoice_name, invoice_address, invoice_tax_office, invoice_activity
         ) VALUES (
           :reference, :user_id, :car_id, :pickup_location_id, :return_location_id, :pickup_at, :return_at, :days,
           :first_name, :last_name, :email, :phone, :birth_date, :license_number, :license_country, :license_issued,
           :flight_number, :notes, :base_cents, :discount_cents, :extras_cents, :fees_cents, :total_cents, :vat_cents,
-          :deposit_cents, :status, :payment_method, 'unpaid', :hold_expires_at, datetime('now')
+          :deposit_cents, :status, :payment_method, 'unpaid', :hold_expires_at, datetime('now'),
+          :terms_version, :excess_cents, :late_cancel_fee_cents, :child_info,
+          :invoice_requested, :invoice_vat, :invoice_name, :invoice_address, :invoice_tax_office, :invoice_activity
         )`,
       )
       .run({
@@ -210,6 +247,16 @@ function createBooking(db, { car, search, extras, driver, userId = null, nowMs =
         status: isCard ? 'pending_payment' : 'confirmed',
         payment_method: driver.payment_method,
         hold_expires_at: holdExpiresAt,
+        terms_version: config.termsVersion,
+        excess_cents: quote.excessCents,
+        late_cancel_fee_cents: quote.lateCancelFeeCents,
+        child_info: driver.child_info || null,
+        invoice_requested: driver.invoice ? 1 : 0,
+        invoice_vat: driver.invoice ? driver.invoice_vat : null,
+        invoice_name: driver.invoice ? driver.invoice_name : null,
+        invoice_address: driver.invoice ? driver.invoice_address : null,
+        invoice_tax_office: driver.invoice ? driver.invoice_tax_office : null,
+        invoice_activity: driver.invoice ? driver.invoice_activity : null,
       });
     const bookingId = Number(result.lastInsertRowid);
     const insertExtra = db.prepare(
@@ -226,12 +273,18 @@ function createBooking(db, { car, search, extras, driver, userId = null, nowMs =
 
 function notifyConfirmed(db, booking) {
   const extras = getExtras(db, booking.id);
-  mailer.sendInBackground({
-    to: booking.email,
-    subject: `Επιβεβαίωση κράτησης ${booking.reference}`,
-    template: 'booking-confirmed',
-    data: { booking, extras },
-  });
+  mailer
+    .termsAttachment()
+    .catch(() => null)
+    .then((terms) =>
+      mailer.sendInBackground({
+        to: booking.email,
+        subject: `Επιβεβαίωση κράτησης ${booking.reference}`,
+        template: 'booking-confirmed',
+        data: { booking, extras },
+        attachments: terms ? [terms] : undefined,
+      }),
+    );
   mailer.sendInBackground({
     to: config.mail.adminNotify,
     subject: `Νέα κράτηση ${booking.reference} - ${booking.make} ${booking.model}`,
@@ -249,16 +302,20 @@ function isOnlinePayment(booking) {
   return Boolean(booking.payment_provider && booking.payment_ref && booking.paid_cents > 0);
 }
 
+// Ακύρωση από τον πελάτη: δωρεάν έως το όριο· μετά (και έως την ώρα παραλαβής) με τη
+// σταθερή χρέωση που γνωστοποιήθηκε στην κράτηση, μόνο αν έχει προπληρωθεί.
 function customerCancellation(booking, now = time.nowLocal()) {
-  if (booking.status === 'pending_payment') return { allowed: true };
+  if (booking.status === 'pending_payment') return { allowed: true, late: false, feeCents: 0 };
   if (booking.status !== 'confirmed') return { allowed: false, reason: 'Η κράτηση δεν μπορεί πλέον να ακυρωθεί online.' };
-  if (hoursUntilPickup(booking, now) < config.rules.freeCancellationHours) {
-    return {
-      allowed: false,
-      reason: `Η δωρεάν ακύρωση είναι δυνατή έως ${config.rules.freeCancellationHours} ώρες πριν την παραλαβή. Επικοινωνήστε μαζί μας.`,
-    };
+  if (hoursUntilPickup(booking, now) <= 0) {
+    return { allowed: false, reason: 'Η ώρα παραλαβής έχει περάσει. Επικοινωνήστε μαζί μας.' };
   }
-  return { allowed: true };
+  if (hoursUntilPickup(booking, now) < config.rules.freeCancellationHours) {
+    const paid = booking.paid_cents - booking.refunded_cents;
+    const fee = paid > 0 ? Math.min(booking.late_cancel_fee_cents ?? Math.round(booking.base_cents / booking.days), paid) : 0;
+    return { allowed: true, late: true, feeCents: fee };
+  }
+  return { allowed: true, late: false, feeCents: 0 };
 }
 
 // Κρατήσεις που δεν πληρώθηκαν εγκαίρως αποδεσμεύουν το αυτοκίνητο.
@@ -288,6 +345,7 @@ module.exports = {
   activeExtras,
   quoteFor,
   validateDriver,
+  isValidGreekVat,
   createBooking,
   getByReference,
   getById,

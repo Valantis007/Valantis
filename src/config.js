@@ -4,6 +4,7 @@ const path = require('node:path');
 require('dotenv').config({ quiet: true });
 
 const env = process.env;
+const PLACEHOLDER_LEGAL_NAME = 'Επωνυμία Επιχείρησης';
 const root = path.resolve(__dirname, '..');
 
 function int(name, fallback) {
@@ -52,15 +53,47 @@ const config = {
   uploadDir: env.UPLOAD_DIR ? path.resolve(root, env.UPLOAD_DIR) : path.join(root, 'data', 'uploads'),
   trustProxy: int('TRUST_PROXY', 0),
 
+  // Στοιχεία επιχείρησης: υποχρεωτικά για ιστοσελίδα ηλεκτρονικού εμπορίου (ΠΔ 131/2003, ν. 2251/1994).
   company: {
     name: env.COMPANY_NAME || 'Rent a Car',
-    legalName: env.COMPANY_LEGAL_NAME || 'Επωνυμία Επιχείρησης',
+    legalName: env.COMPANY_LEGAL_NAME || PLACEHOLDER_LEGAL_NAME,
+    seat: env.COMPANY_SEAT || env.COMPANY_ADDRESS || '',
     vat: env.COMPANY_VAT || '',
     taxOffice: env.COMPANY_TAX_OFFICE || '',
     gemi: env.COMPANY_GEMI || '',
+    mhte: env.COMPANY_MHTE || '',
+    authority: env.COMPANY_AUTHORITY || 'Περιφερειακή Υπηρεσία Τουρισμού Κεντρικής Μακεδονίας - Υπουργείο Τουρισμού',
     address: env.COMPANY_ADDRESS || '',
     phone: env.COMPANY_PHONE || '',
     email: env.COMPANY_EMAIL || '',
+    privacyEmail: env.COMPANY_PRIVACY_EMAIL || env.COMPANY_EMAIL || '',
+    // Δηλώστε true ΜΟΝΟ αν υπάρχει σύμβαση οδικής βοήθειας για όλο τον στόλο.
+    roadsideAssistance: env.ROADSIDE_ASSISTANCE === 'true',
+    // Δέσμευση συμμετοχής σε εξωδικαστική επίλυση (Συνήγορος του Καταναλωτή).
+    adrCommitment: env.ADR_COMMITMENT === 'true',
+  },
+
+  // Έκδοση των όρων ενοικίασης: αλλάξτε την κάθε φορά που αλλάζουν οι όροι.
+  termsVersion: env.TERMS_VERSION || '2026-10',
+
+  // Τιμοκατάλογος χρεώσεων μετά την επιστροφή (εμφανίζεται στους όρους πριν την κράτηση).
+  tariff: {
+    fuelPerLitreCents: euros('FUEL_PRICE_PER_LITRE', 250),
+    refuelFeeCents: euros('REFUEL_FEE', 1500),
+    cleaningFeeCents: euros('CLEANING_FEE', 5000),
+    finesAdminFeeCents: euros('FINES_ADMIN_FEE', 2000),
+    lostKeyFeeCents: euros('LOST_KEY_FEE', 25000),
+    ferryFeeCents: euros('FERRY_FEE', 0),
+    // Χρέωση ακύρωσης εντός του ορίου δωρεάν ακύρωσης ή μη εμφάνισης (0 = το μίσθωμα μίας ημέρας).
+    lateCancelFeeCents: euros('LATE_CANCEL_FEE', 0),
+    // Ανώτατο όριο πληρωμής με μετρητά (ν. 4446/2016) — να επιβεβαιωθεί από τον λογιστή.
+    cashLimitCents: euros('CASH_LIMIT', 49999),
+  },
+
+  retention: {
+    // Μήνες μετά την επιστροφή που κρατάμε στοιχεία διπλώματος, γέννησης, τηλέφωνο, σημειώσεις.
+    operationalMonths: int('RETENTION_OPERATIONAL_MONTHS', 12),
+    messagesMonths: int('RETENTION_MESSAGES_MONTHS', 12),
   },
 
   rules: {
@@ -68,7 +101,8 @@ const config = {
     openingHour: int('OPENING_HOUR', 8),
     closingHour: int('CLOSING_HOUR', 22),
     minLeadMinutes: int('MIN_LEAD_MINUTES', 120),
-    maxRentalDays: int('MAX_RENTAL_DAYS', 90),
+    // Πάνω από 30 ημέρες αλλάζει ο τόπος παροχής για ΦΠΑ (μακροχρόνια μίσθωση): μόνο με προσφορά.
+    maxRentalDays: Math.min(int('MAX_RENTAL_DAYS', 30), 30),
     maxAdvanceDays: int('MAX_ADVANCE_DAYS', 365),
     turnaroundMinutes: int('TURNAROUND_MINUTES', 60),
     freeCancellationHours: int('FREE_CANCELLATION_HOURS', 48),
@@ -104,7 +138,7 @@ const config = {
     // Το online link εγγύησης μπορεί να χρησιμοποιηθεί από τόσες ώρες πριν την παραλαβή.
     linkOpensHoursBeforePickup: int('DEPOSIT_LINK_OPENS_HOURS', 48),
     // Ημέρες που έχει ο πελάτης για να αποδεχθεί ή να αμφισβητήσει μια χρέωση ζημιάς.
-    damageResponseDays: int('DAMAGE_RESPONSE_DAYS', 7),
+    damageResponseDays: Math.max(int('DAMAGE_RESPONSE_DAYS', 14), 7),
     // Αυτόματη αποδέσμευση εγγύησης Χ ώρες μετά την επιστροφή αν δεν υπάρχουν χρεώσεις (0 = ποτέ).
     autoReleaseHours: int('DEPOSIT_AUTO_RELEASE_HOURS', 48),
   },
@@ -124,6 +158,25 @@ const config = {
     password: env.ADMIN_PASSWORD || '',
   },
 };
+
+// Σε παραγωγή η ιστοσελίδα δεν ξεκινά χωρίς τα υποχρεωτικά στοιχεία της επιχείρησης.
+if (isProduction) {
+  const missing = [];
+  if (config.company.legalName === PLACEHOLDER_LEGAL_NAME) missing.push('COMPANY_LEGAL_NAME');
+  for (const [key, value] of Object.entries({
+    COMPANY_VAT: config.company.vat,
+    COMPANY_GEMI: config.company.gemi,
+    COMPANY_MHTE: config.company.mhte,
+    COMPANY_ADDRESS: config.company.address,
+    COMPANY_PHONE: config.company.phone,
+    COMPANY_EMAIL: config.company.email,
+  })) {
+    if (!value) missing.push(key);
+  }
+  if (missing.length) {
+    throw new Error(`Συμπληρώστε στο .env τα υποχρεωτικά στοιχεία της επιχείρησης: ${missing.join(', ')}`);
+  }
+}
 
 if (!config.sessionSecret) {
   if (isProduction) {

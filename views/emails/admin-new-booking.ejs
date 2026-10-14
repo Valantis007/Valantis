@@ -1,10 +1,6 @@
 <%- include('_top') %>
 <p><strong>Νέα κράτηση</strong></p>
 <%- include('_booking-table', { booking, extras }) %>
-<p>Email πελάτη: <%= booking.email %><br>
-Δίπλωμα: <%= booking.license_number %> (<%= booking.license_country %>, έκδοση <%= format.date(booking.license_issued) %>)<br>
-Γέννηση: <%= format.date(booking.birth_date) %>
-<% if (booking.flight_number) { %><br>Πτήση/πλοίο: <%= booking.flight_number %><% } %>
-<% if (booking.notes) { %><br>Σημειώσεις: <%= booking.notes %><% } %></p>
+<p>Email πελάτη: <%= booking.email %><% if (booking.invoice_requested) { %><br><strong>Ζητήθηκε τιμολόγιο</strong><% } %></p>
 <p><a href="<%= baseUrl %>/admin/bookings/<%= booking.id %>">Άνοιγμα στη διαχείριση</a></p>
 <%- include('_bottom') %>

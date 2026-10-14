@@ -108,6 +108,7 @@ module.exports = function bookingRoutes(db) {
     const selectedExtras = bookings.parseExtras(db, req.body);
     const { values: driver, errors } = bookings.validateDriver(req.body, car, search.pickupAt, {
       paymentEnabled: providers.onlineEnabled(),
+      needsChildInfo: selectedExtras.some((x) => x.extra.kind === 'child_seat'),
     });
     if (Object.keys(errors).length) {
       return renderForm(req, res, { status: 422, car, search, driver, errors, selectedExtras });
@@ -197,8 +198,18 @@ module.exports = function bookingRoutes(db) {
       req.flash('error', check.reason);
       return res.redirect(303, `/booking/${booking.reference}`);
     }
+    if (check.late && check.feeCents > 0 && req.body.accept_fee !== '1') {
+      req.flash('error', `Επιβεβαιώστε ότι αποδέχεστε τη χρέωση ακύρωσης ${format.money(check.feeCents)}.`);
+      return res.redirect(303, `/booking/${booking.reference}`);
+    }
     try {
-      const result = await payments.cancelBooking(db, booking.id, { actor: actorOf(req), reason: 'Ακύρωση από τον πελάτη' });
+      const refundable = booking.paid_cents - booking.refunded_cents;
+      const result = await payments.cancelBooking(db, booking.id, {
+        actor: actorOf(req),
+        reason: check.feeCents ? `Ακύρωση από τον πελάτη (χρέωση ακύρωσης ${format.money(check.feeCents)})` : 'Ακύρωση από τον πελάτη',
+        refundCents: check.feeCents ? Math.max(refundable - check.feeCents, 0) : null,
+        refund: refundable - check.feeCents > 0,
+      });
       let msg = 'Η κράτηση ακυρώθηκε.';
       if (result.refundedCents || result.refundPendingCents) {
         msg += ` Η επιστροφή ${format.money(result.refundedCents + result.refundPendingCents)} στην κάρτα σας ξεκίνησε και θα εμφανιστεί σε 5-10 εργάσιμες ημέρες.`;

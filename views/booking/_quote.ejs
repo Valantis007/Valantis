@@ -5,5 +5,6 @@
   <div class="<%= quote.extrasCents ? '' : 'hidden' %>" data-q-row="extras"><dt>Πρόσθετα</dt><dd data-q="extras"><%= format.money(quote.extrasCents) %></dd></div>
   <div class="total-row"><dt>Σύνολο</dt><dd data-q="total"><%= format.money(quote.totalCents) %></dd></div>
   <div class="small muted"><dt>Περιλαμβάνεται ΦΠΑ</dt><dd data-q="vat"><%= format.money(quote.vatCents) %></dd></div>
-  <div class="small muted"><dt>Εγγύηση (δέσμευση στην παραλαβή)</dt><dd><%= format.money(quote.depositCents) %></dd></div>
+  <div class="small muted"><dt>Απαλλαγή (συμμετοχή σε ζημιές)</dt><dd data-q="excess"><%= format.money(quote.excessCents) %></dd></div>
+  <div class="small muted"><dt>Εγγύηση (δέσμευση σε πιστωτική κάρτα — όχι χρέωση)</dt><dd><%= format.money(quote.depositCents) %></dd></div>
 </dl>

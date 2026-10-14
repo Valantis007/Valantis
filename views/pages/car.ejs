@@ -12,15 +12,16 @@
         <h2 class="h4">Περιλαμβάνονται στην τιμή</h2>
         <ul class="checklist">
           <li><%= car.mileage_policy %></li>
-          <li>Βασική ασφάλεια (CDW) & αστική ευθύνη</li>
-          <li>Οδική βοήθεια 24/7</li>
+          <li>Υποχρεωτική ασφάλιση αστικής ευθύνης (έναντι τρίτων)</li>
+          <li>Βασική κάλυψη ζημιών (CDW) — απαλλαγή <%= format.money(car.excess_cents ?? car.deposit_cents) %> (0 € με την Πλήρη Απαλλαγή FDW)</li>
+          <% if (company.roadsideAssistance) { %><li>Οδική βοήθεια 24/7</li><% } %>
           <li>ΦΠΑ <%= config.rules.vatPercent %>%</li>
         </ul>
         <h2 class="h4">Απαιτήσεις</h2>
         <ul class="checklist muted">
           <li>Ελάχιστη ηλικία οδηγού: <%= car.min_driver_age %> ετών</li>
           <li>Δίπλωμα οδήγησης τουλάχιστον <%= config.rules.minLicenseYears %> έτους</li>
-          <li>Εγγύηση <%= format.money(car.deposit_cents) %> (δέσμευση σε πιστωτική κάρτα κατά την παραλαβή)</li>
+          <li>Εγγύηση <%= format.money(car.deposit_cents) %>: δέσμευση (όχι χρέωση) σε <strong>πιστωτική</strong> κάρτα στο όνομα του κύριου οδηγού — όχι χρεωστική ή προπληρωμένη</li>
         </ul>
       </div>
     </div>
@@ -31,6 +32,7 @@
         <div class="alert alert-error">Το αυτοκίνητο δεν είναι διαθέσιμο για αυτές τις ημερομηνίες. <a href="/cars?<%= query %>">Δείτε διαθέσιμα αυτοκίνητα</a>.</div>
       <% } else if (quote) { %>
         <%- include('../booking/_quote', { quote }) %>
+        <%- include('../partials/payment-means') %>
         <a class="btn btn-primary btn-block" href="/booking/new?car_id=<%= car.id %>&<%= query %>">Συνέχεια στην κράτηση</a>
       <% } else { %>
         <p class="price">από <strong><%= format.money(car.daily_rate_cents) %></strong> / ημέρα</p>

@@ -52,6 +52,7 @@
         · <%= format.dateTime(search.pickupAt) %> → <%= format.dateTime(search.returnAt) %>
         <% if (unavailableCount) { %><span class="muted">(<%= unavailableCount %> δεν είναι διαθέσιμα)</span><% } %>
       </p>
+          <%- include('../partials/payment-means') %>
     <% } else { %>
       <div class="alert alert-info">Επιλέξτε σημείο και ημερομηνίες για να δείτε διαθεσιμότητα και τελικές τιμές.</div>
     <% } %>
@@ -71,7 +72,7 @@
             <span class="badge"><%= format.label('category', car.category) %></span>
             <h2 class="h3"><a href="/cars/<%= car.id %><%= search.ok ? `?${query}` : '' %>"><%= car.make %> <%= car.model %></a> <span class="muted small">ή παρόμοιο</span></h2>
             <%- include('../partials/car-specs', { car }) %>
-            <p class="small muted">Ελάχιστη ηλικία οδηγού <%= car.min_driver_age %> · <%= car.mileage_policy %> · Εγγύηση <%= format.money(car.deposit_cents) %></p>
+            <p class="small muted">Ελάχιστη ηλικία οδηγού <%= car.min_driver_age %> · <%= car.mileage_policy %> · Απαλλαγή <%= format.money(car.excess_cents ?? car.deposit_cents) %> · Εγγύηση <%= format.money(car.deposit_cents) %> (πιστωτική κάρτα)</p>
           </div>
           <div class="car-price">
             <% if (car.quote) { %>

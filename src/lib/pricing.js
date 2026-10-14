@@ -92,6 +92,14 @@ function computeQuote({ car, pickupAt, returnAt, pickupLocation, returnLocation,
 
   const totalCents = baseCents - discountCents + extrasCents + feesCents;
 
+  // Απαλλαγή: η συμμετοχή του πελάτη σε ζημιές. Μηδενίζεται με την Πλήρη Απαλλαγή (FDW).
+  const baseExcessCents = car.excess_cents ?? car.deposit_cents;
+  const hasWaiver = extras.some(({ extra, qty }) => qty > 0 && extra.kind === 'damage_waiver');
+  const excessCents = hasWaiver ? 0 : baseExcessCents;
+  // Χρέωση ακύρωσης μετά το όριο δωρεάν ακύρωσης: σταθερή ή το μίσθωμα μίας ημέρας (χωρίς πρόσθετα).
+  const oneDay = Math.round((baseCents - discountCents) / days);
+  const lateCancelFeeCents = Math.min(config.tariff.lateCancelFeeCents || oneDay, totalCents);
+
   return {
     days,
     dayLines,
@@ -105,6 +113,10 @@ function computeQuote({ car, pickupAt, returnAt, pickupLocation, returnLocation,
     totalCents,
     vatCents: vatIncluded(totalCents),
     depositCents: car.deposit_cents,
+    baseExcessCents,
+    excessCents,
+    hasWaiver,
+    lateCancelFeeCents,
     avgDailyCents: Math.round((baseCents - discountCents) / days),
   };
 }

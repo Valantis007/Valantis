@@ -32,7 +32,7 @@ test('αναζήτηση: απορρίπτει παρελθοντικές ημε
 test('κράτηση με πληρωμή στην παραλαβή: επιβεβαίωση, email, σωστή τιμή από τον server', async () => {
   const { db, app } = h.setup();
   const agent = h.agent(app);
-  const res = await h.post(agent, '/booking', { ...h.searchParams({ returnLocation: 2 }), ...h.driver(), extra_1: '1', extra_3: '2', total_cents: '1' });
+  const res = await h.post(agent, '/booking', { ...h.searchParams({ returnLocation: 2 }), ...h.driver({ child_info: '3 ετών, 15 κιλά' }), extra_1: '1', extra_3: '2', total_cents: '1' });
   assert.equal(res.status, 303);
   const b = bookingFromRedirect(db, res);
   assert.equal(b.status, 'confirmed');
@@ -90,7 +90,7 @@ test('δεν επιτρέπεται διπλή κράτηση του ίδιου 
   assert.equal(db.prepare('SELECT COUNT(*) n FROM bookings').get().n, 2);
 });
 
-test('ακύρωση από πελάτη: επιτρέπεται πριν το όριο, όχι μέσα σε αυτό', async () => {
+test('ακύρωση από πελάτη: δωρεάν πριν το όριο, με τη γνωστοποιημένη χρέωση μέσα σε αυτό', async () => {
   const { db, app } = h.setup();
   const agent = h.agent(app);
   const res = await h.post(agent, '/booking', { ...h.searchParams({ from: 10 }), ...h.driver() });
@@ -105,13 +105,22 @@ test('ακύρωση από πελάτη: επιτρέπεται πριν το �
   const again = await h.post(h.agent(app), '/booking', { ...h.searchParams({ from: 10 }), ...h.driver() });
   assert.equal(again.status, 303);
 
-  // Κράτηση σε 1 ημέρα: όχι online ακύρωση (όριο 48 ώρες)
+  // Κράτηση σε 1 ημέρα με προπληρωμή: η ακύρωση γίνεται online με τη χρέωση που γνωστοποιήθηκε.
   const soon = await h.post(agent, '/booking', { ...h.searchParams({ car: 2, from: 1 }), ...h.driver() });
   const sb = bookingFromRedirect(db, soon);
+  db.prepare(`UPDATE bookings SET payment_status = 'paid', paid_cents = total_cents WHERE id = ?`).run(sb.id);
   const page = await agent.get(`/booking/${sb.reference}`);
-  assert.match(page.text, /Η δωρεάν ακύρωση είναι δυνατή έως 48 ώρες/);
+  assert.match(page.text, /χρέωση ακύρωσης/);
+  // Χωρίς ρητή αποδοχή της χρέωσης δεν ακυρώνεται.
   await h.post(agent, `/booking/${sb.reference}/cancel`, {});
   assert.equal(bookingsLib.getById(db, sb.id).status, 'confirmed');
+  await h.post(agent, `/booking/${sb.reference}/cancel`, { accept_fee: '1' });
+  const after = bookingsLib.getById(db, sb.id);
+  assert.equal(after.status, 'cancelled');
+  // Πληρωμή εκτός συστήματος: οφειλόμενη επιστροφή = σύνολο - χρέωση ακύρωσης
+  const due = db.prepare(`SELECT note FROM booking_events WHERE booking_id = ? AND action = 'refund_due'`).get(sb.id);
+  assert.ok(due, 'καταγράφεται η οφειλόμενη επιστροφή');
+  assert.ok(after.late_cancel_fee_cents > 0 && after.late_cancel_fee_cents < after.total_cents);
 });
 
 test('πρόσβαση σε κράτηση: μόνο με κωδικό + email', async () => {

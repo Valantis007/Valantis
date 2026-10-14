@@ -1,0 +1,8 @@
+<!doctype html>
+<html lang="el"><head><meta charset="utf-8"><title>Όροι ενοικίασης - <%= company.name %></title>
+<style>body{font-family:Arial,Helvetica,sans-serif;max-width:820px;margin:24px auto;padding:0 16px;line-height:1.55;color:#1d2433}table{border-collapse:collapse;width:100%}td,th{border:1px solid #dde3ec;padding:6px 8px;text-align:left}h2{margin-top:1.6em;font-size:1.2rem}</style>
+</head><body>
+<h1>Όροι ενοικίασης — <%= company.name %></h1>
+<p>Έκδοση <%= config.termsVersion %></p>
+<%- include('../partials/terms-content') %>
+</body></html>

@@ -29,6 +29,20 @@
         <input id="phone" name="phone" type="tel" value="<%= values.phone || '' %>" autocomplete="tel">
       </div>
     </div>
+    <div class="grid-2">
+      <div class="field">
+        <label for="kind">Είδος</label>
+        <select id="kind" name="kind">
+          <% [['question', 'Ερώτηση'], ['complaint', 'Παράπονο'], ['charge_dispute', 'Αμφισβήτηση χρέωσης']].forEach(function (k) { %>
+            <option value="<%= k[0] %>" <%= values.kind === k[0] ? 'selected' : '' %>><%= k[1] %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="field">
+        <label for="booking_reference">Κωδικός κράτησης (αν υπάρχει)</label>
+        <input id="booking_reference" name="booking_reference" value="<%= values.booking_reference || '' %>" maxlength="8" class="uppercase">
+      </div>
+    </div>
     <div class="field">
       <label for="subject">Θέμα</label>
       <input id="subject" name="subject" value="<%= values.subject || '' %>" required>

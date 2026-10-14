@@ -101,9 +101,18 @@
     <div class="card pad">
       <h2 class="h4">Ακύρωση</h2>
       <% if (cancellation.allowed) { %>
-        <p>Μπορείτε να ακυρώσετε δωρεάν.<% if (booking.paid_cents && booking.payment_ref) { %> Το ποσό που πληρώσατε επιστρέφεται αυτόματα στην κάρτα σας.<% } else if (booking.paid_cents) { %> Θα επικοινωνήσουμε μαζί σας για την επιστροφή του ποσού που πληρώσατε.<% } %></p>
-        <form method="post" action="/booking/<%= booking.reference %>/cancel" data-confirm="Σίγουρα θέλετε να ακυρώσετε την κράτηση;">
+        <% if (cancellation.late && cancellation.feeCents > 0) { %>
+          <p>Είμαστε εντός <%= config.rules.freeCancellationHours %> ωρών πριν την παραλαβή: ισχύει η <strong>χρέωση ακύρωσης <%= format.money(cancellation.feeCents) %></strong> που γνωστοποιήθηκε στην κράτηση. Θα επιστραφούν <strong><%= format.money(booking.paid_cents - booking.refunded_cents - cancellation.feeCents) %></strong>.</p>
+        <% } else if (cancellation.late) { %>
+          <p>Μπορείτε να ακυρώσετε χωρίς χρέωση, επειδή δεν έχετε προπληρώσει.</p>
+        <% } else { %>
+          <p>Μπορείτε να ακυρώσετε δωρεάν.<% if (booking.paid_cents && booking.payment_ref) { %> Το ποσό που πληρώσατε επιστρέφεται αυτόματα στην κάρτα σας.<% } else if (booking.paid_cents) { %> Θα επικοινωνήσουμε μαζί σας για την επιστροφή του ποσού που πληρώσατε.<% } %></p>
+        <% } %>
+        <form method="post" action="/booking/<%= booking.reference %>/cancel" class="stack" data-confirm="Σίγουρα θέλετε να ακυρώσετε την κράτηση;">
           <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+          <% if (cancellation.late && cancellation.feeCents > 0) { %>
+            <label class="check"><input type="checkbox" name="accept_fee" value="1" required><span>Αποδέχομαι τη χρέωση ακύρωσης <%= format.money(cancellation.feeCents) %>.</span></label>
+          <% } %>
           <button class="btn btn-danger" type="submit">Ακύρωση κράτησης</button>
         </form>
       <% } else { %>

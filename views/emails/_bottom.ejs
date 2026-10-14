@@ -1,8 +1,8 @@
 </td></tr>
 <tr><td style="padding:18px 28px;background:#f8f9fb;color:#6b7280;font-size:12px;line-height:1.5;">
-<%= company.legalName %><% if (company.vat) { %> · ΑΦΜ <%= company.vat %><% } %><br>
+<%= company.legalName %><% if (company.vat) { %> · ΑΦΜ <%= company.vat %><% } %><% if (company.gemi) { %> · ΓΕΜΗ <%= company.gemi %><% } %><% if (company.mhte) { %> · ΜΗΤΕ <%= company.mhte %><% } %><br>
 <%= company.address %><br>
-<%= company.phone %> · <a href="mailto:<%= company.email %>" style="color:#6b7280;"><%= company.email %></a>
+<%= company.phone %> · <a href="mailto:<%= company.email %>" style="color:#6b7280;"><%= company.email %></a> · <a href="<%= baseUrl %>/terms" style="color:#6b7280;">Όροι ενοικίασης</a>
 </td></tr>
 </table></td></tr></table>
 </body></html>

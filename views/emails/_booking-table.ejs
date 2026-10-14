@@ -5,7 +5,12 @@
   <tr><td style="color:#6b7280;">Επιστροφή</td><td><strong><%= format.dateTime(booking.return_at) %></strong><br><%= booking.return_location_name %></td></tr>
   <tr><td style="color:#6b7280;">Οδηγός</td><td><%= booking.first_name %> <%= booking.last_name %> · <%= booking.phone %></td></tr>
   <% if (locals.extras && extras.length) { %><tr><td style="color:#6b7280;">Πρόσθετα</td><td><% extras.forEach(function (x) { %><%= x.name %><%= x.qty > 1 ? ` ×${x.qty}` : '' %> (<%= format.money(x.total_cents) %>)<br><% }) %></td></tr><% } %>
-  <tr><td style="color:#6b7280;">Σύνολο (με ΦΠΑ)</td><td><strong><%= format.money(booking.total_cents) %></strong></td></tr>
+  <tr><td style="color:#6b7280;">Ενοικίαση (<%= booking.days %> <%= booking.days === 1 ? 'ημέρα' : 'ημέρες' %>)</td><td><%= format.money(booking.base_cents) %></td></tr>
+  <% if (booking.discount_cents) { %><tr><td style="color:#6b7280;">Έκπτωση διάρκειας</td><td>-<%= format.money(booking.discount_cents) %></td></tr><% } %>
+  <% if (booking.fees_cents) { %><tr><td style="color:#6b7280;">Χρεώσεις σημείου / επιστροφής σε άλλο σημείο</td><td><%= format.money(booking.fees_cents) %></td></tr><% } %>
+  <tr><td style="color:#6b7280;">Σύνολο</td><td><strong><%= format.money(booking.total_cents) %></strong> (περιλαμβάνεται ΦΠΑ <%= config.rules.vatPercent %>%: <%= format.money(booking.vat_cents) %>)</td></tr>
+  <tr><td style="color:#6b7280;"><%= booking.payment_status === 'paid' ? 'Πληρώθηκαν' : 'Πληρωτέο' %></td><td><%= format.money(booking.payment_status === 'paid' ? booking.paid_cents : booking.total_cents) %><%= booking.payment_status === 'paid' ? '' : ' κατά την παραλαβή' %></td></tr>
+  <tr><td style="color:#6b7280;">Απαλλαγή ζημιών</td><td><%= format.money(booking.excess_cents ?? booking.deposit_cents) %></td></tr>
   <tr><td style="color:#6b7280;">Πληρωμή</td><td><%= format.label('paymentMethod', booking.payment_method) %> — <%= format.label('paymentStatus', booking.payment_status) %></td></tr>
-  <tr><td style="color:#6b7280;">Εγγύηση</td><td><%= format.money(booking.deposit_cents) %> (δέσμευση σε πιστωτική κάρτα κατά την παραλαβή)</td></tr>
+  <tr><td style="color:#6b7280;">Εγγύηση</td><td><%= format.money(booking.deposit_cents) %>: δέσμευση (όχι χρέωση) σε πιστωτική κάρτα στο όνομα του κύριου οδηγού — όχι χρεωστική/προπληρωμένη. Αποδεσμεύεται μετά την επιστροφή.</td></tr>
 </table>

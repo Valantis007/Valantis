@@ -28,11 +28,11 @@
                 <% if (x.description) { %><p class="small muted"><%= x.description %></p><% } %>
               </div>
               <% if (x.max_qty > 1) { %>
-                <select name="extra_<%= x.id %>" aria-label="Ποσότητα: <%= x.name %>" data-extra>
+                <select name="extra_<%= x.id %>" aria-label="Ποσότητα: <%= x.name %>" data-extra data-kind="<%= x.kind %>">
                   <% for (let i = 0; i <= x.max_qty; i++) { %><option value="<%= i %>" <%= qty === i ? 'selected' : '' %>><%= i %></option><% } %>
                 </select>
               <% } else { %>
-                <label class="switch"><input type="checkbox" name="extra_<%= x.id %>" value="1" <%= qty ? 'checked' : '' %> data-extra><span>Προσθήκη</span></label>
+                <label class="switch"><input type="checkbox" name="extra_<%= x.id %>" value="1" <%= qty ? 'checked' : '' %> data-extra data-kind="<%= x.kind %>"><span>Προσθήκη</span></label>
               <% } %>
             </div>
           <% }) %>
@@ -57,26 +57,49 @@
           <div class="field"><label for="license_issued">Ημερομηνία έκδοσης *</label><input id="license_issued" name="license_issued" type="date" value="<%= d.license_issued || '' %>" required><%- err('license_issued') %></div>
         </div>
         <div class="grid-2">
-          <div class="field"><label for="flight_number">Αριθμός πτήσης / πλοίου</label><input id="flight_number" name="flight_number" value="<%= d.flight_number || '' %>" placeholder="π.χ. A3 123"><span class="hint">Για να σας περιμένουμε σε περίπτωση καθυστέρησης.</span></div>
-          <div class="field"><label for="notes">Σημειώσεις / ειδικά αιτήματα</label><textarea id="notes" name="notes" rows="2"><%= d.notes || '' %></textarea></div>
+          <div class="field"><label for="flight_number">Αριθμός πτήσης / πλοίου (προαιρετικό)</label><input id="flight_number" name="flight_number" value="<%= d.flight_number || '' %>" placeholder="π.χ. A3 123"><span class="hint">Για να σας περιμένουμε σε περίπτωση καθυστέρησης.</span></div>
+          <div class="field"><label for="notes">Σημειώσεις / ειδικά αιτήματα (προαιρετικό)</label><textarea id="notes" name="notes" rows="2"><%= d.notes || '' %></textarea><span class="hint">Μην αναγράφετε πληροφορίες υγείας ή αριθμούς καρτών.</span></div>
         </div>
+        <div class="field <%= extras.some(function (x) { return x.kind === 'child_seat' && selected[x.id]; }) || e.child_info ? '' : 'hidden' %>" data-child-info>
+          <label for="child_info">Ηλικία και βάρος παιδιού/παιδιών (για παιδικό κάθισμα)</label>
+          <input id="child_info" name="child_info" value="<%= d.child_info || '' %>" placeholder="π.χ. 3 ετών, 15 κιλά">
+          <span class="hint">Υποχρεωτικό αν επιλέξετε παιδικό κάθισμα, ώστε να σας δώσουμε την κατάλληλη κλάση (ECE R44/R129).</span>
+          <%- err('child_info') %>
+        </div>
+        <details class="invoice" <%= d.invoice ? 'open' : '' %>>
+          <summary>Χρειάζομαι τιμολόγιο (επαγγελματίες)</summary>
+          <label class="check"><input type="checkbox" name="invoice" value="1" <%= d.invoice ? 'checked' : '' %>><span>Θέλω τιμολόγιο αντί για απόδειξη</span></label>
+          <div class="grid-2">
+            <div class="field"><label for="invoice_vat">ΑΦΜ</label><input id="invoice_vat" name="invoice_vat" value="<%= d.invoice_vat || '' %>" inputmode="numeric" maxlength="12"><%- err('invoice_vat') %></div>
+            <div class="field"><label for="invoice_name">Επωνυμία</label><input id="invoice_name" name="invoice_name" value="<%= d.invoice_name || '' %>"><%- err('invoice_name') %></div>
+            <div class="field"><label for="invoice_address">Διεύθυνση</label><input id="invoice_address" name="invoice_address" value="<%= d.invoice_address || '' %>"><%- err('invoice_address') %></div>
+            <div class="field"><label for="invoice_tax_office">ΔΟΥ</label><input id="invoice_tax_office" name="invoice_tax_office" value="<%= d.invoice_tax_office || '' %>"><%- err('invoice_tax_office') %></div>
+            <div class="field"><label for="invoice_activity">Δραστηριότητα</label><input id="invoice_activity" name="invoice_activity" value="<%= d.invoice_activity || '' %>"><%- err('invoice_activity') %></div>
+          </div>
+        </details>
       </section>
 
       <section class="card pad">
         <h2 class="h3">Πληρωμή</h2>
+        <%- include('../partials/payment-means') %>
         <div class="radio-cards">
           <% if (paymentsEnabled) { %>
             <label class="radio-card"><input type="radio" name="payment_method" value="card" <%= d.payment_method === 'card' ? 'checked' : '' %>>
-              <span><strong>Κάρτα online</strong><span class="small muted">Ασφαλής πληρωμή μέσω Stripe (Visa, Mastercard, Apple Pay, Google Pay).</span></span></label>
+              <span><strong>Κάρτα online</strong><span class="small muted">Ασφαλής πληρωμή μέσω <%= paymentProviderLabel %> (Visa, Mastercard, Apple Pay, Google Pay).</span></span></label>
           <% } %>
           <label class="radio-card"><input type="radio" name="payment_method" value="pay_at_pickup" <%= d.payment_method === 'pay_at_pickup' || !paymentsEnabled ? 'checked' : '' %>>
-            <span><strong>Πληρωμή κατά την παραλαβή</strong><span class="small muted">Μετρητά ή κάρτα στο γραφείο μας.</span></span></label>
+            <span><strong>Πληρωμή κατά την παραλαβή</strong><span class="small muted">Χρεωστική ή πιστωτική κάρτα, IRIS ή μετρητά έως <%= format.money(config.tariff.cashLimitCents) %>.</span></span></label>
         </div>
         <%- err('payment_method') %>
-        <p class="small muted">Κατά την παραλαβή θα δεσμευτεί εγγύηση <%= format.money(car.deposit_cents) %> σε πιστωτική κάρτα στο όνομα του οδηγού.</p>
+      </section>
+
+      <%- include('_precontract', { car, quote }) %>
+
+      <section class="card pad">
         <label class="check"><input type="checkbox" name="terms" value="1" <%= d.terms ? 'checked' : '' %> required>
-          <span>Έχω διαβάσει και αποδέχομαι τους <a href="/terms" target="_blank">όρους ενοικίασης</a> και την <a href="/privacy" target="_blank">πολιτική απορρήτου</a>. *</span></label>
+          <span>Έχω διαβάσει και αποδέχομαι τους <a href="/terms" target="_blank">όρους ενοικίασης</a> (έκδοση <%= config.termsVersion %>). *</span></label>
         <%- err('terms') %>
+        <p class="small muted">Πώς χρησιμοποιούμε τα στοιχεία σας: <a href="/privacy" target="_blank">Πολιτική απορρήτου</a>.</p>
       </section>
     </div>
 
@@ -88,11 +111,14 @@
         <div><dt>Παραλαβή</dt><dd><%= format.dateTime(search.pickupAt) %><br><span class="muted"><%= search.pickupLocation.name %></span></dd></div>
         <div><dt>Επιστροφή</dt><dd><%= format.dateTime(search.returnAt) %><br><span class="muted"><%= search.returnLocation.name %></span></dd></div>
       </dl>
+      <p class="small"><a href="/cars/<%= car.id %>?<%= query %>">Αλλαγή ημερομηνιών ή σημείων</a></p>
       <%- include('_quote', { quote }) %>
-      <button type="submit" class="btn btn-primary btn-block" data-submit>
-        <%= paymentsEnabled && d.payment_method === 'card' ? 'Συνέχεια στην πληρωμή' : 'Ολοκλήρωση κράτησης' %>
-      </button>
-      <p class="small muted center">Δωρεάν ακύρωση έως <%= config.rules.freeCancellationHours %> ώρες πριν την παραλαβή.</p>
+      <p class="small muted">Ελέγξτε τα στοιχεία σας· μπορείτε να τα διορθώσετε πριν την υποβολή.</p>
+      <button type="submit" class="btn btn-primary btn-block" data-submit>Κράτηση με υποχρέωση πληρωμής</button>
+      <p class="small muted center" data-submit-hint data-hint-card="Θα μεταφερθείτε στην ασφαλή σελίδα πληρωμής (<%= paymentProviderLabel %>). Η κράτηση ολοκληρώνεται με την επιτυχή πληρωμή." data-hint-pickup="Η πληρωμή γίνεται κατά την παραλαβή.">
+        <%= paymentsEnabled && d.payment_method === 'card' ? `Θα μεταφερθείτε στην ασφαλή σελίδα πληρωμής (${paymentProviderLabel}). Η κράτηση ολοκληρώνεται με την επιτυχή πληρωμή.` : 'Η πληρωμή γίνεται κατά την παραλαβή.' %>
+      </p>
+      <p class="small muted center">Δεν υφίσταται δικαίωμα υπαναχώρησης 14 ημερών. Δωρεάν ακύρωση έως <%= config.rules.freeCancellationHours %> ώρες πριν την παραλαβή.</p>
     </aside>
   </form>
 </div>

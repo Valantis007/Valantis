@@ -13,12 +13,20 @@ const locations = [
 ];
 
 const extras = [
-  { name: 'Πλήρης ασφάλεια (μηδενική απαλλαγή)', description: 'Μηδενίζει τη συμμετοχή σας σε ζημιές και την εγγύηση.', price_cents: 1200, pricing: 'per_day', max_qty: 1, sort_order: 1 },
-  { name: 'Επιπλέον οδηγός', description: 'Ο επιπλέον οδηγός πρέπει να είναι παρών στην παραλαβή με το δίπλωμά του.', price_cents: 500, pricing: 'per_day', max_qty: 2, sort_order: 2 },
-  { name: 'Παιδικό κάθισμα (0-4 ετών)', description: '', price_cents: 500, pricing: 'per_day', max_qty: 2, sort_order: 3 },
-  { name: 'Κάθισμα booster (4-12 ετών)', description: '', price_cents: 400, pricing: 'per_day', max_qty: 2, sort_order: 4 },
-  { name: 'GPS πλοήγηση', description: '', price_cents: 500, pricing: 'per_day', max_qty: 1, sort_order: 5 },
-  { name: 'Γεμάτο ρεζερβουάρ κατά την παραλαβή', description: 'Επιστρέψτε το αυτοκίνητο με όσο καύσιμο θέλετε.', price_cents: 6000, pricing: 'per_rental', max_qty: 1, sort_order: 6 },
+  {
+    name: 'Πλήρης Απαλλαγή Ευθύνης για Ζημιές (FDW) - συμμετοχή 0 €',
+    description: 'Μηδενίζει τη συμμετοχή σας σε ζημιές του οχήματος, με τις εξαιρέσεις των όρων (§7). Δεν είναι ασφαλιστικό προϊόν: είναι συμβατική παραίτηση της εταιρείας από αξιώσεις για ζημιές. Η εγγύηση δεν αλλάζει.',
+    price_cents: 1200, pricing: 'per_day', max_qty: 1, sort_order: 1, kind: 'damage_waiver',
+  },
+  { name: 'Επιπλέον οδηγός', description: 'Ο επιπλέον οδηγός πρέπει να είναι παρών στην παραλαβή με το δίπλωμά του και να πληροί τις ίδιες προϋποθέσεις ηλικίας/διπλώματος.', price_cents: 500, pricing: 'per_day', max_qty: 2, sort_order: 2, kind: 'driver' },
+  { name: 'Παιδικό κάθισμα (0-4 ετών)', description: 'Εγκεκριμένο κατά ECE R44/04 ή R129 (i-Size).', price_cents: 500, pricing: 'per_day', max_qty: 2, sort_order: 3, kind: 'child_seat' },
+  { name: 'Κάθισμα booster (4-12 ετών)', description: 'Εγκεκριμένο κατά ECE R44/04 ή R129 (i-Size).', price_cents: 400, pricing: 'per_day', max_qty: 2, sort_order: 4, kind: 'child_seat' },
+  { name: 'GPS πλοήγηση', description: '', price_cents: 500, pricing: 'per_day', max_qty: 1, sort_order: 5, kind: 'other' },
+  {
+    name: 'Προπληρωμένο γεμάτο ρεζερβουάρ',
+    description: 'Παραλαμβάνετε με γεμάτο ρεζερβουάρ και επιστρέφετε με όσο καύσιμο θέλετε. Το καύσιμο που δεν χρησιμοποιήθηκε δεν επιστρέφεται. Εναλλακτικά, επιστρέψτε με την ίδια στάθμη χωρίς χρέωση.',
+    price_cents: 6000, pricing: 'per_rental', max_qty: 1, sort_order: 6, kind: 'prepaid_fuel',
+  },
 ];
 
 const seasons = [
@@ -50,7 +58,7 @@ function seedIfEmpty(db) {
     }
     if (!db.prepare('SELECT 1 FROM extras LIMIT 1').get()) {
       const stmt = db.prepare(
-        'INSERT INTO extras (name, description, price_cents, pricing, max_qty, sort_order) VALUES (:name, :description, :price_cents, :pricing, :max_qty, :sort_order)',
+        'INSERT INTO extras (name, description, price_cents, pricing, max_qty, sort_order, kind) VALUES (:name, :description, :price_cents, :pricing, :max_qty, :sort_order, :kind)',
       );
       extras.forEach((e) => stmt.run(e));
     }

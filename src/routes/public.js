@@ -134,6 +134,7 @@ module.exports = function publicRoutes(db) {
       fees: format.money(quote.feesCents),
       vat: format.money(quote.vatCents),
       deposit: format.money(quote.depositCents),
+      excess: format.money(quote.excessCents),
       totalCents: quote.totalCents,
       extrasCents: quote.extrasCents,
       discountCents: quote.discountCents,
@@ -159,9 +160,15 @@ module.exports = function publicRoutes(db) {
     res.redirect(`/booking/${booking.reference}`);
   });
 
+  const MESSAGE_KINDS = ['question', 'complaint', 'charge_dispute'];
+
   router.get('/contact', (req, res) => {
-    res.render('pages/contact', { title: 'Επικοινωνία', values: {}, errors: {} });
+    const kind = MESSAGE_KINDS.includes(req.query.kind) ? req.query.kind : 'question';
+    res.render('pages/contact', { title: 'Επικοινωνία', values: { kind }, errors: {} });
   });
+
+  router.get('/company', (req, res) => res.render('pages/company', { title: 'Στοιχεία εταιρείας' }));
+  router.get('/complaints', (req, res) => res.render('pages/complaints', { title: 'Παράπονα & επίλυση διαφορών' }));
 
   router.post('/contact', limits.contact, async (req, res) => {
     const values = {
@@ -170,6 +177,8 @@ module.exports = function publicRoutes(db) {
       phone: str(req.body.phone, 30),
       subject: str(req.body.subject, 150),
       body: str(req.body.body, 4000),
+      kind: MESSAGE_KINDS.includes(req.body.kind) ? req.body.kind : 'question',
+      booking_reference: str(req.body.booking_reference, 8).toUpperCase().replace(/[^A-Z0-9]/g, ''),
     };
     const errors = {};
     if (!values.name) errors.name = 'Συμπληρώστε το όνομά σας.';
@@ -181,21 +190,30 @@ module.exports = function publicRoutes(db) {
     if (Object.keys(errors).length) {
       return res.status(422).render('pages/contact', { title: 'Επικοινωνία', values, errors });
     }
-    db.prepare('INSERT INTO messages (name, email, phone, subject, body) VALUES (?, ?, ?, ?, ?)').run(
+    db.prepare('INSERT INTO messages (name, email, phone, subject, body, kind, booking_reference) VALUES (?, ?, ?, ?, ?, ?, ?)').run(
       values.name,
       values.email,
       values.phone || null,
       values.subject,
       values.body,
+      values.kind,
+      values.booking_reference || null,
     );
-    await mailer.send({
+    // Επιβεβαίωση λήψης στον πελάτη (υποχρεωτική για παράπονα).
+    mailer.sendInBackground({
+      to: values.email,
+      subject: `Λάβαμε το μήνυμά σας: ${values.subject}`,
+      template: 'contact-ack',
+      data: { message: values, receivedAt: format.utcTimestamp(new Date().toISOString().replace('T', ' ').slice(0, 19), config.rules.timezone) },
+    });
+    mailer.sendInBackground({
       to: config.mail.adminNotify,
       replyTo: values.email,
       subject: `Νέο μήνυμα: ${values.subject}`,
       template: 'admin-contact',
       data: { message: values },
     });
-    req.flash('success', 'Λάβαμε το μήνυμά σας. Θα σας απαντήσουμε το συντομότερο.');
+    req.flash('success', values.kind === 'question' ? 'Λάβαμε το μήνυμά σας. Θα σας απαντήσουμε το συντομότερο.' : 'Λάβαμε το μήνυμά σας. Θα σας απαντήσουμε αιτιολογημένα εντός 15 ημερών.');
     res.redirect('/contact');
   });
 

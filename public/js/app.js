@@ -66,10 +66,12 @@
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (data) {
           if (!data || !quote) return;
-          ['days', 'base', 'extras', 'total', 'vat', 'discountPercent'].forEach(function (key) {
+          ['days', 'base', 'extras', 'total', 'vat', 'discountPercent', 'excess'].forEach(function (key) {
             var el = quote.querySelector('[data-q="' + key + '"]');
             if (el) el.textContent = data[key];
           });
+          var excessText = document.querySelector('[data-q="excessText"]');
+          if (excessText && data.excess) excessText.textContent = data.excess;
           var discount = quote.querySelector('[data-q="discount"]');
           if (discount && data.discount) discount.textContent = data.discount;
           var extrasRow = quote.querySelector('[data-q-row="extras"]');
@@ -84,11 +86,26 @@
       el.addEventListener('change', refreshQuote);
     });
 
+    // Το κουμπί γράφει ΠΑΝΤΑ «Κράτηση με υποχρέωση πληρωμής» (νόμος)· αλλάζει μόνο η σημείωση.
+    var hint = bookingForm.querySelector('[data-submit-hint]');
     bookingForm.querySelectorAll('[name="payment_method"]').forEach(function (el) {
       el.addEventListener('change', function () {
-        if (submit) submit.textContent = el.value === 'card' && el.checked ? 'Συνέχεια στην πληρωμή' : 'Ολοκλήρωση κράτησης';
+        if (hint && el.checked) hint.textContent = el.value === 'card' ? hint.getAttribute('data-hint-card') : hint.getAttribute('data-hint-pickup');
       });
     });
+
+    // Στοιχεία παιδιού: εμφανίζονται όταν επιλέγεται παιδικό κάθισμα.
+    var childField = bookingForm.querySelector('[data-child-info]');
+    function syncChild() {
+      if (!childField) return;
+      var any = false;
+      bookingForm.querySelectorAll('[data-kind="child_seat"]').forEach(function (el) {
+        if ((el.type === 'checkbox' && el.checked) || (el.tagName === 'SELECT' && Number(el.value) > 0)) any = true;
+      });
+      childField.classList.toggle('hidden', !any);
+    }
+    bookingForm.querySelectorAll('[data-kind="child_seat"]').forEach(function (el) { el.addEventListener('change', syncChild); });
+    syncChild();
 
     var firstError = document.querySelector('.error');
     if (firstError) {

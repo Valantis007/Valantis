@@ -26,7 +26,18 @@ const transport = smtpConfigured
 const outbox = [];
 
 async function render(template, data) {
-  const locals = { ...data, config, format, company: config.company, baseUrl: config.baseUrl };
+  // Το providers φορτώνεται εδώ για να μην υπάρχει κυκλική εξάρτηση κατά την εκκίνηση.
+  const providers = require('./providers');
+  const active = providers.active();
+  const locals = {
+    ...data,
+    config,
+    format,
+    company: config.company,
+    baseUrl: config.baseUrl,
+    paymentsEnabled: Boolean(active),
+    paymentProviderLabel: active ? active.label : '',
+  };
   return ejs.renderFile(path.join(templatesDir, `${template}.ejs`), locals);
 }
 
@@ -34,11 +45,11 @@ async function render(template, data) {
  * Στέλνει email από πρότυπο του φακέλου views/emails.
  * Δεν «πετάει» σφάλμα: μια αποτυχία αποστολής δεν πρέπει να χαλάσει μια κράτηση.
  */
-async function send({ to, subject, template, data = {}, replyTo }) {
+async function send({ to, subject, template, data = {}, replyTo, attachments }) {
   if (!to) return false;
   try {
     const html = await render(template, { ...data, subject });
-    const message = { from: config.mail.from, to, subject, html, replyTo };
+    const message = { from: config.mail.from, to, subject, html, replyTo, attachments };
     if (config.isTest) {
       outbox.push(message);
       return true;
@@ -65,4 +76,10 @@ async function flush() {
   while (pending.size) await Promise.allSettled([...pending]);
 }
 
-module.exports = { send, sendInBackground, flush, outbox, smtpConfigured };
+// Οι όροι ενοικίασης ως συνημμένο (σταθερό μέσο - ν. 2251/1994 άρθ. 3δ).
+async function termsAttachment() {
+  const html = await render('terms-document', {});
+  return { filename: `oroi-enoikiasis-${config.termsVersion}.html`, content: html, contentType: 'text/html; charset=utf-8' };
+}
+
+module.exports = { send, sendInBackground, flush, outbox, smtpConfigured, render, termsAttachment };

@@ -3,7 +3,7 @@
     <div class="container footer-grid">
       <div>
         <strong><%= company.name %></strong>
-        <p class="muted small"><%= company.legalName %><% if (company.vat) { %><br>ΑΦΜ <%= company.vat %><% if (company.taxOffice) { %> · <%= company.taxOffice %><% } %><% } %><% if (company.gemi) { %><br>ΓΕΜΗ <%= company.gemi %><% } %></p>
+        <p class="muted small"><%= company.legalName %><% if (company.vat) { %><br>ΑΦΜ <%= company.vat %><% if (company.taxOffice) { %> · <%= company.taxOffice %><% } %><% } %><% if (company.gemi) { %><br>ΓΕΜΗ <%= company.gemi %><% } %><% if (company.mhte) { %><br>ΜΗΤΕ <%= company.mhte %><% } %></p>
       </div>
       <div>
         <strong>Επικοινωνία</strong>
@@ -18,7 +18,9 @@
         <p class="small">
           <a href="/terms">Όροι ενοικίασης</a><br>
           <a href="/privacy">Πολιτική απορρήτου & cookies</a><br>
-          <a href="/faq">Συχνές ερωτήσεις</a>
+          <a href="/faq">Συχνές ερωτήσεις</a><br>
+          <a href="/company">Στοιχεία εταιρείας</a><br>
+          <a href="/complaints">Παράπονα & επίλυση διαφορών</a>
         </p>
       </div>
       <div>
