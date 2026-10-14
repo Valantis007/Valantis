@@ -1,0 +1,77 @@
+<%- include('../partials/header') %>
+<div class="container section">
+  <%- include('_nav') %>
+  <h1>Έλεγχος συστήματος</h1>
+  <p class="muted">Ελέγξτε εδώ, πριν το άνοιγμα και μετά από κάθε αλλαγή ρυθμίσεων, ότι όλα λειτουργούν. Ο πλήρης οδηγός δοκιμών είναι στο αρχείο <code>docs/anoigma-kai-dokimes.md</code>.</p>
+
+  <% if (results) { %>
+    <div class="alert <%= results.ok ? 'alert-success' : 'alert-error' %>" role="status">
+      <strong><%= results.title %>: <%= results.ok ? 'όλα εντάξει' : 'χρειάζεται προσοχή' %></strong>
+      <ul class="plain small"><% results.lines.forEach(function (l) { %><li><%= l %></li><% }) %></ul>
+    </div>
+  <% } %>
+
+  <div class="grid-2 stack-gap">
+    <div class="card pad">
+      <h2 class="h4">Ρυθμίσεις</h2>
+      <ul class="check-list">
+        <% checks.forEach(function (c) { %>
+          <li>
+            <span class="check-icon check-<%= c.state %>" aria-label="<%= { ok: 'εντάξει', warn: 'προσοχή', bad: 'πρόβλημα' }[c.state] %>"><%= { ok: '✓', warn: '!', bad: '✕' }[c.state] %></span>
+            <span><%= c.text %><% if (c.hint) { %><br><span class="small muted"><%= c.hint %></span><% } %></span>
+          </li>
+        <% }) %>
+      </ul>
+    </div>
+
+    <div class="stack">
+      <div class="card pad stack">
+        <h2 class="h4">Δοκιμαστικό email</h2>
+        <form method="post" action="/admin/system/test-email" class="stack">
+          <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+          <div class="field"><label for="test_to">Αποστολή σε</label><input id="test_to" name="to" type="email" value="<%= testEmailTo %>" required></div>
+          <button class="btn" type="submit">Αποστολή δοκιμαστικού email</button>
+        </form>
+        <p class="small muted">Στείλτε σε Gmail και σε Outlook/Hotmail και ελέγξτε ότι δεν πάει στα ανεπιθύμητα.</p>
+      </div>
+
+      <div class="card pad stack">
+        <h2 class="h4">Πληρωμές</h2>
+        <p class="small"><%= provider ? `Πάροχος: ${provider.label}` : 'Δεν έχει ρυθμιστεί πάροχος online πληρωμών.' %></p>
+        <form method="post" action="/admin/system/check-payments">
+          <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+          <button class="btn" type="submit" <%= provider ? '' : 'disabled' %>>Έλεγχος σύνδεσης &amp; webhook</button>
+        </form>
+      </div>
+
+      <div class="card pad">
+        <h2 class="h4">Δεδομένα</h2>
+        <p class="small">Βάση: <code><%= dbPath %></code><% if (dbSize !== null) { %> (<%= (dbSize / 1024 / 1024).toFixed(1) %> MB)<% } %><br>
+          Κρατήσεις: <%= counts.bookings %> · Ενεργά αυτοκίνητα: <%= counts.cars %> · Χρήστες: <%= counts.users %></p>
+        <p class="small muted">Βεβαιωθείτε ότι γίνεται καθημερινό αντίγραφο ασφαλείας του φακέλου <code>data/</code>.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card pad">
+    <h2 class="h4">Τελευταία emails</h2>
+    <% if (!recentEmails.length) { %><p class="small muted">Δεν έχουν σταλεί emails από την τελευταία επανεκκίνηση.</p><% } else { %>
+      <div class="table-wrap">
+        <table class="table small">
+          <thead><tr><th>Ώρα</th><th>Προς</th><th>Θέμα</th><th>Αποτέλεσμα</th></tr></thead>
+          <tbody>
+            <% recentEmails.forEach(function (m) { %>
+              <tr>
+                <td><%= format.utcTimestamp(m.at.replace('T', ' ').slice(0, 19), config.rules.timezone) %></td>
+                <td><%= m.to %></td>
+                <td><%= m.subject %></td>
+                <td class="<%= m.status === 'sent' ? 'success' : 'error' %>"><%= { sent: 'Στάλθηκε', failed: 'Απέτυχε', not_configured: 'Δεν στάλθηκε (χωρίς SMTP)' }[m.status] %><% if (m.error) { %><br><span class="muted"><%= m.error %></span><% } %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+</div>
+<%- include('../partials/footer') %>

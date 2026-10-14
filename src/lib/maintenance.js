@@ -13,6 +13,8 @@ const { expireOpenCheckouts } = require('./checkouts');
 let running = false;
 let lastSlow = 0;
 let lastPurge = 0;
+// Για τη σελίδα «Έλεγχος συστήματος».
+const status = { lastRun: null, lastError: null };
 
 /**
  * Διατήρηση δεδομένων (ΓΚΠΔ, αρχή περιορισμού της αποθήκευσης): μετά από
@@ -61,11 +63,13 @@ async function runMaintenance(db, { store = null, force = false } = {}) {
       lastPurge = Date.now();
       purgeExpiredPersonalData(db);
     }
+    status.lastRun = new Date().toISOString();
   } catch (err) {
     console.error('[maintenance]', err);
+    status.lastError = { at: new Date().toISOString(), message: String(err.message).slice(0, 300) };
   } finally {
     running = false;
   }
 }
 
-module.exports = { runMaintenance, purgeExpiredPersonalData };
+module.exports = { runMaintenance, purgeExpiredPersonalData, status };

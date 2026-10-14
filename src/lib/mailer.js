@@ -25,6 +25,13 @@ const transport = smtpConfigured
 // Στα tests κρατάμε τα emails εδώ για να ελέγχουμε τι στάλθηκε.
 const outbox = [];
 
+// Τα τελευταία emails (μόνο παραλήπτης, θέμα, αποτέλεσμα) για τη σελίδα «Έλεγχος συστήματος».
+const recent = [];
+function remember(entry) {
+  recent.unshift({ at: new Date().toISOString(), ...entry });
+  recent.length = Math.min(recent.length, 30);
+}
+
 async function render(template, data) {
   // Το providers φορτώνεται εδώ για να μην υπάρχει κυκλική εξάρτηση κατά την εκκίνηση.
   const providers = require('./providers');
@@ -52,13 +59,16 @@ async function send({ to, subject, template, data = {}, replyTo, attachments }) 
     const message = { from: config.mail.from, to, subject, html, replyTo, attachments };
     if (config.isTest) {
       outbox.push(message);
+      remember({ to, subject, status: 'sent' });
       return true;
     }
     await transport.sendMail(message);
     if (!smtpConfigured) console.log(`[email δεν στάλθηκε - δεν έχει ρυθμιστεί SMTP] Προς: ${to} | Θέμα: ${subject}`);
+    remember({ to, subject, status: smtpConfigured ? 'sent' : 'not_configured' });
     return true;
   } catch (err) {
     console.error(`[email] Αποτυχία αποστολής προς ${to}:`, err.message);
+    remember({ to, subject, status: 'failed', error: String(err.message).slice(0, 200) });
     return false;
   }
 }
@@ -82,4 +92,15 @@ async function termsAttachment() {
   return { filename: `oroi-enoikiasis-${config.termsVersion}.html`, content: html, contentType: 'text/html; charset=utf-8' };
 }
 
-module.exports = { send, sendInBackground, flush, outbox, smtpConfigured, render, termsAttachment };
+// Έλεγχος σύνδεσης με τον SMTP server (στοιχεία, θύρα, κρυπτογράφηση).
+async function verifySmtp() {
+  if (!smtpConfigured) return { ok: false, message: 'Δεν έχει ρυθμιστεί SMTP (SMTP_HOST κενό): τα emails δεν στέλνονται.' };
+  try {
+    await transport.verify();
+    return { ok: true, message: `Σύνδεση με ${config.mail.host}:${config.mail.port} επιτυχής.` };
+  } catch (err) {
+    return { ok: false, message: `Αποτυχία σύνδεσης με ${config.mail.host}:${config.mail.port}: ${err.message}` };
+  }
+}
+
+module.exports = { send, sendInBackground, flush, outbox, recent, smtpConfigured, render, termsAttachment, verifySmtp };

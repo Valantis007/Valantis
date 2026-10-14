@@ -17,6 +17,44 @@ function enabled() {
   return client !== null;
 }
 
+function mode() {
+  return config.revolut.sandbox ? 'test' : 'live';
+}
+
+const WEBHOOK_EVENTS = ['ORDER_COMPLETED', 'ORDER_AUTHORISED', 'ORDER_CANCELLED', 'ORDER_FAILED'];
+
+// Έλεγχος από τη σελίδα «Έλεγχος συστήματος»: ισχύει το κλειδί; υπάρχει webhook προς εμάς;
+async function checkConnection() {
+  const lines = [];
+  let ok = true;
+  const list = await client.listWebhooks();
+  lines.push(`Το κλειδί ισχύει (${mode() === 'live' ? 'πραγματικές πληρωμές' : 'Sandbox - δοκιμαστική λειτουργία'}).`);
+  const hooks = Array.isArray(list) ? list : (list && list.webhooks) || [];
+  const url = `${config.baseUrl}/webhooks/revolut`;
+  const hook = hooks.find((w) => w.url === url);
+  if (!hook) {
+    ok = false;
+    lines.push(`Δεν βρέθηκε webhook προς ${url}. Τρέξτε: npm run revolut:webhook`);
+  } else {
+    const missing = WEBHOOK_EVENTS.filter((e) => !(hook.events || []).includes(e));
+    if (missing.length) {
+      ok = false;
+      lines.push(`Στο webhook λείπουν τα γεγονότα: ${missing.join(', ')}.`);
+    } else {
+      lines.push(`Webhook ${url}: ενεργό με όλα τα απαραίτητα γεγονότα.`);
+    }
+  }
+  if (!config.revolut.webhookSecret) {
+    ok = false;
+    lines.push('Λείπει το REVOLUT_WEBHOOK_SECRET (τρέξτε: npm run revolut:webhook).');
+  }
+  if (!config.baseUrl.startsWith('https://')) {
+    ok = false;
+    lines.push('Το BASE_URL δεν είναι https: το Revolut δεν επιστρέφει τον πελάτη στην ιστοσελίδα μετά την πληρωμή.');
+  }
+  return { ok, lines };
+}
+
 // Για τα tests: αντικατάσταση με ψεύτικο client.
 function setClient(fake) {
   client = fake;
@@ -180,6 +218,8 @@ module.exports = {
   getCheckout,
   expireCheckout,
   refund,
+  mode,
+  checkConnection,
   getRefund,
   getHold,
   captureHold,

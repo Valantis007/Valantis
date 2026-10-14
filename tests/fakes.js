@@ -113,6 +113,21 @@ function fakeStripe({ webhookSecret = 'whsec_test' } = {}) {
         return refunds.find((r) => r.id === id);
       },
     },
+    accounts: {
+      async retrieve() {
+        return { business_profile: { name: 'Δοκιμή' }, charges_enabled: true };
+      },
+    },
+    balance: {
+      async retrieve() {
+        return { available: [] };
+      },
+    },
+    webhookEndpoints: {
+      async list() {
+        return { data: state.webhookEndpoints || [] };
+      },
+    },
     webhooks: {
       constructEvent(raw, sig) {
         if (sig !== webhookSecret) throw new Error('bad signature');
@@ -143,7 +158,11 @@ function fakeRevolut() {
   let n = 0;
   const orders = {};
   const refunds = [];
+  const webhooks = [];
   const client = {
+    async listWebhooks() {
+      return webhooks;
+    },
     async createOrder(body) {
       const id = `ord_${++n}`;
       orders[id] = {
@@ -199,7 +218,7 @@ function fakeRevolut() {
     });
     return o;
   }
-  return { client, orders, refunds, pay };
+  return { client, orders, refunds, pay, webhooks };
 }
 
 module.exports = { fakeStripe, fakeRevolut };

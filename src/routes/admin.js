@@ -14,10 +14,12 @@ const fiscal = require('../lib/fiscal');
 const deposits = require('../lib/deposits');
 const providers = require('../lib/providers');
 const mailer = require('../lib/mailer');
+const config = require('../config');
+const maintenance = require('../lib/maintenance');
 const QRCode = require('qrcode');
 const { transaction, normalizeText } = require('../db');
 const { BLOCKING_SQL, OVERLAP_SQL, EFFECTIVE_RETURN_SQL, blockingParams } = require('../lib/availability');
-const { str, intOrNull, checkbox } = require('../lib/validation');
+const { str, intOrNull, checkbox, isEmail } = require('../lib/validation');
 const { requireAdmin } = require('../middleware/auth');
 const { verifyCsrf } = require('../middleware/security');
 
@@ -863,6 +865,102 @@ module.exports = function adminRoutes(db, { uploadDir }) {
   router.post('/messages/:id/handled', (req, res) => {
     db.prepare('UPDATE messages SET handled = 1 - handled WHERE id = ?').run(idParam(req));
     res.redirect(303, '/admin/messages');
+  });
+
+  // ---------------- Έλεγχος συστήματος ----------------
+  // Μια σελίδα που δείχνει αν όλα είναι ρυθμισμένα σωστά, με δοκιμαστικό email και έλεγχο
+  // σύνδεσης με τον πάροχο πληρωμών. Δεν εμφανίζει ποτέ κωδικούς ή κλειδιά.
+  function systemChecks(req) {
+    const checks = [];
+    const add = (state, text, hint = null) => checks.push({ state, text, hint });
+    const https = config.baseUrl.startsWith('https://');
+    add(config.isProduction ? 'ok' : 'warn', `Λειτουργία: ${config.env}`, config.isProduction ? null : 'Σε κανονική λειτουργία ορίστε NODE_ENV=production.');
+    add(https ? 'ok' : 'bad', `Διεύθυνση (BASE_URL): ${config.baseUrl}`, https ? null : 'Πρέπει να είναι η τελική διεύθυνση με https:// (π.χ. https://www.to-domain-sas.gr).');
+    if (https) {
+      const host = new URL(config.baseUrl).host;
+      const sameHost = req.get('host') === host;
+      add(sameHost ? 'ok' : 'warn', `Ανοίξατε τη σελίδα από: ${req.get('host')}`, sameHost ? null : `Αναμενόταν ${host}. Ελέγξτε ότι το domain δείχνει σε αυτόν τον server.`);
+      add(req.secure ? 'ok' : 'bad', req.secure ? 'Η σύνδεση είναι ασφαλής (HTTPS)' : 'Η εφαρμογή δεν «βλέπει» HTTPS', req.secure ? null : 'Πίσω από reverse proxy (Caddy, Render κ.λπ.) ορίστε TRUST_PROXY=1, αλλιώς οι συνδέσεις χρηστών δεν θα λειτουργούν σωστά.');
+    }
+    const c = config.company;
+    const missing = Object.entries({ 'Επωνυμία': c.legalName !== 'Επωνυμία Επιχείρησης' && c.legalName, 'ΑΦΜ': c.vat, 'ΓΕΜΗ': c.gemi, 'ΜΗΤΕ': c.mhte, 'Διεύθυνση': c.address, 'Τηλέφωνο': c.phone, 'Email': c.email })
+      .filter(([, v]) => !v)
+      .map(([k]) => k);
+    add(missing.length ? 'bad' : 'ok', missing.length ? `Λείπουν στοιχεία επιχείρησης: ${missing.join(', ')}` : 'Στοιχεία επιχείρησης συμπληρωμένα');
+    add(mailer.smtpConfigured ? 'ok' : 'bad', mailer.smtpConfigured ? `Email: μέσω ${config.mail.host}, αποστολέας ${config.mail.from}` : 'Email: δεν έχει ρυθμιστεί SMTP — οι πελάτες ΔΕΝ λαμβάνουν emails');
+    add(config.mail.adminNotify ? 'ok' : 'bad', config.mail.adminNotify ? `Ειδοποιήσεις γραφείου στο ${config.mail.adminNotify}` : 'Δεν έχει οριστεί ADMIN_NOTIFY_EMAIL');
+    const active = providers.active();
+    if (!active) {
+      add('warn', 'Online πληρωμές: απενεργοποιημένες (μόνο πληρωμή στην παραλαβή, εγγύηση μόνο με POS)');
+    } else {
+      const m = active.mode ? active.mode() : 'unknown';
+      add(m === 'live' ? 'ok' : 'warn', `Online πληρωμές: ${active.label} — ${m === 'live' ? 'ΠΡΑΓΜΑΤΙΚΕΣ πληρωμές' : 'ΔΟΚΙΜΑΣΤΙΚΗ λειτουργία'}`, m === 'live' ? null : 'Για το άνοιγμα βάλτε τα live κλειδιά.');
+      const secret = active.name === 'stripe' ? config.stripe.webhookSecret : config.revolut.webhookSecret;
+      add(secret ? 'ok' : 'bad', secret ? 'Webhook secret ορισμένο' : 'Λείπει το webhook secret του παρόχου');
+    }
+    const st = maintenance.status;
+    const recentRun = st.lastRun && Date.now() - Date.parse(st.lastRun) < 5 * 60 * 1000;
+    add(recentRun ? 'ok' : 'warn', st.lastRun ? `Περιοδικές εργασίες: τελευταία εκτέλεση ${format.utcTimestamp(st.lastRun.replace('T', ' ').slice(0, 19), config.rules.timezone)}` : 'Περιοδικές εργασίες: δεν έχουν τρέξει ακόμη');
+    if (st.lastError) add('bad', `Σφάλμα περιοδικών εργασιών: ${st.lastError.message}`);
+    const sessionOk = config.sessionSecret && config.sessionSecret !== 'dev-only-insecure-secret' && config.sessionSecret.length >= 32;
+    add(sessionOk ? 'ok' : 'bad', sessionOk ? 'SESSION_SECRET ισχυρό' : 'SESSION_SECRET λείπει ή είναι μικρό (τουλάχιστον 32 χαρακτήρες)');
+    return checks;
+  }
+
+  function renderSystem(req, res, extra = {}) {
+    let dbSize = null;
+    try {
+      dbSize = fs.statSync(config.dbPath).size;
+    } catch {
+      // βάση στη μνήμη (tests)
+    }
+    res.render('admin/system', {
+      title: 'Έλεγχος συστήματος',
+      checks: systemChecks(req),
+      recentEmails: mailer.recent.slice(0, 20),
+      provider: providers.active(),
+      dbPath: config.dbPath,
+      dbSize,
+      counts: {
+        bookings: db.prepare('SELECT COUNT(*) n FROM bookings').get().n,
+        cars: db.prepare('SELECT COUNT(*) n FROM cars WHERE active = 1').get().n,
+        users: db.prepare('SELECT COUNT(*) n FROM users').get().n,
+      },
+      testEmailTo: req.user.email,
+      results: null,
+      ...extra,
+    });
+  }
+
+  router.get('/system', (req, res) => renderSystem(req, res));
+
+  router.post('/system/test-email', async (req, res) => {
+    const to = str(req.body.to, 254) || req.user.email;
+    if (!isEmail(to)) {
+      return renderSystem(req, res, { results: { title: 'Δοκιμαστικό email', ok: false, lines: ['Μη έγκυρο email.'] } });
+    }
+    const smtp = await mailer.verifySmtp();
+    const sent = await mailer.send({ to, subject: `Δοκιμαστικό email - ${config.company.name}`, template: 'test-email', data: { sentBy: req.user.email } });
+    const lines = [smtp.message];
+    if (sent && mailer.smtpConfigured) lines.push(`Το email στάλθηκε στο ${to}. Ελέγξτε τα εισερχόμενα (και τα ανεπιθύμητα/spam).`);
+    else if (!mailer.smtpConfigured) lines.push('Το email καταγράφηκε μόνο στο log του server (δεν υπάρχει SMTP).');
+    else lines.push('Η αποστολή απέτυχε — δείτε το μήνυμα παραπάνω και τα στοιχεία SMTP στο .env.');
+    renderSystem(req, res, { results: { title: 'Δοκιμαστικό email', ok: Boolean(sent && smtp.ok), lines }, testEmailTo: to });
+  });
+
+  router.post('/system/check-payments', async (req, res) => {
+    const active = providers.active();
+    let results;
+    if (!active) {
+      results = { title: 'Έλεγχος πληρωμών', ok: false, lines: ['Δεν έχει ρυθμιστεί πάροχος (STRIPE_SECRET_KEY ή REVOLUT_SECRET_KEY).'] };
+    } else {
+      try {
+        results = { title: `Έλεγχος ${active.label}`, ...(await active.checkConnection()) };
+      } catch (err) {
+        results = { title: `Έλεγχος ${active.label}`, ok: false, lines: [`Ο πάροχος απέρριψε τη σύνδεση: ${err.message}`, 'Ελέγξτε ότι το κλειδί στο .env είναι σωστό και ενεργό.'] };
+      }
+    }
+    renderSystem(req, res, { results });
   });
 
   return router;

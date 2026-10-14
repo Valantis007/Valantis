@@ -11,6 +11,7 @@
 </head>
 <body class="<%= locals.bodyClass || '' %>">
   <a class="skip-link" href="#main">Μετάβαση στο περιεχόμενο</a>
+  <% if (locals.paymentsTestMode) { %><div class="test-mode-banner" role="note">ΔΟΚΙΜΑΣΤΙΚΗ ΛΕΙΤΟΥΡΓΙΑ — οι πληρωμές με κάρτα δεν είναι πραγματικές</div><% } %>
   <header class="site-header">
     <div class="container header-inner">
       <a class="brand" href="/">

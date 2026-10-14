@@ -101,6 +101,8 @@ function createApp({ db, uploadDir = config.uploadDir }) {
     const activeProvider = providers.active();
     res.locals.paymentsEnabled = Boolean(activeProvider);
     res.locals.paymentProviderLabel = activeProvider ? activeProvider.label : '';
+    // Δοκιμαστικά κλειδιά (Stripe test / Revolut Sandbox): εμφανίζεται ένδειξη σε κάθε σελίδα.
+    res.locals.paymentsTestMode = Boolean(activeProvider && activeProvider.mode && activeProvider.mode() === 'test');
     res.locals.errors = {};
     next();
   });

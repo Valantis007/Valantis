@@ -17,6 +17,64 @@ function enabled() {
   return client !== null;
 }
 
+// 'test' με κλειδιά sk_test_/rk_test_ (δοκιμαστικές κάρτες, καμία πραγματική χρέωση).
+function mode() {
+  const key = config.stripe.secretKey;
+  if (/^(sk|rk)_test_/.test(key)) return 'test';
+  if (/^(sk|rk)_live_/.test(key)) return 'live';
+  return 'unknown';
+}
+
+// Γεγονότα που πρέπει να στέλνει το webhook του Stripe (βλ. README).
+const WEBHOOK_EVENTS = [
+  'checkout.session.completed',
+  'checkout.session.async_payment_succeeded',
+  'checkout.session.expired',
+  'payment_intent.canceled',
+  'payment_intent.succeeded',
+  'charge.expired',
+];
+
+/**
+ * Έλεγχος από τη σελίδα «Έλεγχος συστήματος»: ισχύει το κλειδί; υπάρχει webhook προς
+ * τη διεύθυνσή μας με όλα τα γεγονότα;
+ */
+async function checkConnection() {
+  const lines = [];
+  let ok = true;
+  const account = await client.accounts.retrieve().catch(() => null);
+  await client.balance.retrieve();
+  lines.push(`Το κλειδί ισχύει (${mode() === 'live' ? 'πραγματικές πληρωμές' : 'δοκιμαστική λειτουργία'})${account && account.business_profile && account.business_profile.name ? ` - λογαριασμός «${account.business_profile.name}»` : ''}.`);
+  if (account && account.charges_enabled === false) {
+    ok = false;
+    lines.push('Ο λογαριασμός Stripe δεν μπορεί ακόμη να δεχτεί πληρωμές: ολοκληρώστε την επαλήθευση στο dashboard.');
+  }
+  const url = `${config.baseUrl}/webhooks/stripe`;
+  const endpoints = await client.webhookEndpoints.list({ limit: 100 });
+  const hook = (endpoints.data || []).find((e) => e.url === url);
+  if (!hook) {
+    ok = false;
+    lines.push(`Δεν βρέθηκε webhook προς ${url}. Προσθέστε το στο Stripe → Developers → Webhooks.`);
+  } else {
+    const events = hook.enabled_events || [];
+    const missing = events.includes('*') ? [] : WEBHOOK_EVENTS.filter((e) => !events.includes(e));
+    if (hook.status !== 'enabled') {
+      ok = false;
+      lines.push(`Το webhook ${url} είναι απενεργοποιημένο.`);
+    } else if (missing.length) {
+      ok = false;
+      lines.push(`Στο webhook λείπουν τα γεγονότα: ${missing.join(', ')}.`);
+    } else {
+      lines.push(`Webhook ${url}: ενεργό με όλα τα απαραίτητα γεγονότα.`);
+    }
+  }
+  if (!config.stripe.webhookSecret) {
+    ok = false;
+    lines.push('Λείπει το STRIPE_WEBHOOK_SECRET (Signing secret του webhook).');
+  }
+  return { ok, lines };
+}
+
 // Για τα tests: αντικατάσταση του Stripe με ψεύτικο αντικείμενο.
 function setClient(fake) {
   client = fake;
@@ -181,6 +239,8 @@ module.exports = {
   getCheckout,
   expireCheckout,
   refund,
+  mode,
+  checkConnection,
   getRefund,
   getHold,
   captureHold,
