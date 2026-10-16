@@ -1,10 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 220" role="img" aria-label="suv">
-  <ellipse cx="250" cy="192" rx="215" ry="10" fill="#000" opacity="0.08"/>
-  <path d="M35 152 C35 118 60 104 100 100 L150 56 C165 46 185 42 215 42 L360 42 C390 42 405 56 418 84 L428 100 C455 106 465 122 465 152 Z" fill="#222f3e"/>
-  <path d="M165 96 L195 60 C205 54 215 52 230 52 L265 52 L265 96 Z M278 52 L350 52 C372 52 388 62 400 96 L278 96 Z" fill="#cfe3f6" opacity="0.95"/>
-  <rect x="30" y="140" width="440" height="14" rx="7" fill="#000" opacity="0.12"/>
-  <circle cx="130" cy="160" r="30" fill="#1f2328"/><circle cx="130" cy="160" r="13" fill="#c8ced6"/>
-  <circle cx="370" cy="160" r="30" fill="#1f2328"/><circle cx="370" cy="160" r="13" fill="#c8ced6"/>
-  <rect x="440" y="120" width="18" height="8" rx="3" fill="#ffd166"/>
-  <rect x="40" y="122" width="14" height="8" rx="3" fill="#ef476f"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 160" role="img" aria-label="suv">
+  <ellipse cx="160" cy="136" rx="138" ry="7" fill="#dfe4eb"/>
+  <path d="M26 116 V88 Q28 76 46 72 L88 68 L114 42 Q122 34 138 34 L262 34 Q276 34 281 48 L289 70 Q298 74 298 88 V116 Z" fill="#b7c2cf"/>
+  <path d="M120 46 Q126 40 138 40 L170 40 L170 66 L98 66 Z M178 40 L224 40 L224 66 L178 66 Z M232 40 L262 40 Q271 40 274 48 L281 66 L232 66 Z" fill="#e9edf2"/>
+  <circle cx="88" cy="118" r="20" fill="#4a5a6e"/><circle cx="88" cy="118" r="9" fill="#c9d2dc"/>
+  <circle cx="244" cy="118" r="20" fill="#4a5a6e"/><circle cx="244" cy="118" r="9" fill="#c9d2dc"/>
 </svg>
