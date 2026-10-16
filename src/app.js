@@ -49,7 +49,8 @@ function createApp({ db, uploadDir = config.uploadDir }) {
   // Τα webhooks των παρόχων πληρωμών χρειάζονται το «ωμό» σώμα του αιτήματος για τον έλεγχο υπογραφής.
   app.use('/webhooks', require('./routes/webhooks')(db));
 
-  app.use(express.static(path.join(__dirname, '..', 'public'), { maxAge: config.isProduction ? '7d' : 0 }));
+  // redirect: false — αλλιώς το /en (αρχική στα αγγλικά) ανακατευθύνεται σε /en/ ως «φάκελος».
+  app.use(express.static(path.join(__dirname, '..', 'public'), { maxAge: config.isProduction ? '7d' : 0, redirect: false }));
   app.use('/uploads', express.static(uploadDir, { maxAge: config.isProduction ? '30d' : 0 }));
 
   app.use(express.urlencoded({ extended: false, limit: '100kb' }));
