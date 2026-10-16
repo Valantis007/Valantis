@@ -13,6 +13,7 @@
 const config = require('../config');
 const providers = require('./providers');
 const bookings = require('./bookings');
+const i18n = require('./i18n');
 const fiscal = require('./fiscal');
 const deposits = require('./deposits');
 const mailer = require('./mailer');
@@ -76,8 +77,8 @@ async function startRentalPayment(db, bookingId) {
     amountCents: booking.total_cents,
     description: rentalDescription(booking),
     expiresAtMs: holdUntil - 60 * 1000,
-    successUrl: `${config.baseUrl}/booking/${booking.reference}/payment/return`,
-    cancelUrl: `${config.baseUrl}/booking/${booking.reference}/payment/cancel`,
+    successUrl: `${i18n.siteUrl(booking.locale)}/booking/${booking.reference}/payment/return`,
+    cancelUrl: `${i18n.siteUrl(booking.locale)}/booking/${booking.reference}/payment/cancel`,
   });
   transaction(db, () => {
     insertCheckout(db, { id: checkout.id, provider: provider.name, bookingId: booking.id, kind: 'rental', amountCents: booking.total_cents, url: checkout.url });
@@ -220,8 +221,8 @@ async function startChargesPayment(db, bookingId) {
     amountCents: amount,
     description: 'Χρεώσεις μετά την επιστροφή του αυτοκινήτου',
     expiresAtMs: Date.now() + 60 * 60 * 1000,
-    successUrl: `${config.baseUrl}/booking/${booking.reference}/payment/return`,
-    cancelUrl: `${config.baseUrl}/booking/${booking.reference}`,
+    successUrl: `${i18n.siteUrl(booking.locale)}/booking/${booking.reference}/payment/return`,
+    cancelUrl: `${i18n.siteUrl(booking.locale)}/booking/${booking.reference}`,
   });
   insertCheckout(db, { id: checkout.id, provider: provider.name, bookingId: booking.id, kind: 'charge', amountCents: amount, url: checkout.url });
   await expireOpenCheckouts(db, booking.id, 'charge', { except: checkout.id });

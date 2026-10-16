@@ -44,6 +44,15 @@ function normalizePlate(value) {
     .replace(/[ABEZHIKMNOPTYX]/g, (c) => LATIN_TO_GREEK[c]);
 }
 
+// Μεταφράσεις πεδίων περιεχομένου (π.χ. name_en, name_es) από τη φόρμα· κενό = null.
+function translations(body, fields) {
+  const out = {};
+  for (const [name, max] of Object.entries(fields)) {
+    for (const locale of ['en', 'es']) out[`${name}_${locale}`] = str(body[`${name}_${locale}`], max) || null;
+  }
+  return out;
+}
+
 // Είδος πρόσθετου: damage_waiver μηδενίζει την απαλλαγή, child_seat ζητά στοιχεία παιδιού.
 const EXTRA_KINDS = ['damage_waiver', 'prepaid_fuel', 'child_seat', 'driver', 'other'];
 
@@ -565,6 +574,8 @@ module.exports = function adminRoutes(db, { uploadDir }) {
       min_driver_age: str(body.min_driver_age, 2),
       mileage_policy: str(body.mileage_policy, 120),
       description: str(body.description, 2000),
+      description_en: str(body.description_en, 2000),
+      description_es: str(body.description_es, 2000),
       active: checkbox(body.active),
     };
   }
@@ -623,6 +634,8 @@ module.exports = function adminRoutes(db, { uploadDir }) {
       min_driver_age: parsed.min_driver_age,
       mileage_policy: v.mileage_policy || 'Απεριόριστα χιλιόμετρα',
       description: v.description,
+      description_en: v.description_en || null,
+      description_es: v.description_es || null,
       active: v.active ? 1 : 0,
     };
     const cols = Object.keys(row);
@@ -766,7 +779,14 @@ module.exports = function adminRoutes(db, { uploadDir }) {
       return {
         values,
         errors,
-        row: { name: values.name, address: values.address, fee_cents: fee ?? 0, sort_order: intOrNull(values.sort_order) ?? 0, active: checkbox(body.active) ? 1 : 0 },
+        row: {
+          name: values.name,
+          address: values.address,
+          ...translations(body, { name: 100, address: 200 }),
+          fee_cents: fee ?? 0,
+          sort_order: intOrNull(values.sort_order) ?? 0,
+          active: checkbox(body.active) ? 1 : 0,
+        },
       };
     },
   });
@@ -794,6 +814,7 @@ module.exports = function adminRoutes(db, { uploadDir }) {
         row: {
           name: values.name,
           description: values.description,
+          ...translations(body, { name: 100, description: 300 }),
           price_cents: price ?? 0,
           pricing: pricing ?? 'per_day',
           kind,

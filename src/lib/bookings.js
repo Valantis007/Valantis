@@ -8,13 +8,17 @@ const { isCarAvailable } = require('./availability');
 const { transaction } = require('../db');
 const { str, isEmail, isPhone, intOrNull, checkbox } = require('./validation');
 const mailer = require('./mailer');
+const { Msg } = require('./i18n');
 
 const REF_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
+// Σφάλμα που βλέπει ο πελάτης. Το `message` μπορεί να είναι Msg (i18n.msg) ώστε να
+// μεταφράζεται εκεί όπου εμφανίζεται: req.t(err.i18n || err.message).
 class BookingError extends Error {
   constructor(message, code = 'booking_error') {
-    super(message);
+    super(String(message));
     this.code = code;
+    this.i18n = message instanceof Msg ? message : null;
   }
 }
 
@@ -159,7 +163,11 @@ const BOOKING_SELECT = `
   SELECT b.*,
     c.make, c.model, c.year AS car_year, c.plate, c.category, c.transmission, c.fuel, c.seats, c.image,
     pl.name AS pickup_location_name, pl.address AS pickup_location_address,
-    rl.name AS return_location_name, rl.address AS return_location_address
+    pl.name_en AS pickup_location_name_en, pl.name_es AS pickup_location_name_es,
+    pl.address_en AS pickup_location_address_en, pl.address_es AS pickup_location_address_es,
+    rl.name AS return_location_name, rl.address AS return_location_address,
+    rl.name_en AS return_location_name_en, rl.name_es AS return_location_name_es,
+    rl.address_en AS return_location_address_en, rl.address_es AS return_location_address_es
   FROM bookings b
   JOIN cars c ON c.id = b.car_id
   JOIN locations pl ON pl.id = b.pickup_location_id
@@ -173,8 +181,14 @@ function getById(db, id) {
   return db.prepare(`${BOOKING_SELECT} WHERE b.id = ?`).get(id) || null;
 }
 
+// Τα πρόσθετα της κράτησης (το όνομα όπως ήταν τη στιγμή της κράτησης, και οι μεταφράσεις του).
 function getExtras(db, bookingId) {
-  return db.prepare('SELECT * FROM booking_extras WHERE booking_id = ? ORDER BY name').all(bookingId);
+  return db
+    .prepare(
+      `SELECT be.*, e.name_en, e.name_es FROM booking_extras be LEFT JOIN extras e ON e.id = be.extra_id
+       WHERE be.booking_id = ? ORDER BY be.name`,
+    )
+    .all(bookingId);
 }
 
 function getEvents(db, bookingId) {
@@ -185,7 +199,7 @@ function getEvents(db, bookingId) {
  * Δημιουργεί κράτηση. Ο έλεγχος διαθεσιμότητας και η εγγραφή γίνονται
  * στην ίδια συναλλαγή, ώστε να μην μπορεί να γίνει διπλοκράτηση.
  */
-function createBooking(db, { car, search, extras, driver, userId = null, nowMs = Date.now() }) {
+function createBooking(db, { car, search, extras, driver, userId = null, locale = 'el', nowMs = Date.now() }) {
   return transaction(db, () => {
     const freshCar = db.prepare('SELECT * FROM cars WHERE id = ? AND active = 1').get(car.id);
     if (!freshCar) throw new BookingError('Το αυτοκίνητο δεν είναι πλέον διαθέσιμο.', 'unavailable');
@@ -208,14 +222,14 @@ function createBooking(db, { car, search, extras, driver, userId = null, nowMs =
           flight_number, notes, base_cents, discount_cents, extras_cents, fees_cents, total_cents, vat_cents,
           deposit_cents, status, payment_method, payment_status, hold_expires_at, terms_accepted_at,
           terms_version, excess_cents, late_cancel_fee_cents, child_info,
-          invoice_requested, invoice_vat, invoice_name, invoice_address, invoice_tax_office, invoice_activity
+          invoice_requested, invoice_vat, invoice_name, invoice_address, invoice_tax_office, invoice_activity, locale
         ) VALUES (
           :reference, :user_id, :car_id, :pickup_location_id, :return_location_id, :pickup_at, :return_at, :days,
           :first_name, :last_name, :email, :phone, :birth_date, :license_number, :license_country, :license_issued,
           :flight_number, :notes, :base_cents, :discount_cents, :extras_cents, :fees_cents, :total_cents, :vat_cents,
           :deposit_cents, :status, :payment_method, 'unpaid', :hold_expires_at, datetime('now'),
           :terms_version, :excess_cents, :late_cancel_fee_cents, :child_info,
-          :invoice_requested, :invoice_vat, :invoice_name, :invoice_address, :invoice_tax_office, :invoice_activity
+          :invoice_requested, :invoice_vat, :invoice_name, :invoice_address, :invoice_tax_office, :invoice_activity, :locale
         )`,
       )
       .run({
@@ -257,6 +271,7 @@ function createBooking(db, { car, search, extras, driver, userId = null, nowMs =
         invoice_address: driver.invoice ? driver.invoice_address : null,
         invoice_tax_office: driver.invoice ? driver.invoice_tax_office : null,
         invoice_activity: driver.invoice ? driver.invoice_activity : null,
+        locale: ['el', 'en', 'es'].includes(locale) ? locale : 'el',
       });
     const bookingId = Number(result.lastInsertRowid);
     const insertExtra = db.prepare(
@@ -274,7 +289,7 @@ function createBooking(db, { car, search, extras, driver, userId = null, nowMs =
 // Email επιβεβαίωσης με τους όρους ενοικίασης συνημμένους (σταθερό μέσο, ν. 2251/1994).
 function sendConfirmation(booking, extras) {
   return mailer
-    .termsAttachment()
+    .termsAttachments(booking.locale)
     .catch((err) => {
       console.error('[email] Αποτυχία δημιουργίας συνημμένων όρων:', err.message);
       return null;
@@ -282,10 +297,10 @@ function sendConfirmation(booking, extras) {
     .then((terms) =>
       mailer.sendInBackground({
         to: booking.email,
-        subject: `Επιβεβαίωση κράτησης ${booking.reference}`,
+        subject: new Msg('Επιβεβαίωση κράτησης {ref}', { ref: booking.reference }),
         template: 'booking-confirmed',
         data: { booking, extras, termsAttached: Boolean(terms) },
-        attachments: terms ? [terms] : undefined,
+        attachments: terms || undefined,
       }),
     );
 }

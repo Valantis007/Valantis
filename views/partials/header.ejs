@@ -1,40 +1,47 @@
 <!doctype html>
-<html lang="el">
+<html lang="<%= locale %>" data-lang-prefix="<%= langPrefix %>">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title><%= title ? `${title} | ${company.name}` : company.name %></title>
-  <meta name="description" content="<%= company.name %> - Ενοικίαση αυτοκινήτων με online κράτηση, διαφανείς τιμές και δωρεάν ακύρωση.">
+  <title><%= title ? `${t(title)} | ${company.name}` : company.name %></title>
+  <meta name="description" content="<%= company.name %> - <%= t('Ενοικίαση αυτοκινήτων με online κράτηση, διαφανείς τιμές και δωρεάν ακύρωση.') %>">
+  <% languages.forEach(function (l) { %><link rel="alternate" hreflang="<%= l.code %>" href="<%= config.baseUrl %><%= l.href %>">
+  <% }) %>
   <link rel="stylesheet" href="/css/style.css">
   <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
   <script src="/js/app.js" defer></script>
 </head>
 <body class="<%= locals.bodyClass || '' %>">
-  <a class="skip-link" href="#main">Μετάβαση στο περιεχόμενο</a>
-  <% if (locals.paymentsTestMode) { %><div class="test-mode-banner" role="note">ΔΟΚΙΜΑΣΤΙΚΗ ΛΕΙΤΟΥΡΓΙΑ — οι πληρωμές με κάρτα δεν είναι πραγματικές</div><% } %>
+  <a class="skip-link" href="#main"><%= t('Μετάβαση στο περιεχόμενο') %></a>
+  <% if (locals.paymentsTestMode) { %><div class="test-mode-banner" role="note"><%= t('ΔΟΚΙΜΑΣΤΙΚΗ ΛΕΙΤΟΥΡΓΙΑ — οι πληρωμές με κάρτα δεν είναι πραγματικές') %></div><% } %>
   <header class="site-header">
     <div class="container header-inner">
-      <a class="brand" href="/">
+      <a class="brand" href="<%= u('/') %>">
         <svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true"><path fill="currentColor" d="M6 19l2.4-6.2A3 3 0 0 1 11.2 11h9.6a3 3 0 0 1 2.8 1.8L26 19h1a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-2a3 3 0 0 1-6 0h-6a3 3 0 0 1-6 0H5a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1zm2.2 0h15.6l-2-5.1a1 1 0 0 0-1-.7h-9.6a1 1 0 0 0-1 .7z"/></svg>
         <span><%= company.name %></span>
       </a>
-      <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-label="Μενού">
+      <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-label="<%= t('Μενού') %>">
       <label for="nav-toggle" class="nav-toggle-label" aria-hidden="true"><span></span></label>
-      <nav class="main-nav" aria-label="Κύριο μενού">
-        <a href="/cars" class="<%= currentPath.startsWith('/cars') ? 'active' : '' %>">Στόλος</a>
-        <a href="/manage" class="<%= currentPath === '/manage' ? 'active' : '' %>">Η κράτησή μου</a>
-        <a href="/faq" class="<%= currentPath === '/faq' ? 'active' : '' %>">Συχνές ερωτήσεις</a>
-        <a href="/contact" class="<%= currentPath === '/contact' ? 'active' : '' %>">Επικοινωνία</a>
+      <nav class="main-nav" aria-label="<%= t('Κύριο μενού') %>">
+        <a href="<%= u('/cars') %>" class="<%= currentPath.startsWith('/cars') ? 'active' : '' %>"><%= t('Στόλος') %></a>
+        <a href="<%= u('/manage') %>" class="<%= currentPath === '/manage' ? 'active' : '' %>"><%= t('Η κράτησή μου') %></a>
+        <a href="<%= u('/faq') %>" class="<%= currentPath === '/faq' ? 'active' : '' %>"><%= t('Συχνές ερωτήσεις') %></a>
+        <a href="<%= u('/contact') %>" class="<%= currentPath === '/contact' ? 'active' : '' %>"><%= t('Επικοινωνία') %></a>
         <% if (user) { %>
           <% if (user.role === 'admin') { %><a href="/admin" class="<%= currentPath.startsWith('/admin') ? 'active' : '' %>">Διαχείριση</a><% } %>
-          <a href="/account" class="<%= currentPath.startsWith('/account') ? 'active' : '' %>">Λογαριασμός</a>
-          <form method="post" action="/logout" class="inline-form">
+          <a href="<%= u('/account') %>" class="<%= currentPath.startsWith('/account') ? 'active' : '' %>"><%= t('Λογαριασμός') %></a>
+          <form method="post" action="<%= u('/logout') %>" class="inline-form">
             <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
-            <button type="submit" class="link-button">Αποσύνδεση</button>
+            <button type="submit" class="link-button"><%= t('Αποσύνδεση') %></button>
           </form>
         <% } else { %>
-          <a href="/login" class="<%= currentPath === '/login' ? 'active' : '' %>">Σύνδεση</a>
-          <a href="/register" class="btn btn-small">Εγγραφή</a>
+          <a href="<%= u('/login') %>" class="<%= currentPath === '/login' ? 'active' : '' %>"><%= t('Σύνδεση') %></a>
+          <a href="<%= u('/register') %>" class="btn btn-small"><%= t('Εγγραφή') %></a>
+        <% } %>
+        <% if (!currentPath.startsWith('/admin')) { %>
+        <span class="lang-switch" aria-label="<%= t('Γλώσσα') %>">
+          <% languages.forEach(function (l) { %><a href="<%= l.href %>" hreflang="<%= l.code %>" lang="<%= l.code %>" title="<%= l.name %>" class="<%= l.current ? 'active' : '' %>"<% if (l.current) { %> aria-current="true"<% } %>><%= l.short %></a><% }) %>
+        </span>
         <% } %>
       </nav>
     </div>
@@ -43,7 +50,7 @@
     <% const flashMessages = takeFlash(); if (flashMessages.length) { %>
       <div class="container flash-stack">
         <% flashMessages.forEach(function (f) { %>
-          <div class="alert alert-<%= f.type %>" role="<%= f.type === 'error' ? 'alert' : 'status' %>"><%= f.message %></div>
+          <div class="alert alert-<%= f.type %>" role="<%= f.type === 'error' ? 'alert' : 'status' %>"><%= t(f.message) %></div>
         <% }) %>
       </div>
     <% } %>

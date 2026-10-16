@@ -27,6 +27,10 @@
         <div class="field"><label for="mileage_policy">Χιλιόμετρα</label><input id="mileage_policy" name="mileage_policy" value="<%= v.mileage_policy || 'Απεριόριστα χιλιόμετρα' %>"></div>
       </div>
       <div class="field"><label for="description">Περιγραφή</label><textarea id="description" name="description" rows="3"><%= v.description || '' %></textarea></div>
+      <div class="grid-2">
+        <div class="field"><label for="description_en">Περιγραφή (English)</label><textarea id="description_en" name="description_en" rows="2"><%= v.description_en || '' %></textarea></div>
+        <div class="field"><label for="description_es">Περιγραφή (Español)</label><textarea id="description_es" name="description_es" rows="2"><%= v.description_es || '' %></textarea></div>
+      </div>
       <div class="field"><label for="image">Φωτογραφία (JPG/PNG/WEBP, έως 5MB)</label><input id="image" name="image" type="file" accept="image/jpeg,image/png,image/webp">
         <% if (car && car.image) { %><img src="<%= car.image %>" alt="" class="thumb"><% } %></div>
       <label class="check"><input type="checkbox" name="air_conditioning" value="1" <%= v.air_conditioning ? 'checked' : '' %>><span>Κλιματισμός</span></label>

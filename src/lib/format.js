@@ -1,9 +1,13 @@
 'use strict';
 
-const moneyFmt = new Intl.NumberFormat('el-GR', { style: 'currency', currency: 'EUR' });
+const moneyFmts = {};
+function moneyFormatter(intl) {
+  if (!moneyFmts[intl]) moneyFmts[intl] = new Intl.NumberFormat(intl, { style: 'currency', currency: 'EUR' });
+  return moneyFmts[intl];
+}
 
-function money(cents) {
-  return moneyFmt.format((cents || 0) / 100);
+function money(cents, intl = 'el-GR') {
+  return moneyFormatter(intl).format((cents || 0) / 100);
 }
 
 // Για πεδία φόρμας: 1234 λεπτά -> "12.34"
@@ -29,11 +33,11 @@ function dateTime(local) {
 }
 
 // Για χρονοσφραγίδες SQLite σε UTC (π.χ. created_at).
-function utcTimestamp(value, timezone = 'Europe/Athens') {
+function utcTimestamp(value, timezone = 'Europe/Athens', intl = 'el-GR') {
   if (!value) return '';
   const d = new Date(`${String(value).replace(' ', 'T')}Z`);
   if (Number.isNaN(d.getTime())) return String(value);
-  return d.toLocaleString('el-GR', { timeZone: timezone, dateStyle: 'short', timeStyle: 'short' });
+  return d.toLocaleString(intl, { timeZone: timezone, dateStyle: 'short', timeStyle: 'short' });
 }
 
 const labels = {
@@ -133,13 +137,34 @@ const labels = {
 };
 
 // Χρονοσφραγίδα σε χιλιοστά (π.χ. λήξη δέσμευσης) σε τοπική ώρα.
-function msDateTime(ms, timezone = 'Europe/Athens') {
+function msDateTime(ms, timezone = 'Europe/Athens', intl = 'el-GR') {
   if (!ms) return '';
-  return new Date(ms).toLocaleString('el-GR', { timeZone: timezone, dateStyle: 'short', timeStyle: 'short' });
+  return new Date(ms).toLocaleString(intl, { timeZone: timezone, dateStyle: 'short', timeStyle: 'short' });
 }
 
 function label(group, key) {
   return (labels[group] && labels[group][key]) || key;
 }
 
-module.exports = { money, centsToInput, parseMoneyToCents, date, dateTime, utcTimestamp, msDateTime, labels, label };
+/**
+ * Το ίδιο API για μια γλώσσα: ποσά (π.χ. «€75.00» στα αγγλικά) και μεταφρασμένες ετικέτες.
+ * Οι ημερομηνίες μένουν ηη/μμ/εεεε σε όλες τις γλώσσες.
+ */
+const localized = {};
+function forLocale(locale = 'el') {
+  if (localized[locale]) return localized[locale];
+  // Φορτώνεται εδώ για να μην υπάρχει κυκλική εξάρτηση.
+  const i18n = require('./i18n');
+  const intl = i18n.INTL[locale] || 'el-GR';
+  localized[locale] = {
+    ...module.exports,
+    locale,
+    money: (cents) => money(cents, intl),
+    utcTimestamp: (value, timezone) => utcTimestamp(value, timezone, intl),
+    msDateTime: (ms, timezone) => msDateTime(ms, timezone, intl),
+    label: (group, key) => i18n.t(locale, label(group, key)),
+  };
+  return localized[locale];
+}
+
+module.exports = { money, centsToInput, parseMoneyToCents, date, dateTime, utcTimestamp, msDateTime, labels, label, forLocale };

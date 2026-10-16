@@ -5,6 +5,7 @@ const ejs = require('ejs');
 const nodemailer = require('nodemailer');
 const config = require('../config');
 const format = require('./format');
+const i18n = require('./i18n');
 
 const templatesDir = path.join(__dirname, '..', '..', 'views', 'emails');
 const smtpConfigured = Boolean(config.mail.host);
@@ -32,16 +33,31 @@ function remember(entry) {
   recent.length = Math.min(recent.length, 30);
 }
 
-async function render(template, data) {
+// Γλώσσα ενός email: ρητή, αλλιώς της κράτησης. Τα emails προς το γραφείο (admin-*) πάντα ελληνικά.
+function localeFor(template, data = {}, locale = null) {
+  if (template.startsWith('admin-')) return i18n.DEFAULT_LOCALE;
+  const candidate = locale || data.locale || (data.booking && data.booking.locale) || (data.user && data.user.locale);
+  return i18n.isLocale(candidate) ? candidate : i18n.DEFAULT_LOCALE;
+}
+
+async function render(template, data = {}, locale = null) {
   // Το providers φορτώνεται εδώ για να μην υπάρχει κυκλική εξάρτηση κατά την εκκίνηση.
   const providers = require('./providers');
   const active = providers.active();
+  const lang = localeFor(template, data, locale);
   const locals = {
     ...data,
     config,
-    format,
+    format: format.forLocale(lang),
     company: config.company,
-    baseUrl: config.baseUrl,
+    locale: lang,
+    t: (value, params) => i18n.t(lang, value, params),
+    th: (value, params) => i18n.th(lang, value, params),
+    lt: (name) => i18n.fileFor(name, lang),
+    tf: (row, name) => i18n.field(row, name, lang),
+    // Σύνδεσμοι στη γλώσσα του παραλήπτη (π.χ. https://.../en/manage).
+    baseUrl: i18n.siteUrl(lang),
+    siteUrl: config.baseUrl,
     paymentsEnabled: Boolean(active),
     paymentProviderLabel: active ? active.label : '',
   };
@@ -52,10 +68,13 @@ async function render(template, data) {
  * Στέλνει email από πρότυπο του φακέλου views/emails.
  * Δεν «πετάει» σφάλμα: μια αποτυχία αποστολής δεν πρέπει να χαλάσει μια κράτηση.
  */
-async function send({ to, subject, template, data = {}, replyTo, attachments }) {
+async function send({ to, subject, template, data = {}, replyTo, attachments, locale = null }) {
   if (!to) return false;
+  const lang = localeFor(template, data, locale);
+  // Το θέμα μπορεί να είναι Msg (i18n.msg) ή ελληνικό κείμενο: μεταφράζεται στη γλώσσα του email.
+  subject = i18n.t(lang, subject);
   try {
-    const html = await render(template, { ...data, subject });
+    const html = await render(template, { ...data, subject }, lang);
     const message = { from: config.mail.from, to, subject, html, replyTo, attachments };
     if (config.isTest) {
       outbox.push(message);
@@ -86,10 +105,21 @@ async function flush() {
   while (pending.size) await Promise.allSettled([...pending]);
 }
 
-// Οι όροι ενοικίασης ως συνημμένο (σταθερό μέσο - ν. 2251/1994 άρθ. 3δ).
+// Οι όροι ενοικίασης ως συνημμένο (σταθερό μέσο - ν. 2251/1994 άρθ. 3δ). Σε άλλη γλώσσα
+// επισυνάπτεται η μετάφραση ΚΑΙ το ελληνικό κείμενο, που υπερισχύει.
+async function termsAttachments(locale = i18n.DEFAULT_LOCALE) {
+  const files = [];
+  const greek = await render('terms-document', {}, i18n.DEFAULT_LOCALE);
+  files.push({ filename: `oroi-enoikiasis-${config.termsVersion}.html`, content: greek, contentType: 'text/html; charset=utf-8' });
+  if (i18n.isLocale(locale) && locale !== i18n.DEFAULT_LOCALE) {
+    const translated = await render('terms-document', {}, locale);
+    files.unshift({ filename: `rental-terms-${config.termsVersion}-${locale}.html`, content: translated, contentType: 'text/html; charset=utf-8' });
+  }
+  return files;
+}
+
 async function termsAttachment() {
-  const html = await render('terms-document', {});
-  return { filename: `oroi-enoikiasis-${config.termsVersion}.html`, content: html, contentType: 'text/html; charset=utf-8' };
+  return (await termsAttachments())[0];
 }
 
 // Έλεγχος σύνδεσης με τον SMTP server (στοιχεία, θύρα, κρυπτογράφηση).
@@ -103,4 +133,4 @@ async function verifySmtp() {
   }
 }
 
-module.exports = { send, sendInBackground, flush, outbox, recent, smtpConfigured, render, termsAttachment, verifySmtp };
+module.exports = { send, sendInBackground, flush, outbox, recent, smtpConfigured, render, termsAttachment, termsAttachments, verifySmtp, localeFor };

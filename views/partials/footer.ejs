@@ -3,10 +3,10 @@
     <div class="container footer-grid">
       <div>
         <strong><%= company.name %></strong>
-        <p class="muted small"><%= company.legalName %><% if (company.vat) { %><br>ΑΦΜ <%= company.vat %><% if (company.taxOffice) { %> · <%= company.taxOffice %><% } %><% } %><% if (company.gemi) { %><br>ΓΕΜΗ <%= company.gemi %><% } %><% if (company.mhte) { %><br>ΜΗΤΕ <%= company.mhte %><% } %></p>
+        <p class="muted small"><%= company.legalName %><% if (company.vat) { %><br><%= t('ΑΦΜ') %> <%= company.vat %><% if (company.taxOffice) { %> · <%= company.taxOffice %><% } %><% } %><% if (company.gemi) { %><br><%= t('ΓΕΜΗ') %> <%= company.gemi %><% } %><% if (company.mhte) { %><br><%= t('ΜΗΤΕ') %> <%= company.mhte %><% } %></p>
       </div>
       <div>
-        <strong>Επικοινωνία</strong>
+        <strong><%= t('Επικοινωνία') %></strong>
         <p class="small">
           <% if (company.address) { %><%= company.address %><br><% } %>
           <% if (company.phone) { %><a href="tel:<%= company.phone.replace(/\s/g, '') %>"><%= company.phone %></a><br><% } %>
@@ -14,21 +14,21 @@
         </p>
       </div>
       <div>
-        <strong>Πληροφορίες</strong>
+        <strong><%= t('Πληροφορίες') %></strong>
         <p class="small">
-          <a href="/terms">Όροι ενοικίασης</a><br>
-          <a href="/privacy">Πολιτική απορρήτου & cookies</a><br>
-          <a href="/faq">Συχνές ερωτήσεις</a><br>
-          <a href="/company">Στοιχεία εταιρείας</a><br>
-          <a href="/complaints">Παράπονα & επίλυση διαφορών</a>
+          <a href="<%= u('/terms') %>"><%= t('Όροι ενοικίασης') %></a><br>
+          <a href="<%= u('/privacy') %>"><%= t('Πολιτική απορρήτου & cookies') %></a><br>
+          <a href="<%= u('/faq') %>"><%= t('Συχνές ερωτήσεις') %></a><br>
+          <a href="<%= u('/company') %>"><%= t('Στοιχεία εταιρείας') %></a><br>
+          <a href="<%= u('/complaints') %>"><%= t('Παράπονα & επίλυση διαφορών') %></a>
         </p>
       </div>
       <div>
-        <strong>Ωράριο</strong>
-        <p class="small">Καθημερινά <%= String(config.rules.openingHour).padStart(2, '0') %>:00 - <%= config.rules.closingHour %>:00</p>
+        <strong><%= t('Ωράριο') %></strong>
+        <p class="small"><%= t('Καθημερινά {from} - {to}', { from: `${String(config.rules.openingHour).padStart(2, '0')}:00`, to: `${config.rules.closingHour}:00` }) %></p>
       </div>
     </div>
-    <div class="container footer-bottom small muted">© <%= new Date().getFullYear() %> <%= company.legalName %>. Όλες οι τιμές περιλαμβάνουν ΦΠΑ <%= config.rules.vatPercent %>%.</div>
+    <div class="container footer-bottom small muted">© <%= new Date().getFullYear() %> <%= company.legalName %>. <%= t('Όλες οι τιμές περιλαμβάνουν ΦΠΑ {vat}%.', { vat: config.rules.vatPercent }) %></div>
   </footer>
 </body>
 </html>

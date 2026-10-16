@@ -20,6 +20,7 @@ const format = require('./format');
 const providers = require('./providers');
 const bookings = require('./bookings');
 const mailer = require('./mailer');
+const i18n = require('./i18n');
 const fiscal = require('./fiscal');
 const { transaction } = require('../db');
 const { insertCheckout, getCheckoutRow, setCheckoutStatus, openCheckouts, expireOpenCheckouts } = require('./checkouts');
@@ -90,8 +91,9 @@ function unresolvedDamage(db, bookingId) {
     .all(bookingId);
 }
 
-function linkUrl(token) {
-  return `${config.baseUrl}/deposit/${token}`;
+// Σύνδεσμος εγγύησης στη γλώσσα του πελάτη.
+function linkUrl(token, locale = 'el') {
+  return `${i18n.siteUrl(locale)}/deposit/${token}`;
 }
 
 function findByToken(db, token) {
@@ -202,7 +204,7 @@ async function createOnlineLink(db, bookingId, { amountCents, overNote = null, a
     return { depositId: Number(res.lastInsertRowid), cancelled: old };
   });
   if (cancelled.length) await expireDepositCheckouts(db, bookingId, cancelled.map((d) => d.id));
-  const url = linkUrl(token);
+  const url = linkUrl(token, bookings.getById(db, bookingId).locale);
   if (sendEmail) sendLinkEmail(db, bookingId, depositId, url);
   return { depositId, token, url };
 }
@@ -257,8 +259,8 @@ async function startOnlineHold(db, token) {
     amountCents: deposit.amount_cents,
     description: 'Εγγύηση ενοικίασης - δέσμευση ποσού (όχι χρέωση)',
     expiresAtMs: Date.now() + 60 * 60 * 1000,
-    successUrl: `${config.baseUrl}/deposit/${token}/return`,
-    cancelUrl: `${config.baseUrl}/deposit/${token}`,
+    successUrl: `${i18n.siteUrl(booking.locale)}/deposit/${token}/return`,
+    cancelUrl: `${i18n.siteUrl(booking.locale)}/deposit/${token}`,
     hold: true,
     holdDays,
   });

@@ -319,3 +319,12 @@ details p { margin: 10px 0 0; }
 .check-ok { background: var(--success); }
 .check-warn { background: #b26b00; }
 .check-bad { background: var(--error); }
+
+/* Επιλογή γλώσσας */
+.lang-switch { display: inline-flex; gap: 2px; margin-left: 6px; padding-left: 8px; border-left: 1px solid var(--border); }
+.lang-switch a { padding: 6px 7px; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.02em; color: var(--muted); }
+.lang-switch a.active { color: var(--brand); background: var(--info-bg); }
+@media (max-width: 760px) { .lang-switch { border-left: 0; margin-left: 0; padding-left: 0; } }
+
+.translations { flex-basis: 100%; }
+.translations summary { cursor: pointer; font-size: 0.875rem; color: var(--muted); }

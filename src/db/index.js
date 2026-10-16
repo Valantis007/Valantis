@@ -394,6 +394,46 @@ const MIGRATIONS = [
       ELSE (SELECT COALESCE(c.excess_cents, c.deposit_cents) FROM cars c WHERE c.id = bookings.car_id) END
     WHERE excess_cents IS NULL;
   `,
+
+  // 7: Γλώσσα πελάτη (ελληνικά, αγγλικά, ισπανικά): emails και σύνδεσμοι στη γλώσσα του.
+  `
+  ALTER TABLE bookings ADD COLUMN locale TEXT NOT NULL DEFAULT 'el';
+  ALTER TABLE users ADD COLUMN locale TEXT NOT NULL DEFAULT 'el';
+  -- Μεταφράσεις του περιεχομένου που γράφει το γραφείο (κενό = εμφανίζεται το ελληνικό).
+  ALTER TABLE extras ADD COLUMN name_en TEXT;
+  ALTER TABLE extras ADD COLUMN name_es TEXT;
+  ALTER TABLE extras ADD COLUMN description_en TEXT;
+  ALTER TABLE extras ADD COLUMN description_es TEXT;
+  ALTER TABLE locations ADD COLUMN name_en TEXT;
+  ALTER TABLE locations ADD COLUMN name_es TEXT;
+  ALTER TABLE locations ADD COLUMN address_en TEXT;
+  ALTER TABLE locations ADD COLUMN address_es TEXT;
+  ALTER TABLE cars ADD COLUMN description_en TEXT;
+  ALTER TABLE cars ADD COLUMN description_es TEXT;
+  -- Μεταφράσεις των αρχικών ενδεικτικών δεδομένων (μόνο αν δεν έχουν αλλάξει).
+  UPDATE locations SET name_en = 'Office - City centre', name_es = 'Oficina - Centro de la ciudad', address_en = NULL, address_es = NULL WHERE name = 'Γραφείο - Κέντρο πόλης' AND name_en IS NULL;
+  UPDATE locations SET name_en = 'Airport', name_es = 'Aeropuerto', address_en = 'Arrivals hall', address_es = 'Sala de llegadas' WHERE name = 'Αεροδρόμιο' AND name_en IS NULL;
+  UPDATE locations SET name_en = 'Port', name_es = 'Puerto', address_en = 'Passenger terminal', address_es = 'Terminal de pasajeros' WHERE name = 'Λιμάνι' AND name_en IS NULL;
+  UPDATE locations SET name_en = 'Hotel delivery (within the city)', name_es = 'Entrega en el hotel (dentro de la ciudad)', address_en = 'At the address you give us', address_es = 'En la dirección que nos indique' WHERE name = 'Παράδοση σε ξενοδοχείο (εντός πόλης)' AND name_en IS NULL;
+  UPDATE extras SET name_en = 'Full Damage Waiver (FDW) - €0 excess', name_es = 'Exención total por daños (FDW) - franquicia 0 €', description_en = 'Reduces your liability for damage to the vehicle to zero, subject to the exclusions in the terms (§7). It is not an insurance product: it is a contractual waiver by the company of claims for damage. The deposit does not change.', description_es = 'Reduce a cero su responsabilidad por daños al vehículo, salvo las exclusiones de las condiciones (§7). No es un seguro: es una renuncia contractual de la empresa a reclamar por daños. La fianza no cambia.' WHERE name = 'Πλήρης Απαλλαγή Ευθύνης για Ζημιές (FDW) - συμμετοχή 0 €' AND name_en IS NULL;
+  UPDATE extras SET name_en = 'Additional driver', name_es = 'Conductor adicional', description_en = 'The additional driver must be present at pick-up with their driving licence and meet the same age and licence requirements.', description_es = 'El conductor adicional debe estar presente en la recogida con su permiso de conducir y cumplir los mismos requisitos de edad y permiso.' WHERE name = 'Επιπλέον οδηγός' AND name_en IS NULL;
+  UPDATE extras SET name_en = 'Child seat (0-4 years)', name_es = 'Silla infantil (0-4 años)', description_en = 'Approved to ECE R44/04 or R129 (i-Size).', description_es = 'Homologada según ECE R44/04 o R129 (i-Size).' WHERE name = 'Παιδικό κάθισμα (0-4 ετών)' AND name_en IS NULL;
+  UPDATE extras SET name_en = 'Booster seat (4-12 years)', name_es = 'Elevador (4-12 años)', description_en = 'Approved to ECE R44/04 or R129 (i-Size).', description_es = 'Homologado según ECE R44/04 o R129 (i-Size).' WHERE name = 'Κάθισμα booster (4-12 ετών)' AND name_en IS NULL;
+  UPDATE extras SET name_en = 'GPS navigation', name_es = 'Navegador GPS', description_en = NULL, description_es = NULL WHERE name = 'GPS πλοήγηση' AND name_en IS NULL;
+  UPDATE extras SET name_en = 'Prepaid full tank', name_es = 'Depósito lleno prepagado', description_en = 'Pick up with a full tank and return with as much fuel as you like. Unused fuel is not refunded. Alternatively, return at the same level at no charge.', description_es = 'Recoge el coche con el depósito lleno y lo devuelve con el combustible que quiera. El combustible no utilizado no se reembolsa. También puede devolverlo con el mismo nivel sin coste.' WHERE name = 'Προπληρωμένο γεμάτο ρεζερβουάρ' AND name_en IS NULL;
+  UPDATE cars SET description_en = 'Ideal for the city, easy to park and very economical.', description_es = 'Ideal para la ciudad, fácil de aparcar y muy económico.' WHERE description = 'Ιδανικό για την πόλη, εύκολο στο παρκάρισμα και πολύ οικονομικό.' AND description_en IS NULL;
+  UPDATE cars SET description_en = 'Small automatic, ideal for new drivers.', description_es = 'Pequeño automático, ideal para conductores noveles.' WHERE description = 'Μικρό αυτόματο, ιδανικό για αρχάριους οδηγούς.' AND description_en IS NULL;
+  UPDATE cars SET description_en = 'Comfortable and economical in town and in the countryside.', description_es = 'Cómodo y económico en ciudad y carretera.' WHERE description = 'Άνετο και οικονομικό για πόλη και επαρχία.' AND description_en IS NULL;
+  UPDATE cars SET description_en = 'DSG automatic gearbox, Apple CarPlay / Android Auto.', description_es = 'Cambio automático DSG, Apple CarPlay / Android Auto.' WHERE description = 'Αυτόματο κιβώτιο DSG, Apple CarPlay / Android Auto.' AND description_en IS NULL;
+  UPDATE cars SET description_en = 'Hybrid with very low fuel consumption, ideal for long distances.', description_es = 'Híbrido de muy bajo consumo, ideal para largas distancias.' WHERE description = 'Υβριδικό με πολύ χαμηλή κατανάλωση, ιδανικό για μεγάλες αποστάσεις.' AND description_en IS NULL;
+  UPDATE cars SET description_en = 'Estate car with a large boot for family holidays.', description_es = 'Familiar con un gran maletero para las vacaciones en familia.' WHERE description = 'Station wagon με μεγάλο πορτμπαγκάζ για οικογενειακές διακοπές.' AND description_en IS NULL;
+  UPDATE cars SET description_en = 'SUV with a high driving position and modern safety systems.', description_es = 'SUV con posición de conducción elevada y sistemas de seguridad modernos.' WHERE description = 'SUV με ψηλή θέση οδήγησης και σύγχρονα συστήματα ασφαλείας.' AND description_en IS NULL;
+  UPDATE cars SET description_en = 'Four-wheel drive for dirt roads and mountain routes.', description_es = 'Tracción a las cuatro ruedas para caminos de tierra y rutas de montaña.' WHERE description = 'Τετρακίνητο για χωματόδρομους και ορεινές διαδρομές.' AND description_en IS NULL;
+  UPDATE cars SET description_en = 'Nine-seater for large groups and families.', description_es = 'Nueve plazas para grupos grandes y familias.' WHERE description = 'Εννιαθέσιο για μεγάλες παρέες και οικογένειες.' AND description_en IS NULL;
+  UPDATE cars SET description_en = 'Luxury and comfort for business trips.', description_es = 'Lujo y confort para viajes de negocios.' WHERE description = 'Πολυτέλεια και άνεση για επαγγελματικά ταξίδια.' AND description_en IS NULL;
+  UPDATE cars SET description_en = 'A convertible for summer drives.', description_es = 'Un descapotable para los paseos de verano.' WHERE description = 'Ανοιχτό αυτοκίνητο για τις καλοκαιρινές βόλτες.' AND description_en IS NULL;
+
+  `,
 ];
 
 function migrate(db) {

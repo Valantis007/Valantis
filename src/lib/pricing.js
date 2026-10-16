@@ -83,7 +83,8 @@ function computeQuote({ car, pickupAt, returnAt, pickupLocation, returnLocation,
   const locationFee = Math.max(pickupLocation.fee_cents, returnLocation.fee_cents);
   if (locationFee > 0) {
     const loc = pickupLocation.fee_cents >= returnLocation.fee_cents ? pickupLocation : returnLocation;
-    feeLines.push({ name: `Χρέωση σημείου (${loc.name})`, cents: locationFee });
+    // `location`: για εμφάνιση του ονόματος του σημείου στη γλώσσα του πελάτη.
+    feeLines.push({ name: `Χρέωση σημείου (${loc.name})`, cents: locationFee, location: loc });
   }
   if (pickupLocation.id !== returnLocation.id && config.rules.oneWayFeeCents > 0) {
     feeLines.push({ name: 'Επιστροφή σε διαφορετικό σημείο', cents: config.rules.oneWayFeeCents });

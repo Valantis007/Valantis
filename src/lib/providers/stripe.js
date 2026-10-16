@@ -119,7 +119,8 @@ async function createCheckout({ kind, booking, amountCents, description, expires
     expires_at: Math.floor(expiresAtMs / 1000),
     success_url: `${successUrl}${successUrl.includes('?') ? '&' : '?'}session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: cancelUrl,
-    locale: 'el',
+    // Η σελίδα πληρωμής στη γλώσσα του πελάτη.
+    locale: ['el', 'en', 'es'].includes(booking.locale) ? booking.locale : 'el',
   };
   if (hold) {
     // Μόνο κάρτα (όχι PayPal, Klarna, Link κ.λπ.): η εγγύηση είναι δέσμευση σε πιστωτική κάρτα.

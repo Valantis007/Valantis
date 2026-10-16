@@ -8,6 +8,15 @@
         <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
         <div class="field"><label>Όνομα</label><input name="name" value="<%= r ? r.name : '' %>" required></div>
         <div class="field grow"><label>Περιγραφή</label><input name="description" value="<%= r ? r.description : '' %>"></div>
+        <details class="translations"><summary>Μεταφράσεις (English / Español)</summary>
+          <div class="grid-2">
+            <div class="field"><label>Όνομα (English)</label><input name="name_en" value="<%= r ? r.name_en || '' : '' %>"></div>
+            <div class="field"><label>Όνομα (Español)</label><input name="name_es" value="<%= r ? r.name_es || '' : '' %>"></div>
+            <div class="field"><label>Περιγραφή (English)</label><input name="description_en" value="<%= r ? r.description_en || '' : '' %>"></div>
+            <div class="field"><label>Περιγραφή (Español)</label><input name="description_es" value="<%= r ? r.description_es || '' : '' %>"></div>
+          </div>
+          <p class="small muted">Κενό = εμφανίζεται το ελληνικό κείμενο.</p>
+        </details>
         <div class="field"><label>Τιμή (€)</label><input name="price" inputmode="decimal" value="<%= r ? format.centsToInput(r.price_cents) : '' %>" size="6" required></div>
         <div class="field"><label>Χρέωση</label><select name="pricing">
           <option value="per_day" <%= r && r.pricing === 'per_day' ? 'selected' : '' %>>ανά ημέρα</option>

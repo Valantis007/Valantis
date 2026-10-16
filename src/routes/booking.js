@@ -128,7 +128,7 @@ module.exports = function bookingRoutes(db) {
     try {
       // Κρατήσεις που καταχωρεί ο διαχειριστής (π.χ. τηλεφωνικές) δεν συνδέονται με τον δικό του λογαριασμό.
       const userId = req.user && req.user.role !== 'admin' ? req.user.id : null;
-      booking = bookings.createBooking(db, { car, search, extras: selectedExtras, driver, userId });
+      booking = bookings.createBooking(db, { car, search, extras: selectedExtras, driver, userId, locale: req.locale });
     } catch (err) {
       if (err instanceof bookings.BookingError) {
         return renderForm(req, res, { status: 409, car, search, driver, formError: err.message, selectedExtras });

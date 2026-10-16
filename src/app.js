@@ -8,6 +8,7 @@ const helmet = require('helmet');
 
 const config = require('./config');
 const format = require('./lib/format');
+const i18n = require('./lib/i18n');
 const time = require('./lib/time');
 const providers = require('./lib/providers');
 const SqliteStore = require('./lib/sessionStore');
@@ -41,6 +42,9 @@ function createApp({ db, uploadDir = config.uploadDir }) {
       },
     }),
   );
+
+  // Γλώσσα από το πρόθεμα της διαδρομής (/en, /es)· πριν από όλα τα υπόλοιπα.
+  app.use(i18n.middleware);
 
   // Τα webhooks των παρόχων πληρωμών χρειάζονται το «ωμό» σώμα του αιτήματος για τον έλεγχο υπογραφής.
   app.use('/webhooks', require('./routes/webhooks')(db));
@@ -95,7 +99,7 @@ function createApp({ db, uploadDir = config.uploadDir }) {
   app.use((req, res, next) => {
     res.locals.config = config;
     res.locals.company = config.company;
-    res.locals.format = format;
+    res.locals.format = format.forLocale(req.locale);
     res.locals.time = time;
     res.locals.currentPath = req.path;
     const activeProvider = providers.active();
@@ -118,7 +122,7 @@ function createApp({ db, uploadDir = config.uploadDir }) {
 
   app.use((req, res) => {
     res.status(404).render('pages/error', {
-      title: 'Η σελίδα δεν βρέθηκε',
+      title: req.t('Η σελίδα δεν βρέθηκε'),
       status: 404,
       message: 'Η σελίδα που ζητήσατε δεν υπάρχει.',
     });
@@ -132,19 +136,28 @@ function createApp({ db, uploadDir = config.uploadDir }) {
       status >= 500 ? 'Παρουσιάστηκε απρόσμενο σφάλμα. Δοκιμάστε ξανά ή επικοινωνήστε μαζί μας.' : err.expose === false ? 'Μη έγκυρο αίτημα.' : err.message;
     if (res.headersSent) return;
     // Το σφάλμα μπορεί να συνέβη πριν φορτωθούν όλα τα δεδομένα της σελίδας.
+    const locale = req.locale || 'el';
     Object.assign(res.locals, {
       config,
       company: config.company,
-      format,
+      format: format.forLocale(locale),
       time,
+      locale,
+      t: res.locals.t ?? ((v, p) => i18n.t(locale, v, p)),
+      th: res.locals.th ?? ((v, p) => i18n.th(locale, v, p)),
+      u: res.locals.u ?? ((p) => i18n.localizePath(locale, p)),
+      lt: res.locals.lt ?? ((name) => i18n.fileFor(name, locale)),
+      tf: res.locals.tf ?? ((row, name) => i18n.field(row, name, locale)),
+      languages: res.locals.languages ?? [],
+      langPrefix: res.locals.langPrefix ?? '',
       currentPath: req.path,
       user: res.locals.user ?? null,
       csrfToken: res.locals.csrfToken ?? (() => ''),
       takeFlash: res.locals.takeFlash ?? (() => []),
     });
     res.status(status);
-    if (req.path.startsWith('/api/')) return res.json({ error: message });
-    res.render('pages/error', { title: 'Σφάλμα', status, message });
+    if (req.path.startsWith('/api/')) return res.json({ error: i18n.t(locale, message) });
+    res.render('pages/error', { title: i18n.t(locale, 'Σφάλμα'), status, message });
   });
 
   return app;
