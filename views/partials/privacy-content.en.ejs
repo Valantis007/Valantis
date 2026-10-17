@@ -2,7 +2,7 @@
   <p class="alert alert-info small translation-note">This is a translation provided for convenience. In case of any discrepancy, the Greek version prevails. <a href="<%= locals.siteUrl || '' %>/privacy" hreflang="el">Read the Greek version</a>.</p>
 
   <h2>1. Data controller</h2>
-  <p><%= company.legalName %><% if (company.vat) { %>, VAT No. <%= company.vat %><% } %><% if (company.gemi) { %>, GEMI No. <%= company.gemi %><% } %><% if (company.seat) { %>, <%= company.seat %><% } %>.
+  <p><%= company.legalName %><% if (company.vat) { %>, VAT No. <%= company.vat %><% } %><% if (company.gemi) { %>, General Commercial Registry (GEMI) No. <%= company.gemi %><% } %><% if (company.seat) { %>, <%= company.seat %><% } %>.
     For personal data matters: <% if (company.privacyEmail) { %><a href="mailto:<%= company.privacyEmail %>"><%= company.privacyEmail %></a><% } else { %>via our <a href="<%= u('/contact') %>">contact form</a><% } %>.</p>
 
   <h2>2. What data we process, why and for how long</h2>

@@ -20,7 +20,7 @@ module.exports = {
     // --- _precontract.ejs (προσυμβατική ενημέρωση) ---
     'Σημαντικές πληροφορίες πριν την κράτηση': 'Important information before you book',
     '<strong>Αυτοκίνητο:</strong> {car} ή παρόμοιο της κατηγορίας «{category}». Εγγυόμαστε την κατηγορία, όχι το μοντέλο· αν δεν είναι διαθέσιμη, σας δίνουμε ανώτερη κατηγορία χωρίς χρέωση ή σας επιστρέφουμε όλο το ποσό.':
-      '<strong>Car:</strong> {car} or similar in the ‘{category}’ category. We guarantee the category, not the model; if it is not available, we will upgrade you to a higher category at no extra charge or refund the full amount.',
+      '<strong>Car:</strong> {car} or similar in the ‘{category}’ category. We guarantee the category, not the model; if that category is not available, we will upgrade you to a higher category at no extra charge or refund the full amount.',
     '<strong>Περιλαμβάνονται:</strong> υποχρεωτική ασφάλιση αστικής ευθύνης έναντι τρίτων, βασική κάλυψη ζημιών του οχήματος (CDW) με απαλλαγή <strong data-q="excessText">{excess}</strong>, {mileage}, ΦΠΑ {vat}%.':
       '<strong>Included:</strong> compulsory third-party liability insurance, basic cover for damage to the vehicle (CDW) with an excess of <strong data-q="excessText">{excess}</strong>, {mileage}, {vat}% VAT.',
     'Απεριόριστα χιλιόμετρα': 'Unlimited mileage',
@@ -184,7 +184,7 @@ module.exports = {
     // --- _precontract.ejs (προσυμβατική ενημέρωση) ---
     'Σημαντικές πληροφορίες πριν την κράτηση': 'Información importante antes de reservar',
     '<strong>Αυτοκίνητο:</strong> {car} ή παρόμοιο της κατηγορίας «{category}». Εγγυόμαστε την κατηγορία, όχι το μοντέλο· αν δεν είναι διαθέσιμη, σας δίνουμε ανώτερη κατηγορία χωρίς χρέωση ή σας επιστρέφουμε όλο το ποσό.':
-      '<strong>Coche:</strong> {car} o similar de la categoría «{category}». Garantizamos la categoría, no el modelo; si no está disponible, le daremos una categoría superior sin coste adicional o le reembolsaremos el importe íntegro.',
+      '<strong>Coche:</strong> {car} o similar de la categoría «{category}». Garantizamos la categoría, no el modelo; si esa categoría no está disponible, le daremos una categoría superior sin coste adicional o le reembolsaremos el importe íntegro.',
     '<strong>Περιλαμβάνονται:</strong> υποχρεωτική ασφάλιση αστικής ευθύνης έναντι τρίτων, βασική κάλυψη ζημιών του οχήματος (CDW) με απαλλαγή <strong data-q="excessText">{excess}</strong>, {mileage}, ΦΠΑ {vat}%.':
       '<strong>Incluye:</strong> seguro obligatorio de responsabilidad civil frente a terceros, cobertura básica de daños del vehículo (CDW) con una franquicia de <strong data-q="excessText">{excess}</strong>, {mileage}, IVA del {vat}%.',
     'Απεριόριστα χιλιόμετρα': 'Kilometraje ilimitado',
@@ -242,7 +242,7 @@ module.exports = {
     'π.χ. A3 123': 'p. ej. A3 123',
     'Για να σας περιμένουμε σε περίπτωση καθυστέρησης.': 'Para esperarle en caso de retraso.',
     'Σημειώσεις / ειδικά αιτήματα (προαιρετικό)': 'Observaciones / peticiones especiales (opcional)',
-    'Μην αναγράφετε πληροφορίες υγείας ή αριθμούς καρτών.': 'No incluya información sobre su salud ni números de tarjeta.',
+    'Μην αναγράφετε πληροφορίες υγείας ή αριθμούς καρτών.': 'No incluya datos de salud ni números de tarjeta.',
     'Ηλικία και βάρος παιδιού/παιδιών (για παιδικό κάθισμα)': 'Edad y peso del niño o niños (para la silla infantil)',
     'π.χ. 3 ετών, 15 κιλά': 'p. ej. 3 años, 15 kg',
     'Υποχρεωτικό αν επιλέξετε παιδικό κάθισμα, ώστε να σας δώσουμε την κατάλληλη κλάση (ECE R44/R129).':
@@ -286,7 +286,7 @@ module.exports = {
     'Επιστροφή {amount} στην κάρτα σας είναι σε εξέλιξη.': 'Se está tramitando el reembolso de {amount} a su tarjeta.',
     'Εγγύηση': 'Fianza',
     'κάρτα •••• {last4}': 'tarjeta •••• {last4}',
-    'Παρακρατήθηκαν {captured}, αποδεσμεύτηκαν {released}.': 'Retenido: {captured}; liberado: {released}.',
+    'Παρακρατήθηκαν {captured}, αποδεσμεύτηκαν {released}.': 'Descontado de la fianza: {captured}; liberado: {released}.',
     'Χρεώσεις μετά την επιστροφή': 'Cargos tras la devolución',
     'Ποσό': 'Importe',
     'Κατάσταση': 'Estado',

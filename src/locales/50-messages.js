@@ -72,7 +72,7 @@ module.exports = {
     'Η μέγιστη διάρκεια ενοικίασης είναι {days} ημέρες.': 'The maximum rental period is {days} days.',
 
     // ---- src/lib/bookings.js: στοιχεία οδηγού (validateDriver) ----
-    'Συμπληρώστε έγκυρο τηλέφωνο (π.χ. +30 69XXXXXXXX).': 'Please enter a valid phone number, including the country code (e.g. +44 7700 900123).',
+    'Συμπληρώστε έγκυρο τηλέφωνο (π.χ. +30 69XXXXXXXX).': 'Please enter a valid phone number (e.g. +44 7700 900123).',
     'Συμπληρώστε την ημερομηνία γέννησης.': 'Please enter the date of birth.',
     'Για αυτό το αυτοκίνητο ο οδηγός πρέπει να είναι τουλάχιστον {age} ετών κατά την παραλαβή.':
       'For this car, the driver must be at least {age} years old at pick-up.',
@@ -143,7 +143,7 @@ module.exports = {
     'Η πληρωμή ολοκληρώθηκε και η κράτησή σας επιβεβαιώθηκε! Σας στείλαμε email με τις λεπτομέρειες.':
       'Your payment is complete and your booking is confirmed! We have sent you an email with the details.',
     'Η πληρωμή σας δεν μπορούσε να αντιστοιχιστεί στην κράτηση (π.χ. είχε ήδη πληρωθεί ή ακυρωθεί) και επιστρέφεται αυτόματα στην κάρτα σας.':
-      'Your payment could not be matched to the booking (e.g. it had already been paid or cancelled) and is being refunded automatically to your card.',
+      'Your payment could not be matched to the booking (e.g. the booking had already been paid for or cancelled) and is being refunded automatically to your card.',
     'Η πληρωμή σας επεξεργάζεται. Θα λάβετε email μόλις επιβεβαιωθεί.': 'Your payment is being processed. You will receive an email once it is confirmed.',
     'Η πληρωμή καταχωρήθηκε. Ευχαριστούμε!': 'Your payment has been recorded. Thank you!',
     'Η πληρωμή δεν ολοκληρώθηκε. Το αυτοκίνητο παραμένει δεσμευμένο για λίγα λεπτά — μπορείτε να δοκιμάσετε ξανά.':
@@ -198,7 +198,7 @@ module.exports = {
     'Αναμονή έγκρισης από τον πελάτη': 'Pendiente de autorización del cliente',
     'Δεσμευμένη': 'Bloqueada',
     'Αποδεσμεύτηκε': 'Liberada',
-    'Εκκαθαρίστηκε (με παρακράτηση)': 'Liquidada (con retención)',
+    'Εκκαθαρίστηκε (με παρακράτηση)': 'Liquidada (con deducción)',
     'Απέτυχε': 'Fallida',
     // depositMethod
     'POS γραφείου': 'TPV de la oficina',

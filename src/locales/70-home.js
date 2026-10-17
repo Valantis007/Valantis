@@ -6,7 +6,7 @@
 module.exports = {
   en: {
     'Βρείτε αυτοκίνητο για τις ημερομηνίες σας': 'Find a car for your dates',
-    'Συγκρίνετε όλο τον στόλο μας με την τελική τιμή. Δωρεάν ακύρωση έως {hours} ώρες πριν την παραλαβή.': 'Compare our entire fleet with final prices shown up front. Free cancellation up to {hours} hours before pick-up.',
+    'Συγκρίνετε όλο τον στόλο μας με την τελική τιμή. Δωρεάν ακύρωση έως {hours} ώρες πριν την παραλαβή.': 'Compare final prices across our entire fleet. Free cancellation up to {hours} hours before pick-up.',
     'Τελική τιμή με ΦΠΑ, χωρίς κρυφές χρεώσεις': 'Final price including VAT, no hidden charges',
     'Πληρωμή online ή στην παραλαβή': 'Pay online or at pick-up',
     'Κατηγορίες και τιμές από': 'Car categories and starting prices',
@@ -27,7 +27,7 @@ module.exports = {
     'Τελική τιμή με ΦΠΑ, χωρίς κρυφές χρεώσεις': 'Precio final con IVA incluido, sin cargos ocultos',
     'Πληρωμή online ή στην παραλαβή': 'Pago online o en la recogida',
     'Κατηγορίες και τιμές από': 'Categorías y precios de partida',
-    'Δημοφιλή αυτοκίνητα': 'Coches más solicitados',
+    'Δημοφιλή αυτοκίνητα': 'Coches populares',
     'Όλα τα αυτοκίνητα ({n}) →': 'Todos los coches ({n}) →',
     'Επιλογή': 'Seleccionar',
     'Τι περιλαμβάνει η τιμή': 'Qué incluye el precio',

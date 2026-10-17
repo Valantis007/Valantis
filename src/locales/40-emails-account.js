@@ -16,7 +16,7 @@ module.exports = {
     'Δέσμευση εγγύησης - κράτηση {ref}': 'Security deposit hold - booking {ref}',
     'Εγγύηση κράτησης {ref}: εκκαθάριση': 'Security deposit for booking {ref}: settlement',
     'Εγγύηση κράτησης {ref}: αποδέσμευση': 'Security deposit for booking {ref}: release',
-    'Χρέωση για αποδοχή - κράτηση {ref}': 'Charge awaiting your approval - booking {ref}',
+    'Χρέωση για αποδοχή - κράτηση {ref}': 'Charge awaiting your acceptance - booking {ref}',
     'Χρέωση μετά την επιστροφή - κράτηση {ref}': 'Charge after return - booking {ref}',
     'Καλώς ήρθατε στην {company}': 'Welcome to {company}',
     'Επαναφορά κωδικού πρόσβασης': 'Password reset',
@@ -375,7 +375,7 @@ module.exports = {
 
     // ---------- emails/deposit-settled.ejs ----------
     'Η εγγύηση για την κράτηση <strong>{ref}</strong> εκκαθαρίστηκε:': 'Se ha liquidado la fianza de la reserva <strong>{ref}</strong>:',
-    'Παρακράτηση από την εγγύηση': 'Importe retenido de la fianza',
+    'Παρακράτηση από την εγγύηση': 'Importe descontado de la fianza',
     'Αποδεσμεύτηκαν': 'Importe liberado',
     'Η εγγύηση <strong>{amount}</strong> για την κράτηση <strong>{ref}</strong> <strong>αποδεσμεύτηκε πλήρως</strong>, χωρίς καμία χρέωση.':
       'La fianza de <strong>{amount}</strong> de la reserva <strong>{ref}</strong> <strong>se ha liberado íntegramente</strong>, sin ningún cargo.',

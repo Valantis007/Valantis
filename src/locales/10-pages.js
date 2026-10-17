@@ -362,7 +362,7 @@ module.exports = {
     '<strong>{count}</strong> διαθέσιμα αυτοκίνητα': '<strong>{count}</strong> coches disponibles',
     'για <strong>{days} ημέρα</strong>': 'para <strong>{days} día</strong>',
     'για <strong>{days} ημέρες</strong>': 'para <strong>{days} días</strong>',
-    '{n} δεν είναι διαθέσιμα': '{n} no disponibles',
+    '{n} δεν είναι διαθέσιμα': '{n} sin disponibilidad',
     'Επιλέξτε σημείο και ημερομηνίες για να δείτε διαθεσιμότητα και τελικές τιμές.': 'Elija un lugar y unas fechas para ver la disponibilidad y los precios finales.',
     'Δεν βρέθηκαν διαθέσιμα αυτοκίνητα': 'No hay coches disponibles',
     'Δοκιμάστε διαφορετικές ημερομηνίες ή αφαιρέστε κάποιο φίλτρο.': 'Pruebe con otras fechas o quite algún filtro.',
@@ -509,7 +509,7 @@ module.exports = {
     'Από την εγγύηση μπορεί να αφαιρεθούν <strong>μόνο</strong> οι χρεώσεις του <a href="{url}" target="_blank">τιμοκαταλόγου</a>, με αναλυτικό email για καθεμία: καύσιμο που λείπει ({fuel}/λίτρο + {refuel}), καθυστέρηση επιστροφής (μίσθωμα ημέρας), ειδικός καθαρισμός (έως {cleaning}), διαχείριση προστίμου ({fines} ανά πρόστιμο), χαμένο κλειδί ({key}).':
       'De la fianza <strong>solo</strong> pueden descontarse los cargos de nuestras <a href="{url}" target="_blank">tarifas</a>, con un email detallado para cada uno: combustible que falte ({fuel}/litro + {refuel}), retraso en la devolución (precio de un día de alquiler), limpieza especial (hasta {cleaning}), gestión de multas ({fines} por multa), pérdida de llave ({key}).',
     'Χρέωση για <strong>ζημιά</strong> ή οποιαδήποτε άλλη χρέωση γίνεται μόνο με τη συναίνεσή σας, και για ζημιά έως την απαλλαγή σας ({excess}), εκτός από τις εξαιρέσεις των όρων (§7). Θα λάβετε τεκμηρίωση και θα μπορείτε να την αμφισβητήσετε.':
-      'Los cargos por <strong>daños</strong> o cualquier otro cargo solo se realizan con su consentimiento y, en caso de daños, hasta el importe de su franquicia ({excess}), salvo las exclusiones previstas en las condiciones (§7). Recibirá la documentación justificativa y podrá impugnarla.',
+      'Los cargos por <strong>daños</strong> o cualquier otro cargo solo se realizan con su consentimiento y, en caso de daños, hasta el importe de su franquicia ({excess}), salvo las exclusiones previstas en las condiciones (§7). Recibirá la documentación justificativa y podrá impugnar el cargo.',
     'Η έγκριση της εγγύησης γίνεται από <strong>{from}</strong> έως την επιστροφή του αυτοκινήτου.':
       'Puede autorizar la fianza desde el <strong>{from}</strong> hasta la devolución del coche.',
     'Συμφωνώ να δεσμευτεί το ποσό <strong>{amount}</strong> στην πιστωτική μου κάρτα ως εγγύηση για την κράτηση {ref}, σύμφωνα με τους <a href="{url}" target="_blank">όρους ενοικίασης</a>.':
@@ -522,7 +522,7 @@ module.exports = {
     'Η εγγύηση <strong>{amount}</strong> δεσμεύτηκε επιτυχώς. Ευχαριστούμε!': 'La fianza de <strong>{amount}</strong> se ha bloqueado correctamente. ¡Gracias!',
     'Θα αποδεσμευτεί μετά την επιστροφή του αυτοκινήτου. Μπορείτε να δείτε την κράτησή σας από τη σελίδα <a href="{url}">«Η κράτησή μου»</a>.':
       'Se liberará tras la devolución del coche. Puede consultar su reserva desde la página <a href="{url}">«Mi reserva»</a>.',
-    'Η εγγύηση έχει κλείσει: {status} — παρακράτηση {amount}.': 'La fianza está cerrada: {status}. Importe retenido: {amount}.',
+    'Η εγγύηση έχει κλείσει: {status} — παρακράτηση {amount}.': 'La fianza está cerrada: {status}. Importe descontado: {amount}.',
     'Η εγγύηση έχει κλείσει: {status}.': 'La fianza está cerrada: {status}.',
     'Αυτός ο σύνδεσμος δεν ισχύει πλέον. Επικοινωνήστε μαζί μας για νέο σύνδεσμο.': 'Este enlace ya no es válido. Póngase en contacto con nosotros para obtener uno nuevo.',
     // Μηνύματα από src/routes/public.js και src/lib/deposits.js που εμφανίζει η σελίδα
