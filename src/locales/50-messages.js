@@ -15,7 +15,7 @@ module.exports = {
     'Compact': 'Compact',
     'Οικογενειακό': 'Family',
     'SUV': 'SUV',
-    'Van / 7-9 θέσεων': 'Van / 7-9 seats',
+    'Van / 7-9 θέσεων': 'Van / 7-9 seater',
     'Πολυτελείας': 'Luxury',
     'Cabrio': 'Convertible',
     // fuel
@@ -48,13 +48,13 @@ module.exports = {
     'Εκκαθαρίστηκε (με παρακράτηση)': 'Settled (with deduction)',
     'Απέτυχε': 'Failed',
     // depositMethod
-    'POS γραφείου': 'Office POS terminal',
+    'POS γραφείου': 'Card terminal at our office',
     'Online (Stripe)': 'Online (Stripe)',
     'Online (Revolut)': 'Online (Revolut)',
     // chargeCategory ('Καύσιμο' στο 10-pages.js)
     'Καθυστέρηση επιστροφής': 'Late return',
     'Ειδικός καθαρισμός': 'Special cleaning',
-    'Διαχείριση προστίμου / διοδίων': 'Fines / tolls administration',
+    'Διαχείριση προστίμου / διοδίων': 'Fine / toll administration',
     'Ζημιά': 'Damage',
     'Άλλη χρέωση (με αποδοχή πελάτη)': 'Other charge (subject to customer acceptance)',
     // chargeStatus
@@ -65,8 +65,8 @@ module.exports = {
     'Εξοφλήθηκε': 'Paid',
 
     // ---- src/lib/search.js: κριτήρια αναζήτησης ----
-    'Οι παραλαβές γίνονται {from} - {to}.': 'Pick-ups take place between {from} and {to}.',
-    'Οι επιστροφές γίνονται {from} - {to}.': 'Returns take place between {from} and {to}.',
+    'Οι παραλαβές γίνονται {from} - {to}.': 'Pick-ups are available between {from} and {to}.',
+    'Οι επιστροφές γίνονται {from} - {to}.': 'Returns are available between {from} and {to}.',
     'Η παραλαβή πρέπει να είναι τουλάχιστον {hours} ώρες από τώρα.': 'Pick-up must be at least {hours} hours from now.',
     'Δεχόμαστε κρατήσεις έως {days} ημέρες μπροστά.': 'We accept bookings up to {days} days in advance.',
     'Η μέγιστη διάρκεια ενοικίασης είναι {days} ημέρες.': 'The maximum rental period is {days} days.',
@@ -83,7 +83,7 @@ module.exports = {
     'Η ημερομηνία έκδοσης δεν μπορεί να είναι μεταγενέστερη της παραλαβής.': 'The issue date cannot be later than the pick-up date.',
     'Απαιτείται δίπλωμα τουλάχιστον {years} έτους.': 'A driving licence held for at least {years} year is required.',
     'Απαιτείται δίπλωμα τουλάχιστον {years} ετών.': 'A driving licence held for at least {years} years is required.',
-    'Η ημερομηνία έκδοσης είναι πριν τη γέννηση.': 'The issue date is earlier than the date of birth.',
+    'Η ημερομηνία έκδοσης είναι πριν τη γέννηση.': 'The issue date cannot be earlier than the date of birth.',
     'Συμπληρώστε ηλικία και βάρος του παιδιού, ώστε να σας δώσουμε το κατάλληλο κάθισμα.':
       'Please enter the child’s age and weight so that we can provide the right seat.',
     'Μη έγκυρος ΑΦΜ.': 'Invalid Greek VAT number (AFM).',
@@ -103,7 +103,7 @@ module.exports = {
     // ---- src/lib/deposits.js: εγγύηση και χρεώσεις ----
     'Η δέσμευση της εγγύησης γίνεται από {from} έως την επιστροφή του αυτοκινήτου.':
       'The security deposit can be held from {from} until the car is returned.',
-    'Εγγύηση ενοικίασης - δέσμευση ποσού (όχι χρέωση)': 'Rental security deposit - hold on the amount (not a charge)',
+    'Εγγύηση ενοικίασης - δέσμευση ποσού (όχι χρέωση)': 'Rental security deposit - hold only (not a charge)',
     'Η χρέωση δεν περιμένει απάντηση.': 'This charge is no longer awaiting a response.',
     'Ο πάροχος δεν επιβεβαίωσε ότι η κάρτα είναι πιστωτική — ελέγξτε την κάρτα στην παραλαβή.':
       'The payment provider did not confirm that the card is a credit card — the card must be checked at pick-up.',
@@ -129,11 +129,11 @@ module.exports = {
     'Δεν ήταν δυνατή η σύνδεση με την υπηρεσία πληρωμών. Δοκιμάστε ξανά ή επιλέξτε πληρωμή κατά την παραλαβή.':
       'We could not connect to the payment service. Please try again or choose to pay at pick-up.',
     'Η κράτησή σας επιβεβαιώθηκε! Σας στείλαμε email με όλες τις λεπτομέρειες.': 'Your booking is confirmed! We have sent you an email with all the details.',
-    'Για να δείτε την κράτηση, συμπληρώστε τον κωδικό και το email της.': 'To view the booking, please enter its booking reference and email address.',
-    'Επιβεβαιώστε ότι αποδέχεστε τη χρέωση ακύρωσης {amount}.': 'Please confirm that you accept the cancellation fee of {amount}.',
+    'Για να δείτε την κράτηση, συμπληρώστε τον κωδικό και το email της.': 'To view your booking, please enter the booking reference and email address.',
+    'Επιβεβαιώστε ότι αποδέχεστε τη χρέωση ακύρωσης {amount}.': 'Please confirm that you accept the cancellation charge of {amount}.',
     'Η κράτηση ακυρώθηκε.': 'The booking has been cancelled.',
     'Η επιστροφή {amount} στην κάρτα σας ξεκίνησε και θα εμφανιστεί σε 5-10 εργάσιμες ημέρες.':
-      'The refund of {amount} to your card has been initiated and will appear within 5-10 working days.',
+      'A refund of {amount} to your card has been initiated and will appear within 5-10 working days.',
     'Η επιστροφή {amount} καθυστερεί λόγω προσωρινού προβλήματος του παρόχου πληρωμών· θα ολοκληρωθεί αυτόματα μόλις αποκατασταθεί.':
       'The refund of {amount} is delayed due to a temporary problem with the payment provider; it will be completed automatically once the problem is resolved.',
     'Θα επικοινωνήσουμε μαζί σας για την επιστροφή {amount}.': 'We will contact you about the refund of {amount}.',
@@ -157,7 +157,7 @@ module.exports = {
     'Δεν ήταν δυνατή η σύνδεση με την υπηρεσία πληρωμών.': 'We could not connect to the payment service.',
 
     // ---- src/routes/public.js ----
-    'Μη έγκυρα στοιχεία αναζήτησης.': 'Invalid search details.',
+    'Μη έγκυρα στοιχεία αναζήτησης.': 'Invalid search criteria.',
   },
 
   es: {
@@ -186,11 +186,11 @@ module.exports = {
     'Έληξε': 'Caducada',
     // paymentMethod
     'Κάρτα (online)': 'Tarjeta (online)',
-    'Κατά την παραλαβή': 'Pago en la recogida',
+    'Κατά την παραλαβή': 'En la recogida',
     // paymentStatus
-    'Απλήρωτη': 'No pagada',
-    'Εξοφλημένη': 'Pagada',
-    'Επιστράφηκαν τα χρήματα': 'Reembolsada',
+    'Απλήρωτη': 'Pendiente',
+    'Εξοφλημένη': 'Pagado',
+    'Επιστράφηκαν τα χρήματα': 'Reembolsado',
     'Μερική επιστροφή': 'Reembolso parcial',
     // pricing
     'ανά ενοικίαση': 'por alquiler',
@@ -220,7 +220,7 @@ module.exports = {
     // ---- src/lib/search.js: κριτήρια αναζήτησης ----
     'Οι παραλαβές γίνονται {from} - {to}.': 'Las recogidas se realizan entre las {from} y las {to}.',
     'Οι επιστροφές γίνονται {from} - {to}.': 'Las devoluciones se realizan entre las {from} y las {to}.',
-    'Η παραλαβή πρέπει να είναι τουλάχιστον {hours} ώρες από τώρα.': 'La recogida debe ser como mínimo dentro de {hours} horas.',
+    'Η παραλαβή πρέπει να είναι τουλάχιστον {hours} ώρες από τώρα.': 'La recogida debe programarse con al menos {hours} horas de antelación.',
     'Δεχόμαστε κρατήσεις έως {days} ημέρες μπροστά.': 'Aceptamos reservas con hasta {days} días de antelación.',
     'Η μέγιστη διάρκεια ενοικίασης είναι {days} ημέρες.': 'La duración máxima del alquiler es de {days} días.',
 
@@ -236,7 +236,7 @@ module.exports = {
     'Η ημερομηνία έκδοσης δεν μπορεί να είναι μεταγενέστερη της παραλαβής.': 'La fecha de expedición no puede ser posterior a la de recogida.',
     'Απαιτείται δίπλωμα τουλάχιστον {years} έτους.': 'Se requiere un permiso de conducir con una antigüedad mínima de {years} año.',
     'Απαιτείται δίπλωμα τουλάχιστον {years} ετών.': 'Se requiere un permiso de conducir con una antigüedad mínima de {years} años.',
-    'Η ημερομηνία έκδοσης είναι πριν τη γέννηση.': 'La fecha de expedición es anterior a la fecha de nacimiento.',
+    'Η ημερομηνία έκδοσης είναι πριν τη γέννηση.': 'La fecha de expedición no puede ser anterior a la fecha de nacimiento.',
     'Συμπληρώστε ηλικία και βάρος του παιδιού, ώστε να σας δώσουμε το κατάλληλο κάθισμα.':
       'Indique la edad y el peso del niño para que podamos facilitarle la silla adecuada.',
     'Μη έγκυρος ΑΦΜ.': 'NIF griego (AFM) no válido.',
@@ -259,7 +259,7 @@ module.exports = {
     'Εγγύηση ενοικίασης - δέσμευση ποσού (όχι χρέωση)': 'Fianza del alquiler - bloqueo del importe (no es un cargo)',
     'Η χρέωση δεν περιμένει απάντηση.': 'Este cargo ya no está pendiente de respuesta.',
     'Ο πάροχος δεν επιβεβαίωσε ότι η κάρτα είναι πιστωτική — ελέγξτε την κάρτα στην παραλαβή.':
-      'El proveedor de pagos no ha confirmado que la tarjeta sea de crédito — la tarjeta deberá comprobarse en la recogida.',
+      'El proveedor de pagos no ha confirmado que la tarjeta sea de crédito; se comprobará en la recogida.',
     'Η δέσμευση έληξε ή ακυρώθηκε από την τράπεζα / τον πάροχο.': 'El bloqueo ha caducado o ha sido anulado por el banco / el proveedor de pagos.',
 
     // ---- src/lib/payments.js: πληρωμές, επιστροφές, ακύρωση ----
@@ -273,7 +273,7 @@ module.exports = {
     'Οι χρεώσεις θα αφαιρεθούν πρώτα από την εγγύηση. Θα σας ενημερώσουμε για τυχόν υπόλοιπο.':
       'Los cargos se descontarán primero de la fianza. Le informaremos de cualquier importe restante.',
     'Η κράτηση δεν μπορεί να ακυρωθεί σε αυτή την κατάσταση.': 'La reserva no se puede cancelar en su estado actual.',
-    'Η κράτηση άλλαξε στο μεταξύ. Ανανεώστε τη σελίδα.': 'La reserva ha cambiado mientras tanto. Actualice la página.',
+    'Η κράτηση άλλαξε στο μεταξύ. Ανανεώστε τη σελίδα.': 'La reserva se ha modificado entretanto. Actualice la página.',
 
     // ---- src/routes/booking.js ----
     'Επιλέξτε ημερομηνίες και σημεία παραλαβής/επιστροφής.': 'Elija las fechas y los lugares de recogida y devolución.',
@@ -292,7 +292,7 @@ module.exports = {
     'Θα επικοινωνήσουμε μαζί σας για την επιστροφή {amount}.': 'Nos pondremos en contacto con usted para el reembolso de {amount}.',
     'Δεν ήταν δυνατή η ακύρωση. Επικοινωνήστε μαζί μας.': 'No ha sido posible cancelar la reserva. Póngase en contacto con nosotros.',
     'Η πληρωμή δεν είναι πλέον δυνατή για αυτή την κράτηση. Κάντε νέα αναζήτηση.': 'Ya no es posible pagar esta reserva. Realice una nueva búsqueda.',
-    'Δεν ήταν δυνατή η σύνδεση με την υπηρεσία πληρωμών. Δοκιμάστε ξανά σε λίγο.': 'No ha sido posible conectar con el servicio de pagos. Inténtelo de nuevo dentro de un momento.',
+    'Δεν ήταν δυνατή η σύνδεση με την υπηρεσία πληρωμών. Δοκιμάστε ξανά σε λίγο.': 'No ha sido posible conectar con el servicio de pagos. Inténtelo de nuevo en unos instantes.',
     'Η πληρωμή ολοκληρώθηκε και η κράτησή σας επιβεβαιώθηκε! Σας στείλαμε email με τις λεπτομέρειες.':
       '¡El pago se ha completado y su reserva está confirmada! Le hemos enviado un email con los detalles.',
     'Η πληρωμή σας δεν μπορούσε να αντιστοιχιστεί στην κράτηση (π.χ. είχε ήδη πληρωθεί ή ακυρωθεί) και επιστρέφεται αυτόματα στην κάρτα σας.':
@@ -300,7 +300,7 @@ module.exports = {
     'Η πληρωμή σας επεξεργάζεται. Θα λάβετε email μόλις επιβεβαιωθεί.': 'Su pago se está procesando. Recibirá un email en cuanto se confirme.',
     'Η πληρωμή καταχωρήθηκε. Ευχαριστούμε!': 'Su pago se ha registrado. ¡Gracias!',
     'Η πληρωμή δεν ολοκληρώθηκε. Το αυτοκίνητο παραμένει δεσμευμένο για λίγα λεπτά — μπορείτε να δοκιμάσετε ξανά.':
-      'El pago no se ha completado. El coche sigue reservado durante unos minutos — puede intentarlo de nuevo.',
+      'El pago no se ha completado. El coche seguirá reservado durante unos minutos: puede intentarlo de nuevo.',
     'Επιλέξτε αποδοχή ή αμφισβήτηση.': 'Elija si acepta o impugna el cargo.',
     'Επιβεβαιώστε ότι αποδέχεστε τη χρέωση.': 'Confirme que acepta el cargo.',
     'Η αποδοχή από το γραφείο καταχωρείται από τη διαχείριση, με την περιγραφή της γραπτής συναίνεσης του πελάτη.':

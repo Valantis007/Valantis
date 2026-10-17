@@ -11,16 +11,16 @@ module.exports = {
     'Ενοικίαση αυτοκινήτου, απλά και με διαφάνεια': 'Car rental, simple and transparent',
     'Δείτε την τελική τιμή πριν κλείσετε. Χωρίς κρυφές χρεώσεις, με δωρεάν ακύρωση έως {hours} ώρες πριν την παραλαβή.':
       'See the final price before you book. No hidden charges, and free cancellation up to {hours} hours before pick-up.',
-    'Τελική τιμή από την αρχή': 'The final price from the start',
+    'Τελική τιμή από την αρχή': 'The final price, up front',
     'Η τιμή που βλέπετε περιλαμβάνει ΦΠΑ, υποχρεωτική ασφάλιση αστικής ευθύνης και βασική κάλυψη ζημιών (CDW). Χωρίς κρυφές χρεώσεις.':
       'The price you see includes VAT, compulsory third-party liability insurance and basic damage cover (CDW). No hidden charges.',
     'Δωρεάν ακύρωση': 'Free cancellation',
-    'Ακυρώστε online έως {hours} ώρες πριν και παίρνετε πίσω όλο το ποσό.': 'Cancel online up to {hours} hours in advance and get the full amount back.',
+    'Ακυρώστε online έως {hours} ώρες πριν και παίρνετε πίσω όλο το ποσό.': 'Cancel online up to {hours} hours before pick-up for a full refund.',
     'Ασφαλής πληρωμή': 'Secure payment',
     'Πληρώστε online με κάρτα μέσω {provider} ή κατά την παραλαβή του αυτοκινήτου. Καμία επιβάρυνση για τον τρόπο πληρωμής.':
-      'Pay online by card via {provider} or when you pick up the car. No surcharge for any payment method.',
-    'Πληρώστε κατά την παραλαβή του αυτοκινήτου. Καμία επιβάρυνση για τον τρόπο πληρωμής.': 'Pay when you pick up the car. No surcharge for any payment method.',
-    'Παράδοση όπου βρίσκεστε': 'Delivered where you are',
+      'Pay online by card via {provider} or when you pick up the car. No surcharge, whichever way you pay.',
+    'Πληρώστε κατά την παραλαβή του αυτοκινήτου. Καμία επιβάρυνση για τον τρόπο πληρωμής.': 'Pay when you pick up the car. No surcharge, whichever way you pay.',
+    'Παράδοση όπου βρίσκεστε': 'Delivery wherever you are',
     'Παραλαβή από γραφείο, αεροδρόμιο, λιμάνι ή παράδοση στο ξενοδοχείο σας.': 'Pick up at our office, the airport or the port, or have the car delivered to your hotel.',
     'Ο στόλος μας': 'Our fleet',
     'Όλα τα αυτοκίνητα →': 'All cars →',
@@ -50,7 +50,7 @@ module.exports = {
     'Επιλέξτε σημείο επιστροφής.': 'Please choose a return location.',
     'Επιλέξτε έγκυρη ημερομηνία και ώρα παραλαβής.': 'Please choose a valid pick-up date and time.',
     'Επιλέξτε έγκυρη ημερομηνία και ώρα επιστροφής.': 'Please choose a valid return date and time.',
-    'Η επιστροφή πρέπει να είναι μετά την παραλαβή.': 'The return must be after the pick-up.',
+    'Η επιστροφή πρέπει να είναι μετά την παραλαβή.': 'The return date and time must be after pick-up.',
 
     // ---------- views/partials/car-specs.ejs ----------
     'Θέσεις': 'Seats',
@@ -69,7 +69,7 @@ module.exports = {
     'online με κάρτα (Visa, Mastercard, Apple Pay, Google Pay) μέσω {provider}, ή κατά την παραλαβή με χρεωστική/πιστωτική κάρτα, IRIS ή μετρητά έως {cash}.':
       'online by card (Visa, Mastercard, Apple Pay, Google Pay) via {provider}, or at pick-up by debit/credit card, IRIS or cash up to {cash}.',
     'κατά την παραλαβή με χρεωστική/πιστωτική κάρτα, IRIS ή μετρητά έως {cash}.': 'at pick-up by debit/credit card, IRIS or cash up to {cash}.',
-    'Καμία επιβάρυνση για τον τρόπο πληρωμής.': 'No surcharge for any payment method.',
+    'Καμία επιβάρυνση για τον τρόπο πληρωμής.': 'No surcharge, whichever payment method you use.',
     'Εγγύηση:': 'Security deposit:',
     'μόνο πιστωτική κάρτα στο όνομα του κύριου οδηγού — χρεωστικές και προπληρωμένες κάρτες δεν γίνονται δεκτές για την εγγύηση.':
       "credit card in the main driver's name only — debit and prepaid cards are not accepted for the deposit.",
@@ -135,7 +135,7 @@ module.exports = {
       "A valid driving licence (held for at least {years} year), an ID card or passport, and a credit card in the driver's name for the security deposit. If your licence was issued outside the EU, you may need an International Driving Permit.",
     'Η τιμή που βλέπω είναι η τελική;': 'Is the price I see the final price?',
     'Ναι. Περιλαμβάνει ΦΠΑ, υποχρεωτική ασφάλιση αστικής ευθύνης, βασική κάλυψη ζημιών (CDW) με απαλλαγή, τα χιλιόμετρα που αναγράφονται σε κάθε αυτοκίνητο και τυχόν χρεώσεις σημείου παραλαβής. Επιπλέον χρεώνονται μόνο τα πρόσθετα που επιλέγετε και, μετά την επιστροφή, μόνο οι χρεώσεις του <a href="{url}">τιμοκαταλόγου</a> (π.χ. καύσιμο που λείπει).':
-      'Yes. It includes VAT, compulsory third-party liability insurance, basic damage cover (CDW) with an excess, the mileage stated for each car and any pick-up location charges. The only additional charges are the extras you choose and, after the return, only the charges in our <a href="{url}">price list</a> (e.g. missing fuel).',
+      'Yes. It includes VAT, compulsory third-party liability insurance, basic damage cover (CDW) with an excess, the mileage stated for each car and any pick-up location charges. The only additional charges are for any extras you choose and, after the return, those listed in our <a href="{url}">price list</a> (e.g. missing fuel).',
     'Πώς υπολογίζονται οι ημέρες;': 'How are rental days calculated?',
     'Ανά 24ωρο από την ώρα παραλαβής. Π.χ. παραλαβή Δευτέρα 10:00 και επιστροφή Τετάρτη 10:00 = 2 ημέρες. Έχετε περιθώριο {minutes} λεπτών χωρίς επιπλέον χρέωση.':
       'Per 24-hour period from the pick-up time. For example, pick-up on Monday at 10:00 and return on Wednesday at 10:00 = 2 days. You have a grace period of {minutes} minutes at no extra charge.',
@@ -156,7 +156,7 @@ module.exports = {
     'Ποιους τρόπους πληρωμής δέχεστε;': 'Which payment methods do you accept?',
     'Πώς υποβάλλω παράπονο;': 'How do I make a complaint?',
     'Από τη σελίδα <a href="{url}">«Παράπονα & επίλυση διαφορών»</a>. Επιβεβαιώνουμε τη λήψη εντός 2 εργάσιμων και απαντάμε αιτιολογημένα εντός 15 ημερών.':
-      'From the <a href="{url}">‘Complaints &amp; dispute resolution’</a> page. We acknowledge receipt within 2 working days and send a reasoned reply within 15 days.',
+      'Via the <a href="{url}">‘Complaints &amp; dispute resolution’</a> page. We acknowledge receipt within 2 working days and send a reasoned reply within 15 days.',
 
     // ---------- views/pages/contact.ejs ----------
     'Είμαστε στη διάθεσή σας για κάθε ερώτηση σχετικά με κρατήσεις, τιμές ή ειδικά αιτήματα.':
@@ -164,7 +164,7 @@ module.exports = {
     'Τηλέφωνο:': 'Phone:',
     'Διεύθυνση:': 'Address:',
     'Ωράριο:': 'Opening hours:',
-    'καθημερινά {from} - {to}': 'daily {from} - {to}',
+    'καθημερινά {from} - {to}': 'daily {from}–{to}',
     'Ιστοσελίδα': 'Website',
     'Ονοματεπώνυμο': 'Full name',
     'Τηλέφωνο (προαιρετικό)': 'Phone (optional)',
@@ -208,17 +208,17 @@ module.exports = {
     'Επιβεβαιώνουμε τη λήψη εντός 2 εργάσιμων ημερών και απαντάμε αιτιολογημένα εντός 15 ημερών.':
       'We acknowledge receipt within 2 working days and send a reasoned reply within 15 days.',
     'Για χρεώσεις ζημιάς μπορείτε επίσης να απαντήσετε (αποδοχή ή αμφισβήτηση) απευθείας από τη σελίδα <a href="{url}">«Η κράτησή μου»</a>.':
-      'For damage charges you can also respond (accept or dispute) directly from the <a href="{url}">‘My booking’</a> page.',
+      'For damage charges, you can also respond (accept or dispute) directly on the <a href="{url}">‘My booking’</a> page.',
     'Εξωδικαστική επίλυση': 'Out-of-court dispute resolution',
     'Αν δεν βρεθεί λύση, μπορείτε να απευθυνθείτε στον <strong>Συνήγορο του Καταναλωτή</strong> (www.synigoroskatanaloti.gr), φορέα Εναλλακτικής Επίλυσης Διαφορών.':
       'If no solution is found, you may refer the matter to the <strong>Greek Consumer Ombudsman</strong> (www.synigoroskatanaloti.gr), an Alternative Dispute Resolution body.',
-    'Η εταιρεία δεσμεύεται να συμμετέχει στη διαδικασία.': 'The company is committed to taking part in the procedure.',
-    'Η εταιρεία εξετάζει κατά περίπτωση τη συμμετοχή της στη διαδικασία.': 'The company decides on a case-by-case basis whether to take part in the procedure.',
+    'Η εταιρεία δεσμεύεται να συμμετέχει στη διαδικασία.': 'The company undertakes to take part in this procedure.',
+    'Η εταιρεία εξετάζει κατά περίπτωση τη συμμετοχή της στη διαδικασία.': 'The company decides on a case-by-case basis whether to take part in this procedure.',
     'Καταναλωτές από άλλα κράτη της ΕΕ μπορούν να ζητήσουν συνδρομή από το Ευρωπαϊκό Κέντρο Καταναλωτή Ελλάδας (www.eccgreece.gr).':
       'Consumers from other EU countries can seek assistance from the European Consumer Centre Greece (www.eccgreece.gr).',
 
     // ---------- views/pages/manage.ejs ----------
-    'Διαχείριση κράτησης': 'Manage booking',
+    'Διαχείριση κράτησης': 'Manage your booking',
     'Συμπληρώστε τον κωδικό κράτησης (θα τον βρείτε στο email επιβεβαίωσης) και το email που δηλώσατε.':
       'Enter your booking reference (you will find it in the confirmation email) and the email address you gave us.',
     'Κωδικός κράτησης': 'Booking reference',
@@ -239,7 +239,7 @@ module.exports = {
     'Μετά την επιστροφή του αυτοκινήτου το ποσό <strong>αποδεσμεύεται χωρίς καθυστέρηση</strong>. Η τράπεζά σας μπορεί να χρειαστεί λίγες ημέρες για να το εμφανίσει ως διαθέσιμο.':
       'Once the car has been returned, the amount is <strong>released without delay</strong>. Your bank may take a few days to show it as available.',
     'Από την εγγύηση μπορεί να αφαιρεθούν <strong>μόνο</strong> οι χρεώσεις του <a href="{url}" target="_blank">τιμοκαταλόγου</a>, με αναλυτικό email για καθεμία: καύσιμο που λείπει ({fuel}/λίτρο + {refuel}), καθυστέρηση επιστροφής (μίσθωμα ημέρας), ειδικός καθαρισμός (έως {cleaning}), διαχείριση προστίμου ({fines} ανά πρόστιμο), χαμένο κλειδί ({key}).':
-      "<strong>Only</strong> the charges in our <a href=\"{url}\" target=\"_blank\">price list</a> may be deducted from the deposit, with an itemised email for each one: missing fuel ({fuel}/litre + {refuel}), late return (one day's rental), special cleaning (up to {cleaning}), handling of a fine ({fines} per fine), lost key ({key}).",
+      "<strong>Only</strong> the charges in our <a href=\"{url}\" target=\"_blank\">price list</a> may be deducted from the deposit, with an itemised email for each one: missing fuel ({fuel}/litre + {refuel}), late return (one day's rental), special cleaning (up to {cleaning}), administration fee for fines ({fines} per fine), lost key ({key}).",
     'Χρέωση για <strong>ζημιά</strong> ή οποιαδήποτε άλλη χρέωση γίνεται μόνο με τη συναίνεσή σας, και για ζημιά έως την απαλλαγή σας ({excess}), εκτός από τις εξαιρέσεις των όρων (§7). Θα λάβετε τεκμηρίωση και θα μπορείτε να την αμφισβητήσετε.':
       'A charge for <strong>damage</strong>, or any other charge, is made only with your consent and, for damage, up to your excess ({excess}), except for the exclusions set out in the terms (§7). You will receive supporting evidence and will be able to dispute it.',
     'Η έγκριση της εγγύησης γίνεται από <strong>{from}</strong> έως την επιστροφή του αυτοκινήτου.':
@@ -253,15 +253,15 @@ module.exports = {
       'The security deposit of <strong>{amount}</strong> has been successfully held on card •••• {last4}. Thank you!',
     'Η εγγύηση <strong>{amount}</strong> δεσμεύτηκε επιτυχώς. Ευχαριστούμε!': 'The security deposit of <strong>{amount}</strong> has been successfully held. Thank you!',
     'Θα αποδεσμευτεί μετά την επιστροφή του αυτοκινήτου. Μπορείτε να δείτε την κράτησή σας από τη σελίδα <a href="{url}">«Η κράτησή μου»</a>.':
-      'It will be released after the car is returned. You can view your booking from the <a href="{url}">‘My booking’</a> page.',
+      'It will be released after the car is returned. You can view your booking on the <a href="{url}">‘My booking’</a> page.',
     'Η εγγύηση έχει κλείσει: {status} — παρακράτηση {amount}.': 'The security deposit has been closed: {status} — {amount} retained.',
     'Η εγγύηση έχει κλείσει: {status}.': 'The security deposit has been closed: {status}.',
     'Αυτός ο σύνδεσμος δεν ισχύει πλέον. Επικοινωνήστε μαζί μας για νέο σύνδεσμο.': 'This link is no longer valid. Please contact us for a new link.',
     // Μηνύματα από src/routes/public.js και src/lib/deposits.js που εμφανίζει η σελίδα
-    'Για να συνεχίσετε πρέπει να συμφωνήσετε με τη δέσμευση του ποσού.': 'To continue, you must agree to the hold on the amount.',
+    'Για να συνεχίσετε πρέπει να συμφωνήσετε με τη δέσμευση του ποσού.': 'To continue, you must agree to the amount being held.',
     'Δεν ήταν δυνατή η σύνδεση με την υπηρεσία πληρωμών. Δοκιμάστε ξανά.': 'We could not connect to the payment service. Please try again.',
-    'Η έγκριση επεξεργάζεται. Ανανεώστε τη σελίδα σε λίγο.': 'Your authorisation is being processed. Please refresh the page shortly.',
-    'Ο σύνδεσμος δεν είναι έγκυρος.': 'The link is not valid.',
+    'Η έγκριση επεξεργάζεται. Ανανεώστε τη σελίδα σε λίγο.': 'Your authorisation is being processed. Please refresh the page in a moment.',
+    'Ο σύνδεσμος δεν είναι έγκυρος.': 'This link is not valid.',
     'Η εγγύηση αυτή δεν περιμένει πλέον έγκριση.': 'This security deposit is no longer awaiting authorisation.',
     'Οι online πληρωμές δεν είναι διαθέσιμες αυτή τη στιγμή.': 'Online payments are not available at the moment.',
     'Η κάρτα που χρησιμοποιήθηκε δεν είναι πιστωτική. Η δέσμευση ακυρώθηκε — δοκιμάστε με πιστωτική κάρτα.':
@@ -280,16 +280,16 @@ module.exports = {
     'Ενοικίαση αυτοκινήτου, απλά και με διαφάνεια': 'Alquiler de coches, sencillo y transparente',
     'Δείτε την τελική τιμή πριν κλείσετε. Χωρίς κρυφές χρεώσεις, με δωρεάν ακύρωση έως {hours} ώρες πριν την παραλαβή.':
       'Vea el precio final antes de reservar. Sin cargos ocultos y con cancelación gratuita hasta {hours} horas antes de la recogida.',
-    'Τελική τιμή από την αρχή': 'El precio final desde el principio',
+    'Τελική τιμή από την αρχή': 'Precio final desde el primer momento',
     'Η τιμή που βλέπετε περιλαμβάνει ΦΠΑ, υποχρεωτική ασφάλιση αστικής ευθύνης και βασική κάλυψη ζημιών (CDW). Χωρίς κρυφές χρεώσεις.':
       'El precio que ve incluye el IVA, el seguro obligatorio de responsabilidad civil y la cobertura básica de daños (CDW). Sin cargos ocultos.',
     'Δωρεάν ακύρωση': 'Cancelación gratuita',
-    'Ακυρώστε online έως {hours} ώρες πριν και παίρνετε πίσω όλο το ποσό.': 'Cancele online hasta {hours} horas antes y recupere el importe íntegro.',
+    'Ακυρώστε online έως {hours} ώρες πριν και παίρνετε πίσω όλο το ποσό.': 'Cancele online hasta {hours} horas antes de la recogida y recupere el importe íntegro.',
     'Ασφαλής πληρωμή': 'Pago seguro',
     'Πληρώστε online με κάρτα μέσω {provider} ή κατά την παραλαβή του αυτοκινήτου. Καμία επιβάρυνση για τον τρόπο πληρωμής.':
       'Pague online con tarjeta a través de {provider} o al recoger el coche. Sin recargo por el método de pago.',
     'Πληρώστε κατά την παραλαβή του αυτοκινήτου. Καμία επιβάρυνση για τον τρόπο πληρωμής.': 'Pague al recoger el coche. Sin recargo por el método de pago.',
-    'Παράδοση όπου βρίσκεστε': 'Entrega donde usted esté',
+    'Παράδοση όπου βρίσκεστε': 'Entrega allí donde esté',
     'Παραλαβή από γραφείο, αεροδρόμιο, λιμάνι ή παράδοση στο ξενοδοχείο σας.': 'Recogida en nuestra oficina, el aeropuerto o el puerto, o entrega en su hotel.',
     'Ο στόλος μας': 'Nuestra flota',
     'Όλα τα αυτοκίνητα →': 'Todos los coches →',
@@ -302,13 +302,13 @@ module.exports = {
     '<strong>Κράτηση</strong><span>Συμπληρώστε τα στοιχεία οδηγού και λάβετε άμεσα επιβεβαίωση με email.</span>':
       '<strong>Reserve</strong><span>Introduzca los datos del conductor y reciba al instante la confirmación por email.</span>',
     '<strong>Παραλαβή</strong><span>Φέρτε δίπλωμα, ταυτότητα/διαβατήριο και πιστωτική κάρτα για την εγγύηση.</span>':
-      '<strong>Recoja</strong><span>Traiga su permiso de conducir, documento de identidad o pasaporte y una tarjeta de crédito para la fianza.</span>',
+      '<strong>Recoja</strong><span>Traiga su permiso de conducir, su documento de identidad o pasaporte y una tarjeta de crédito para la fianza.</span>',
 
     // ---------- views/partials/search-form.ejs ----------
     'Σημείο παραλαβής': 'Lugar de recogida',
     'Επιλέξτε...': 'Seleccione...',
     'Σημείο επιστροφής': 'Lugar de devolución',
-    'Ίδιο με παραλαβή': 'El mismo que la recogida',
+    'Ίδιο με παραλαβή': 'El mismo que el de recogida',
     'Παραλαβή': 'Recogida',
     'Ώρα παραλαβής': 'Hora de recogida',
     'Επιστροφή': 'Devolución',
@@ -362,14 +362,14 @@ module.exports = {
     '<strong>{count}</strong> διαθέσιμα αυτοκίνητα': '<strong>{count}</strong> coches disponibles',
     'για <strong>{days} ημέρα</strong>': 'para <strong>{days} día</strong>',
     'για <strong>{days} ημέρες</strong>': 'para <strong>{days} días</strong>',
-    '{n} δεν είναι διαθέσιμα': '{n} sin disponibilidad',
+    '{n} δεν είναι διαθέσιμα': '{n} no disponibles',
     'Επιλέξτε σημείο και ημερομηνίες για να δείτε διαθεσιμότητα και τελικές τιμές.': 'Elija un lugar y unas fechas para ver la disponibilidad y los precios finales.',
     'Δεν βρέθηκαν διαθέσιμα αυτοκίνητα': 'No hay coches disponibles',
     'Δοκιμάστε διαφορετικές ημερομηνίες ή αφαιρέστε κάποιο φίλτρο.': 'Pruebe con otras fechas o quite algún filtro.',
     'Ελάχιστη ηλικία οδηγού {age}': 'Edad mínima del conductor: {age}',
     'Απεριόριστα χιλιόμετρα': 'Kilometraje ilimitado',
-    'Απαλλαγή {amount}': 'Franquicia {amount}',
-    'Εγγύηση {amount} (πιστωτική κάρτα)': 'Fianza {amount} (tarjeta de crédito)',
+    'Απαλλαγή {amount}': 'Franquicia de {amount}',
+    'Εγγύηση {amount} (πιστωτική κάρτα)': 'Fianza de {amount} (tarjeta de crédito)',
     'σύνολο για {n} ημέρα': 'total por {n} día',
     'σύνολο για {n} ημέρες': 'total por {n} días',
     '{price} / ημέρα': '{price} / día',
@@ -384,14 +384,14 @@ module.exports = {
     'Περιλαμβάνονται στην τιμή': 'Incluido en el precio',
     'Υποχρεωτική ασφάλιση αστικής ευθύνης (έναντι τρίτων)': 'Seguro obligatorio de responsabilidad civil (frente a terceros)',
     'Βασική κάλυψη ζημιών (CDW) — απαλλαγή {amount} (0 € με την Πλήρη Απαλλαγή FDW)':
-      'Cobertura básica de daños (CDW) — franquicia de {amount} (0 € con la Exención total por daños, FDW)',
+      'Cobertura básica de daños (CDW): franquicia de {amount} (0 € con la Exención total por daños, FDW)',
     'Οδική βοήθεια 24/7': 'Asistencia en carretera 24/7',
     'ΦΠΑ {vat}%': 'IVA del {vat}%',
     'Απαιτήσεις': 'Requisitos',
     'Ελάχιστη ηλικία οδηγού: {age} ετών': 'Edad mínima del conductor: {age} años',
     'Δίπλωμα οδήγησης τουλάχιστον {years} έτους': 'Permiso de conducir con una antigüedad mínima de {years} año',
     'Εγγύηση {amount}: δέσμευση (όχι χρέωση) σε <strong>πιστωτική</strong> κάρτα στο όνομα του κύριου οδηγού — όχι χρεωστική ή προπληρωμένη':
-      'Fianza de {amount}: bloqueo (no cargo) en una tarjeta de <strong>crédito</strong> a nombre del conductor principal — no se admiten tarjetas de débito ni prepago',
+      'Fianza de {amount}: bloqueo (no cargo) en una tarjeta de <strong>crédito</strong> a nombre del conductor principal; no se admiten tarjetas de débito ni prepago',
     'Τιμή & διαθεσιμότητα': 'Precio y disponibilidad',
     'Έλεγχος διαθεσιμότητας': 'Comprobar disponibilidad',
     'Το αυτοκίνητο δεν είναι διαθέσιμο για αυτές τις ημερομηνίες. <a href="{url}">Δείτε διαθέσιμα αυτοκίνητα</a>.':
@@ -404,13 +404,13 @@ module.exports = {
       'Un permiso de conducir en vigor (con una antigüedad mínima de {years} año), documento de identidad o pasaporte y una tarjeta de crédito a nombre del conductor para la fianza. Para permisos expedidos fuera de la UE puede ser necesario un Permiso Internacional de Conducción.',
     'Η τιμή που βλέπω είναι η τελική;': '¿El precio que veo es el precio final?',
     'Ναι. Περιλαμβάνει ΦΠΑ, υποχρεωτική ασφάλιση αστικής ευθύνης, βασική κάλυψη ζημιών (CDW) με απαλλαγή, τα χιλιόμετρα που αναγράφονται σε κάθε αυτοκίνητο και τυχόν χρεώσεις σημείου παραλαβής. Επιπλέον χρεώνονται μόνο τα πρόσθετα που επιλέγετε και, μετά την επιστροφή, μόνο οι χρεώσεις του <a href="{url}">τιμοκαταλόγου</a> (π.χ. καύσιμο που λείπει).':
-      'Sí. Incluye el IVA, el seguro obligatorio de responsabilidad civil, la cobertura básica de daños (CDW) con franquicia, el kilometraje indicado en cada coche y los posibles cargos del lugar de recogida. Aparte solo se cobran los extras que elija y, tras la devolución, únicamente los cargos de nuestras <a href="{url}">tarifas</a> (p. ej., el combustible que falte).',
+      'Sí. Incluye el IVA, el seguro obligatorio de responsabilidad civil, la cobertura básica de daños (CDW) con franquicia, el kilometraje indicado en cada coche y los posibles cargos por el lugar de recogida. Solo se cobran aparte los extras que elija y, tras la devolución, únicamente los cargos de nuestras <a href="{url}">tarifas</a> (p. ej., el combustible que falte).',
     'Πώς υπολογίζονται οι ημέρες;': '¿Cómo se calculan los días?',
     'Ανά 24ωρο από την ώρα παραλαβής. Π.χ. παραλαβή Δευτέρα 10:00 και επιστροφή Τετάρτη 10:00 = 2 ημέρες. Έχετε περιθώριο {minutes} λεπτών χωρίς επιπλέον χρέωση.':
       'Por períodos de 24 horas desde la hora de recogida. Por ejemplo, recogida el lunes a las 10:00 y devolución el miércoles a las 10:00 = 2 días. Dispone de un margen de {minutes} minutos sin cargo adicional.',
     'Μπορώ να ακυρώσω την κράτηση;': '¿Puedo cancelar la reserva?',
     'Ναι, δωρεάν έως {hours} ώρες πριν την παραλαβή, από τη σελίδα <a href="{url}">«Η κράτησή μου»</a>· αν πληρώσατε με κάρτα, το ποσό επιστρέφεται αυτόματα. Μετά το όριο αυτό (ή σε μη εμφάνιση) παρακρατείται η χρέωση ακύρωσης που αναγράφεται στην κράτησή σας. Δεν υφίσταται δικαίωμα υπαναχώρησης 14 ημερών, επειδή η ενοικίαση αφορά συγκεκριμένες ημερομηνίες.':
-      'Sí, de forma gratuita hasta {hours} horas antes de la recogida, desde la página <a href="{url}">«Mi reserva»</a>; si pagó con tarjeta, el importe se reembolsa automáticamente. Pasado ese plazo (o si no se presenta), se retiene el cargo de cancelación indicado en su reserva. No existe derecho de desistimiento de 14 días, ya que el alquiler corresponde a fechas concretas.',
+      'Sí, de forma gratuita hasta {hours} horas antes de la recogida, desde la página <a href="{url}">«Mi reserva»</a>; si pagó con tarjeta, el importe se reembolsa automáticamente. Pasado ese plazo (o si no se presenta), se retiene el cargo de cancelación indicado en su reserva. No existe derecho de desistimiento de 14 días, ya que se trata de un alquiler para fechas concretas.',
     'Τι είναι η εγγύηση;': '¿Qué es la fianza?',
     'Ένα ποσό που δεσμεύεται (δεν χρεώνεται) σε <strong>πιστωτική</strong> κάρτα στο όνομα του κύριου οδηγού (όχι χρεωστική ή προπληρωμένη), στο γραφείο ή online πριν την παραλαβή. Αποδεσμεύεται μετά την επιστροφή· ο χρόνος εμφάνισης του ποσού εξαρτάται από την τράπεζά σας. Από την εγγύηση αφαιρούνται μόνο οι χρεώσεις του τιμοκαταλόγου και, για ζημιά, μόνο με τη συναίνεσή σας. Με την «Πλήρη Απαλλαγή (FDW)» η συμμετοχή σας σε ζημιές μηδενίζεται· το ποσό της εγγύησης δεν αλλάζει.':
       'Un importe que se bloquea (no se cobra) en una tarjeta de <strong>crédito</strong> a nombre del conductor principal (no de débito ni prepago), en la oficina u online antes de la recogida. Se libera tras la devolución; el tiempo que tarda el importe en volver a aparecer como disponible depende de su banco. De la fianza solo se descuentan los cargos de las tarifas y, en caso de daños, solo con su consentimiento. Con la «Exención total por daños (FDW)» su franquicia por daños pasa a ser cero; el importe de la fianza no cambia.',
@@ -433,7 +433,7 @@ module.exports = {
     'Τηλέφωνο:': 'Teléfono:',
     'Διεύθυνση:': 'Dirección:',
     'Ωράριο:': 'Horario:',
-    'καθημερινά {from} - {to}': 'todos los días, {from} - {to}',
+    'καθημερινά {from} - {to}': 'todos los días, de {from} a {to}',
     'Ιστοσελίδα': 'Sitio web',
     'Ονοματεπώνυμο': 'Nombre y apellidos',
     'Τηλέφωνο (προαιρετικό)': 'Teléfono (opcional)',
@@ -480,7 +480,7 @@ module.exports = {
       'En el caso de cargos por daños, también puede responder (aceptarlos o impugnarlos) directamente desde la página <a href="{url}">«Mi reserva»</a>.',
     'Εξωδικαστική επίλυση': 'Resolución extrajudicial de conflictos',
     'Αν δεν βρεθεί λύση, μπορείτε να απευθυνθείτε στον <strong>Συνήγορο του Καταναλωτή</strong> (www.synigoroskatanaloti.gr), φορέα Εναλλακτικής Επίλυσης Διαφορών.':
-      'Si no se encuentra una solución, puede dirigirse al <strong>Defensor del Consumidor de Grecia</strong> (www.synigoroskatanaloti.gr), entidad de resolución alternativa de litigios.',
+      'Si no se alcanza una solución, puede dirigirse al <strong>Defensor del Consumidor de Grecia</strong> (www.synigoroskatanaloti.gr), entidad de resolución alternativa de litigios.',
     'Η εταιρεία δεσμεύεται να συμμετέχει στη διαδικασία.': 'La empresa se compromete a participar en el procedimiento.',
     'Η εταιρεία εξετάζει κατά περίπτωση τη συμμετοχή της στη διαδικασία.': 'La empresa decide en cada caso si participa en el procedimiento.',
     'Καταναλωτές από άλλα κράτη της ΕΕ μπορούν να ζητήσουν συνδρομή από το Ευρωπαϊκό Κέντρο Καταναλωτή Ελλάδας (www.eccgreece.gr).':
@@ -522,18 +522,18 @@ module.exports = {
     'Η εγγύηση <strong>{amount}</strong> δεσμεύτηκε επιτυχώς. Ευχαριστούμε!': 'La fianza de <strong>{amount}</strong> se ha bloqueado correctamente. ¡Gracias!',
     'Θα αποδεσμευτεί μετά την επιστροφή του αυτοκινήτου. Μπορείτε να δείτε την κράτησή σας από τη σελίδα <a href="{url}">«Η κράτησή μου»</a>.':
       'Se liberará tras la devolución del coche. Puede consultar su reserva desde la página <a href="{url}">«Mi reserva»</a>.',
-    'Η εγγύηση έχει κλείσει: {status} — παρακράτηση {amount}.': 'La fianza se ha cerrado: {status} — importe retenido: {amount}.',
-    'Η εγγύηση έχει κλείσει: {status}.': 'La fianza se ha cerrado: {status}.',
+    'Η εγγύηση έχει κλείσει: {status} — παρακράτηση {amount}.': 'La fianza está cerrada: {status}. Importe retenido: {amount}.',
+    'Η εγγύηση έχει κλείσει: {status}.': 'La fianza está cerrada: {status}.',
     'Αυτός ο σύνδεσμος δεν ισχύει πλέον. Επικοινωνήστε μαζί μας για νέο σύνδεσμο.': 'Este enlace ya no es válido. Póngase en contacto con nosotros para obtener uno nuevo.',
     // Μηνύματα από src/routes/public.js και src/lib/deposits.js που εμφανίζει η σελίδα
     'Για να συνεχίσετε πρέπει να συμφωνήσετε με τη δέσμευση του ποσού.': 'Para continuar, debe aceptar el bloqueo del importe.',
     'Δεν ήταν δυνατή η σύνδεση με την υπηρεσία πληρωμών. Δοκιμάστε ξανά.': 'No ha sido posible conectar con el servicio de pagos. Inténtelo de nuevo.',
-    'Η έγκριση επεξεργάζεται. Ανανεώστε τη σελίδα σε λίγο.': 'La autorización se está procesando. Actualice la página dentro de un momento.',
+    'Η έγκριση επεξεργάζεται. Ανανεώστε τη σελίδα σε λίγο.': 'La autorización se está procesando. Actualice la página en unos instantes.',
     'Ο σύνδεσμος δεν είναι έγκυρος.': 'El enlace no es válido.',
     'Η εγγύηση αυτή δεν περιμένει πλέον έγκριση.': 'Esta fianza ya no está pendiente de autorización.',
     'Οι online πληρωμές δεν είναι διαθέσιμες αυτή τη στιγμή.': 'Los pagos online no están disponibles en este momento.',
     'Η κάρτα που χρησιμοποιήθηκε δεν είναι πιστωτική. Η δέσμευση ακυρώθηκε — δοκιμάστε με πιστωτική κάρτα.':
-      'La tarjeta utilizada no es de crédito. El bloqueo se ha anulado — inténtelo de nuevo con una tarjeta de crédito.',
+      'La tarjeta utilizada no es de crédito. El bloqueo se ha anulado. Inténtelo de nuevo con una tarjeta de crédito.',
 
     // ---------- views/pages/error.ejs (και τίτλοι σελίδων από τις routes) ----------
     'Αρχική σελίδα': 'Página de inicio',

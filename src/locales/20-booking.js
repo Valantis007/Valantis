@@ -20,7 +20,7 @@ module.exports = {
     // --- _precontract.ejs (προσυμβατική ενημέρωση) ---
     'Σημαντικές πληροφορίες πριν την κράτηση': 'Important information before you book',
     '<strong>Αυτοκίνητο:</strong> {car} ή παρόμοιο της κατηγορίας «{category}». Εγγυόμαστε την κατηγορία, όχι το μοντέλο· αν δεν είναι διαθέσιμη, σας δίνουμε ανώτερη κατηγορία χωρίς χρέωση ή σας επιστρέφουμε όλο το ποσό.':
-      '<strong>Car:</strong> {car} or similar in the ‘{category}’ category. We guarantee the category, not the model; if it is not available, we will give you a higher category at no extra charge or refund the full amount.',
+      '<strong>Car:</strong> {car} or similar in the ‘{category}’ category. We guarantee the category, not the model; if it is not available, we will upgrade you to a higher category at no extra charge or refund the full amount.',
     '<strong>Περιλαμβάνονται:</strong> υποχρεωτική ασφάλιση αστικής ευθύνης έναντι τρίτων, βασική κάλυψη ζημιών του οχήματος (CDW) με απαλλαγή <strong data-q="excessText">{excess}</strong>, {mileage}, ΦΠΑ {vat}%.':
       '<strong>Included:</strong> compulsory third-party liability insurance, basic cover for damage to the vehicle (CDW) with an excess of <strong data-q="excessText">{excess}</strong>, {mileage}, {vat}% VAT.',
     'Απεριόριστα χιλιόμετρα': 'Unlimited mileage',
@@ -28,7 +28,7 @@ module.exports = {
     '<strong>Εγγύηση {amount}:</strong> δέσμευση (όχι χρέωση) σε πιστωτική κάρτα στο όνομα του κύριου οδηγού, στο γραφείο κατά την παραλαβή ή online (ο σύνδεσμος ενεργοποιείται {hours} ώρες πριν την παραλαβή). Χρεωστικές, προπληρωμένες κάρτες και μετρητά δεν γίνονται δεκτά για την εγγύηση. Αποδεσμεύεται μετά την επιστροφή· ο χρόνος εμφάνισης του ποσού εξαρτάται από την τράπεζά σας. Από την εγγύηση αφαιρούνται μόνο οι χρεώσεις του <a href="{url}" target="_blank">τιμοκαταλόγου</a> και, για ζημιά, μόνο με τη συναίνεσή σας και έως την απαλλαγή (εκτός από τις εξαιρέσεις των όρων §7).':
       '<strong>Security deposit of {amount}:</strong> a hold (not a charge) on a credit card in the main driver’s name, made at the office at pick-up or online (the link becomes active {hours} hours before pick-up). Debit cards, prepaid cards and cash are not accepted for the deposit. It is released after the car is returned; how long it takes for the amount to become available again depends on your bank. Only charges from the <a href="{url}" target="_blank">price list</a> are deducted from the deposit and, for damage, only with your consent and up to the excess (except for the exclusions in §7 of the terms).',
     '<strong>Καύσιμο:</strong> παραλαβή και επιστροφή με την ίδια στάθμη· αν λείπει: {perLitre}/λίτρο + {fee} τέλος ανεφοδιασμού.':
-      '<strong>Fuel:</strong> pick up and return the car with the same fuel level; if fuel is missing: {perLitre}/litre + {fee} refuelling fee.',
+      '<strong>Fuel:</strong> return the car with the same fuel level as at pick-up; any missing fuel is charged at {perLitre}/litre plus a {fee} refuelling fee.',
     '<strong>Πλοίο ή εξωτερικό:</strong> μόνο με προηγούμενη γραπτή άδειά μας (<a href="{url}" target="_blank">όροι §6</a>).':
       '<strong>Ferries or travel abroad:</strong> only with our prior written permission (<a href="{url}" target="_blank">terms §6</a>).',
     '<strong>Δεν υφίσταται δικαίωμα υπαναχώρησης 14 ημερών</strong>, επειδή πρόκειται για ενοικίαση αυτοκινήτου για συγκεκριμένες ημερομηνίες (άρθρο 3ιβ ν. 2251/1994). Ισχύει η πολιτική ακύρωσης: <strong>δωρεάν έως {hours} ώρες πριν την παραλαβή</strong>· μετά, ή σε μη εμφάνιση, παρακρατείται {fee} από ό,τι έχετε προπληρώσει (αν πληρώνετε στην παραλαβή, δεν οφείλεται χρέωση).':
@@ -63,7 +63,7 @@ module.exports = {
     'Προσθήκη': 'Add',
     'Στοιχεία κύριου οδηγού': 'Main driver details',
     'Έχετε λογαριασμό; <a href="{url}">Συνδεθείτε</a> για να συμπληρωθούν αυτόματα τα στοιχεία σας.':
-      'Have an account? <a href="{url}">Log in</a> to fill in your details automatically.',
+      'Have an account? <a href="{url}">Log in</a> to have your details filled in automatically.',
     'Όνομα *': 'First name *',
     'Επώνυμο *': 'Surname *',
     'Κινητό τηλέφωνο *': 'Mobile phone *',
@@ -82,7 +82,7 @@ module.exports = {
     'Ηλικία και βάρος παιδιού/παιδιών (για παιδικό κάθισμα)': 'Age and weight of the child/children (for the child seat)',
     'π.χ. 3 ετών, 15 κιλά': 'e.g. 3 years old, 15 kg',
     'Υποχρεωτικό αν επιλέξετε παιδικό κάθισμα, ώστε να σας δώσουμε την κατάλληλη κλάση (ECE R44/R129).':
-      'Required if you choose a child seat, so that we can provide the right size class (ECE R44/R129).',
+      'Required if you choose a child seat, so that we can provide the right type of seat (ECE R44/R129).',
     'Χρειάζομαι τιμολόγιο (επαγγελματίες)': 'I need an invoice (business customers)',
     'Θέλω τιμολόγιο αντί για απόδειξη': 'I would like an invoice instead of a receipt',
     'Επωνυμία': 'Company name',
@@ -104,7 +104,7 @@ module.exports = {
     // Υποχρεωτική διατύπωση του κουμπιού παραγγελίας (ν. 2251/1994, οδηγία 2011/83/ΕΕ άρθ. 8 παρ. 2).
     'Κράτηση με υποχρέωση πληρωμής': 'Book with obligation to pay',
     'Θα μεταφερθείτε στην ασφαλή σελίδα πληρωμής ({provider}). Η κράτηση ολοκληρώνεται με την επιτυχή πληρωμή.':
-      'You will be taken to the secure payment page ({provider}). Your booking is completed once the payment is successful.',
+      'You will be taken to the secure payment page ({provider}). Your booking is complete once payment has been made successfully.',
     'Η πληρωμή γίνεται κατά την παραλαβή.': 'Payment is made at pick-up.',
     'Δεν υφίσταται δικαίωμα υπαναχώρησης 14 ημερών. Δωρεάν ακύρωση έως {hours} ώρες πριν την παραλαβή.':
       'There is no 14-day right of withdrawal. Free cancellation up to {hours} hours before pick-up.',
@@ -112,11 +112,11 @@ module.exports = {
     // --- show.ejs (σελίδα κράτησης) ---
     'Κράτηση <span class="ref">{ref}</span>': 'Booking <span class="ref">{ref}</span>',
     'Εκτύπωση': 'Print',
-    'Η κράτηση δεν έχει ολοκληρωθεί — εκκρεμεί η πληρωμή.': 'The booking is not complete — payment is pending.',
+    'Η κράτηση δεν έχει ολοκληρωθεί — εκκρεμεί η πληρωμή.': 'Your booking is not yet complete — payment is pending.',
     'Το αυτοκίνητο είναι δεσμευμένο για εσάς έως τις <strong>{time}</strong>.': 'The car is reserved for you until <strong>{time}</strong>.',
     'Πληρωμή {amount}': 'Pay {amount}',
     'Η κράτηση έληξε επειδή δεν ολοκληρώθηκε η πληρωμή. <a href="{url}">Κάντε νέα αναζήτηση</a>.':
-      'The booking has expired because the payment was not completed. <a href="{url}">Start a new search</a>.',
+      'This booking has expired because payment was not completed. <a href="{url}">Start a new search</a>.',
     'Η κράτησή σας είναι επιβεβαιωμένη. Σας περιμένουμε στις <strong>{date}</strong> στο σημείο «{location}».':
       'Your booking is confirmed. We look forward to seeing you on <strong>{date}</strong> at ‘{location}’.',
     'Επιστροφή {amount} στην κάρτα σας είναι σε εξέλιξη.': 'A refund of {amount} to your card is in progress.',
@@ -148,7 +148,7 @@ module.exports = {
     'Μπορείτε να ακυρώσετε δωρεάν.': 'You can cancel free of charge.',
     'Το ποσό που πληρώσατε επιστρέφεται αυτόματα στην κάρτα σας.': 'The amount you paid will be refunded to your card automatically.',
     'Θα επικοινωνήσουμε μαζί σας για την επιστροφή του ποσού που πληρώσατε.': 'We will contact you to refund the amount you paid.',
-    'Σίγουρα θέλετε να ακυρώσετε την κράτηση;': 'Are you sure you want to cancel the booking?',
+    'Σίγουρα θέλετε να ακυρώσετε την κράτηση;': 'Are you sure you want to cancel this booking?',
     'Αποδέχομαι τη χρέωση ακύρωσης {fee}.': 'I accept the cancellation charge of {fee}.',
     'Ακύρωση κράτησης': 'Cancel booking',
 
@@ -159,14 +159,14 @@ module.exports = {
     '<strong>Εγγύηση {amount}:</strong> δέσμευση (όχι χρέωση) σε πιστωτική κάρτα στο όνομα του κύριου οδηγού, κατά την παραλαβή ή online. Αποδεσμεύεται μετά την επιστροφή.':
       '<strong>Security deposit of {amount}:</strong> a hold (not a charge) on a credit card in the main driver’s name, at pick-up or online. It is released after the car is returned.',
     '<strong>Απαλλαγή ζημιών:</strong> {excess} (μέγιστη συμμετοχή σας σε ζημιές, εκτός από τις εξαιρέσεις των όρων §7).':
-      '<strong>Damage excess:</strong> {excess} (the maximum you contribute towards damage, except for the exclusions in §7 of the terms).',
+      '<strong>Damage excess:</strong> {excess} (the maximum you pay towards damage, except for the exclusions in §7 of the terms).',
     '<strong>Ακύρωση:</strong> δεν υφίσταται δικαίωμα υπαναχώρησης 14 ημερών (ενοικίαση για συγκεκριμένες ημερομηνίες). Δωρεάν ακύρωση έως {hours} ώρες πριν την παραλαβή· μετά, ή σε μη εμφάνιση, παρακρατείται {fee} από ό,τι έχετε προπληρώσει (αν πληρώνετε στην παραλαβή, δεν οφείλεται χρέωση).':
       '<strong>Cancellation:</strong> there is no 14-day right of withdrawal (rental for specific dates). Free cancellation up to {hours} hours before pick-up; after that, or in the event of a no-show, {fee} is retained from any amount you have prepaid (if you pay at pick-up, no charge is due).',
     '<strong>Ακύρωση:</strong> δεν υφίσταται δικαίωμα υπαναχώρησης 14 ημερών (ενοικίαση για συγκεκριμένες ημερομηνίες). Δωρεάν ακύρωση έως {hours} ώρες πριν την παραλαβή.':
       '<strong>Cancellation:</strong> there is no 14-day right of withdrawal (rental for specific dates). Free cancellation up to {hours} hours before pick-up.',
     'Όροι ενοικίασης έκδοση {version}: {url}': 'Rental terms, version {version}: {url}',
     'Το έγγραφο αυτό δεν αποτελεί φορολογικό παραστατικό. Η απόδειξη/τιμολόγιο εκδίδεται κατά την πληρωμή.':
-      'This document is not a tax receipt. The receipt/invoice is issued upon payment.',
+      'This document is not a receipt or invoice for tax purposes. The receipt/invoice is issued on payment.',
   },
   es: {
     // --- _quote.ejs (ανάλυση τιμής στη φόρμα κράτησης) ---
@@ -178,7 +178,7 @@ module.exports = {
     'Πρόσθετα': 'Extras',
     'Σύνολο': 'Total',
     'Περιλαμβάνεται ΦΠΑ': 'IVA incluido',
-    'Απαλλαγή (συμμετοχή σε ζημιές)': 'Franquicia (su participación en los daños)',
+    'Απαλλαγή (συμμετοχή σε ζημιές)': 'Franquicia (importe a su cargo en caso de daños)',
     'Εγγύηση (δέσμευση σε πιστωτική κάρτα — όχι χρέωση)': 'Fianza (bloqueo en tarjeta de crédito, no es un cargo)',
 
     // --- _precontract.ejs (προσυμβατική ενημέρωση) ---
@@ -190,9 +190,9 @@ module.exports = {
     'Απεριόριστα χιλιόμετρα': 'Kilometraje ilimitado',
     'Οδική βοήθεια 24/7.': 'Asistencia en carretera 24/7.',
     '<strong>Εγγύηση {amount}:</strong> δέσμευση (όχι χρέωση) σε πιστωτική κάρτα στο όνομα του κύριου οδηγού, στο γραφείο κατά την παραλαβή ή online (ο σύνδεσμος ενεργοποιείται {hours} ώρες πριν την παραλαβή). Χρεωστικές, προπληρωμένες κάρτες και μετρητά δεν γίνονται δεκτά για την εγγύηση. Αποδεσμεύεται μετά την επιστροφή· ο χρόνος εμφάνισης του ποσού εξαρτάται από την τράπεζά σας. Από την εγγύηση αφαιρούνται μόνο οι χρεώσεις του <a href="{url}" target="_blank">τιμοκαταλόγου</a> και, για ζημιά, μόνο με τη συναίνεσή σας και έως την απαλλαγή (εκτός από τις εξαιρέσεις των όρων §7).':
-      '<strong>Fianza de {amount}:</strong> bloqueo (no cargo) en una tarjeta de crédito a nombre del conductor principal, en la oficina en el momento de la recogida u online (el enlace se activa {hours} horas antes de la recogida). No se aceptan tarjetas de débito, tarjetas prepago ni efectivo para la fianza. Se libera tras la devolución; el plazo en que el importe vuelve a estar disponible depende de su banco. De la fianza solo se descuentan los cargos de las <a href="{url}" target="_blank">tarifas</a> y, en caso de daños, solo con su consentimiento y hasta el importe de la franquicia (salvo las excepciones del §7 de las condiciones).',
+      '<strong>Fianza de {amount}:</strong> bloqueo (no cargo) en una tarjeta de crédito a nombre del conductor principal, en la oficina en el momento de la recogida u online (el enlace se activa {hours} horas antes de la recogida). No se aceptan tarjetas de débito, tarjetas prepago ni efectivo para la fianza. Se libera tras la devolución; el plazo en que el importe vuelve a estar disponible depende de su banco. De la fianza solo se descuentan los cargos de las <a href="{url}" target="_blank">tarifas</a> y, en caso de daños, solo con su consentimiento y hasta el importe de la franquicia (salvo las exclusiones del §7 de las condiciones).',
     '<strong>Καύσιμο:</strong> παραλαβή και επιστροφή με την ίδια στάθμη· αν λείπει: {perLitre}/λίτρο + {fee} τέλος ανεφοδιασμού.':
-      '<strong>Combustible:</strong> recogida y devolución con el mismo nivel; si falta combustible: {perLitre}/litro + {fee} de cargo por repostaje.',
+      '<strong>Combustible:</strong> recogida y devolución con el mismo nivel; si falta combustible, {perLitre}/litro + un cargo por repostaje de {fee}.',
     '<strong>Πλοίο ή εξωτερικό:</strong> μόνο με προηγούμενη γραπτή άδειά μας (<a href="{url}" target="_blank">όροι §6</a>).':
       '<strong>Ferry o extranjero:</strong> solo con nuestra autorización previa por escrito (<a href="{url}" target="_blank">condiciones §6</a>).',
     '<strong>Δεν υφίσταται δικαίωμα υπαναχώρησης 14 ημερών</strong>, επειδή πρόκειται για ενοικίαση αυτοκινήτου για συγκεκριμένες ημερομηνίες (άρθρο 3ιβ ν. 2251/1994). Ισχύει η πολιτική ακύρωσης: <strong>δωρεάν έως {hours} ώρες πριν την παραλαβή</strong>· μετά, ή σε μη εμφάνιση, παρακρατείται {fee} από ό,τι έχετε προπληρώσει (αν πληρώνετε στην παραλαβή, δεν οφείλεται χρέωση).':
@@ -283,15 +283,15 @@ module.exports = {
       'La reserva ha caducado porque no se completó el pago. <a href="{url}">Haga una nueva búsqueda</a>.',
     'Η κράτησή σας είναι επιβεβαιωμένη. Σας περιμένουμε στις <strong>{date}</strong> στο σημείο «{location}».':
       'Su reserva está confirmada. Le esperamos el <strong>{date}</strong> en «{location}».',
-    'Επιστροφή {amount} στην κάρτα σας είναι σε εξέλιξη.': 'Hay en curso un reembolso de {amount} a su tarjeta.',
+    'Επιστροφή {amount} στην κάρτα σας είναι σε εξέλιξη.': 'Se está tramitando el reembolso de {amount} a su tarjeta.',
     'Εγγύηση': 'Fianza',
     'κάρτα •••• {last4}': 'tarjeta •••• {last4}',
     'Παρακρατήθηκαν {captured}, αποδεσμεύτηκαν {released}.': 'Retenido: {captured}; liberado: {released}.',
     'Χρεώσεις μετά την επιστροφή': 'Cargos tras la devolución',
     'Ποσό': 'Importe',
     'Κατάσταση': 'Estado',
-    'Τεκμηρίωση': 'Justificación',
-    'εξοφλήθηκαν {amount}': 'abonado: {amount}',
+    'Τεκμηρίωση': 'Documentación',
+    'εξοφλήθηκαν {amount}': 'pagado: {amount}',
     'Παρακαλούμε απαντήστε έως <strong>{date}</strong>. Αν διαφωνείτε, πατήστε «Αμφισβήτηση» και περιγράψτε τον λόγο — θα επικοινωνήσουμε μαζί σας.':
       'Le rogamos que responda a más tardar el <strong>{date}</strong>. Si no está de acuerdo, pulse «Impugnar» y explique el motivo; nos pondremos en contacto con usted.',
     'Αποδέχεστε τη χρέωση {amount};': '¿Acepta el cargo de {amount}?',
@@ -323,7 +323,7 @@ module.exports = {
     '<strong>Εγγύηση {amount}:</strong> δέσμευση (όχι χρέωση) σε πιστωτική κάρτα στο όνομα του κύριου οδηγού, κατά την παραλαβή ή online. Αποδεσμεύεται μετά την επιστροφή.':
       '<strong>Fianza de {amount}:</strong> bloqueo (no cargo) en una tarjeta de crédito a nombre del conductor principal, en la recogida u online. Se libera tras la devolución.',
     '<strong>Απαλλαγή ζημιών:</strong> {excess} (μέγιστη συμμετοχή σας σε ζημιές, εκτός από τις εξαιρέσεις των όρων §7).':
-      '<strong>Franquicia por daños:</strong> {excess} (su participación máxima en los daños, salvo las excepciones del §7 de las condiciones).',
+      '<strong>Franquicia por daños:</strong> {excess} (importe máximo a su cargo por daños, salvo las exclusiones del §7 de las condiciones).',
     '<strong>Ακύρωση:</strong> δεν υφίσταται δικαίωμα υπαναχώρησης 14 ημερών (ενοικίαση για συγκεκριμένες ημερομηνίες). Δωρεάν ακύρωση έως {hours} ώρες πριν την παραλαβή· μετά, ή σε μη εμφάνιση, παρακρατείται {fee} από ό,τι έχετε προπληρώσει (αν πληρώνετε στην παραλαβή, δεν οφείλεται χρέωση).':
       '<strong>Cancelación:</strong> no existe derecho de desistimiento de 14 días (alquiler para fechas concretas). Cancelación gratuita hasta {hours} horas antes de la recogida; después, o en caso de no presentarse, se retienen {fee} de lo que haya pagado por adelantado (si paga en la recogida, no se le cobrará nada).',
     '<strong>Ακύρωση:</strong> δεν υφίσταται δικαίωμα υπαναχώρησης 14 ημερών (ενοικίαση για συγκεκριμένες ημερομηνίες). Δωρεάν ακύρωση έως {hours} ώρες πριν την παραλαβή.':

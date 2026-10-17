@@ -10,13 +10,13 @@ module.exports = {
   en: {
     // ---------- Θέματα emails (msg(...) στο src/lib/*.js και src/routes/*.js) ----------
     'Επιβεβαίωση κράτησης {ref}': 'Booking confirmation {ref}',
-    'Ακύρωση κράτησης {ref}': 'Cancellation of booking {ref}',
+    'Ακύρωση κράτησης {ref}': 'Booking cancellation {ref}',
     'Επιστροφή πληρωμής - κράτηση {ref}': 'Payment refund - booking {ref}',
     'Εγγύηση για την κράτηση {ref}': 'Security deposit for booking {ref}',
     'Δέσμευση εγγύησης - κράτηση {ref}': 'Security deposit hold - booking {ref}',
     'Εγγύηση κράτησης {ref}: εκκαθάριση': 'Security deposit for booking {ref}: settlement',
     'Εγγύηση κράτησης {ref}: αποδέσμευση': 'Security deposit for booking {ref}: release',
-    'Χρέωση για αποδοχή - κράτηση {ref}': 'Charge for your approval - booking {ref}',
+    'Χρέωση για αποδοχή - κράτηση {ref}': 'Charge awaiting your approval - booking {ref}',
     'Χρέωση μετά την επιστροφή - κράτηση {ref}': 'Charge after return - booking {ref}',
     'Καλώς ήρθατε στην {company}': 'Welcome to {company}',
     'Επαναφορά κωδικού πρόσβασης': 'Password reset',
@@ -52,7 +52,7 @@ module.exports = {
 
     // ---------- emails/booking-confirmed.ejs ----------
     'Σας ευχαριστούμε! Η κράτησή σας <strong>επιβεβαιώθηκε</strong>.': 'Thank you! Your booking is <strong>confirmed</strong>.',
-    'Τι να έχετε μαζί σας στην παραλαβή:': 'What to bring at pick-up:',
+    'Τι να έχετε μαζί σας στην παραλαβή:': 'What to bring when you pick up the car:',
     'Δίπλωμα οδήγησης (και Διεθνή Άδεια για διπλώματα εκτός ΕΕ)': 'Driving licence (plus an International Driving Permit for licences issued outside the EU)',
     'Ταυτότητα ή διαβατήριο': 'ID card or passport',
     'Πιστωτική κάρτα στο όνομα του οδηγού για την εγγύηση': 'A credit card in the driver’s name for the security deposit',
@@ -80,7 +80,7 @@ module.exports = {
     'Η κράτηση <strong>{ref}</strong> ({car}, {pickup}) <strong>ακυρώθηκε</strong>.': 'Booking <strong>{ref}</strong> ({car}, {pickup}) has been <strong>cancelled</strong>.',
     'Αιτία: {reason}': 'Reason: {reason}',
     'Η επιστροφή <strong>{amount}</strong> στην κάρτα σας ξεκίνησε. Το ποσό θα εμφανιστεί στον λογαριασμό σας σε 5-10 εργάσιμες ημέρες.':
-      'A refund of <strong>{amount}</strong> to your card has been initiated. The amount will appear in your account within 5-10 working days.',
+      'A refund of <strong>{amount}</strong> to your card has been initiated. The amount will appear on your statement within 5-10 working days.',
     'Θα επικοινωνήσουμε μαζί σας για την επιστροφή <strong>{amount}</strong> που είχατε πληρώσει.':
       'We will contact you about refunding the <strong>{amount}</strong> you paid.',
     'Αν δεν ζητήσατε εσείς την ακύρωση ή έχετε απορίες, επικοινωνήστε μαζί μας.':
@@ -92,7 +92,7 @@ module.exports = {
 
     // ---------- emails/payment-returned.ejs ----------
     'Λάβαμε πληρωμή <strong>{amount}</strong> για την κράτηση <strong>{ref}</strong>, την οποία δεν μπορέσαμε να αντιστοιχίσουμε:':
-      'We received a payment of <strong>{amount}</strong> for booking <strong>{ref}</strong> that we were unable to match to it:',
+      'We received a payment of <strong>{amount}</strong> for booking <strong>{ref}</strong>, but we were unable to apply it to the booking:',
     'Το ποσό <strong>επιστρέφεται αυτόματα</strong> στην κάρτα σας και θα εμφανιστεί σε 5-10 εργάσιμες ημέρες. Δεν χρειάζεται καμία ενέργεια από εσάς. Για απορίες επικοινωνήστε μαζί μας.':
       'The amount is being <strong>refunded automatically</strong> to your card and will appear within 5-10 working days. You do not need to do anything. If you have any questions, please contact us.',
     // Αιτίες (src/lib/payments.js)
@@ -123,7 +123,7 @@ module.exports = {
     'Παρακράτηση από την εγγύηση': 'Retained from the deposit',
     'Αποδεσμεύτηκαν': 'Released',
     'Η εγγύηση <strong>{amount}</strong> για την κράτηση <strong>{ref}</strong> <strong>αποδεσμεύτηκε πλήρως</strong>, χωρίς καμία χρέωση.':
-      'The security deposit of <strong>{amount}</strong> for booking <strong>{ref}</strong> has been <strong>released in full</strong>, with no charges.',
+      'The security deposit of <strong>{amount}</strong> for booking <strong>{ref}</strong> has been <strong>released in full</strong>, with no deductions.',
     'Η τράπεζά σας μπορεί να χρειαστεί λίγες εργάσιμες ημέρες για να εμφανίσει το ποσό ως διαθέσιμο.':
       'Your bank may take a few working days to show the amount as available.',
     'Παραμένει υπόλοιπο <strong>{amount}</strong> από αποδεκτές χρεώσεις. Μπορείτε να το εξοφλήσετε από τη σελίδα <a href="{url}">{url}</a>.':
@@ -152,11 +152,11 @@ module.exports = {
 
     // ---------- emails/charge-notice.ejs ----------
     'Κατά τον έλεγχο του αυτοκινήτου μετά την επιστροφή (κράτηση <strong>{ref}</strong>) καταγράψαμε την παρακάτω χρέωση, που χρειάζεται την αποδοχή σας:':
-      'When inspecting the car after its return (booking <strong>{ref}</strong>), we recorded the charge below, which requires your acceptance:',
+      'During our inspection of the car after its return (booking <strong>{ref}</strong>), we recorded the charge below, which requires your acceptance:',
     'Απάντηση έως': 'Reply by',
     'Η ευθύνη σας για ζημιές περιορίζεται στην απαλλαγή της κράτησής σας ({amount}), εκτός από τις εξαιρέσεις των όρων ενοικίασης (§7).':
-      'Your liability for damage is limited to the excess of your booking ({amount}), except for the exclusions in the rental terms (§7).',
-    'Καμία τέτοια χρέωση δεν γίνεται χωρίς τη συναίνεσή σας.': 'No such charge is made without your consent.',
+      'Your liability for damage is limited to the excess on your booking ({amount}), except for the exclusions in the rental terms (§7).',
+    'Καμία τέτοια χρέωση δεν γίνεται χωρίς τη συναίνεσή σας.': 'No such charge will be made without your consent.',
     'Μπορείτε να την αποδεχθείτε ή να την αμφισβητήσετε (με τα σχόλιά σας) από τη σελίδα της κράτησης:':
       'You can accept or dispute it (with your comments) on your booking page:',
     '<a href="{url}">{url}</a> (κωδικός <strong>{ref}</strong> και το email σας).':
@@ -196,7 +196,7 @@ module.exports = {
       'With an account, you can see all your bookings and make your next one more quickly.',
     'Όνομα': 'First name',
     'Επώνυμο': 'Surname',
-    'Κινητό (προαιρετικό)': 'Mobile (optional)',
+    'Κινητό (προαιρετικό)': 'Mobile number (optional)',
     'Τουλάχιστον 10 χαρακτήρες, με γράμματα και αριθμούς.': 'At least 10 characters, including letters and numbers.',
     'Επιβεβαίωση κωδικού': 'Confirm password',
     'Τα στοιχεία σας χρησιμοποιούνται για τον λογαριασμό και τις κρατήσεις σας, όπως περιγράφει η <a href="{url}" target="_blank">πολιτική απορρήτου</a>. Μπορείτε να τα κατεβάσετε ή να διαγράψετε τον λογαριασμό οποτεδήποτε.':
@@ -215,7 +215,7 @@ module.exports = {
     // ---------- auth/reset.ejs ----------
     'Νέος κωδικός': 'New password',
     'Ο σύνδεσμος δεν είναι έγκυρος ή έχει λήξει. <a href="{url}">Ζητήστε νέο σύνδεσμο</a>.':
-      'The link is invalid or has expired. <a href="{url}">Request a new link</a>.',
+      'This link is invalid or has expired. <a href="{url}">Request a new link</a>.',
     'Επιβεβαίωση': 'Confirm password',
     'Αποθήκευση': 'Save',
 
@@ -232,7 +232,7 @@ module.exports = {
     'Τρέχων κωδικός': 'Current password',
     'Τα δεδομένα μου': 'My data',
     'Κατεβάστε όλα τα δεδομένα του λογαριασμού και των κρατήσεών σας (αρχείο JSON).':
-      'Download all the data from your account and your bookings (JSON file).',
+      'Download all the data held in your account and bookings (JSON file).',
     'Λήψη δεδομένων': 'Download data',
     'Διαγραφή λογαριασμού': 'Delete account',
     'Ο λογαριασμός θα διαγραφεί οριστικά. Συνέχεια;': 'Your account will be permanently deleted. Continue?',
@@ -273,7 +273,7 @@ module.exports = {
     'Εγγύηση κράτησης {ref}: αποδέσμευση': 'Fianza de la reserva {ref}: liberación',
     'Χρέωση για αποδοχή - κράτηση {ref}': 'Cargo pendiente de su aceptación - reserva {ref}',
     'Χρέωση μετά την επιστροφή - κράτηση {ref}': 'Cargo tras la devolución - reserva {ref}',
-    'Καλώς ήρθατε στην {company}': 'Bienvenido/a a {company}',
+    'Καλώς ήρθατε στην {company}': 'Le damos la bienvenida a {company}',
     'Επαναφορά κωδικού πρόσβασης': 'Restablecimiento de la contraseña',
     'Λάβαμε το μήνυμά σας: {subject}': 'Hemos recibido su mensaje: {subject}',
 
@@ -296,7 +296,7 @@ module.exports = {
     'Σύνολο': 'Total',
     '<strong>{total}</strong> (περιλαμβάνεται ΦΠΑ {vat}%: {vatAmount})': '<strong>{total}</strong> (IVA del {vat}% incluido: {vatAmount})',
     'Πληρώθηκαν': 'Pagado',
-    '(επιστράφηκαν {amount})': '(reembolso de {amount})',
+    '(επιστράφηκαν {amount})': '(reembolsado: {amount})',
     'Πληρωτέο': 'Importe a pagar',
     '{amount} κατά την παραλαβή': '{amount} en la recogida',
     'Απαλλαγή ζημιών': 'Franquicia por daños',
@@ -347,15 +347,15 @@ module.exports = {
 
     // ---------- emails/payment-returned.ejs ----------
     'Λάβαμε πληρωμή <strong>{amount}</strong> για την κράτηση <strong>{ref}</strong>, την οποία δεν μπορέσαμε να αντιστοιχίσουμε:':
-      'Hemos recibido un pago de <strong>{amount}</strong> para la reserva <strong>{ref}</strong> que no hemos podido asignar a la reserva:',
+      'Hemos recibido un pago de <strong>{amount}</strong> para la reserva <strong>{ref}</strong>, pero no hemos podido asignarlo por el siguiente motivo:',
     'Το ποσό <strong>επιστρέφεται αυτόματα</strong> στην κάρτα σας και θα εμφανιστεί σε 5-10 εργάσιμες ημέρες. Δεν χρειάζεται καμία ενέργεια από εσάς. Για απορίες επικοινωνήστε μαζί μας.':
-      'El importe <strong>se le reembolsa automáticamente</strong> en su tarjeta y aparecerá en un plazo de 5 a 10 días hábiles. No tiene que hacer nada. Si tiene alguna pregunta, póngase en contacto con nosotros.',
+      'El importe <strong>se le reembolsará automáticamente</strong> en su tarjeta y aparecerá en un plazo de 5 a 10 días hábiles. No tiene que hacer nada. Si tiene alguna pregunta, póngase en contacto con nosotros.',
     // Αιτίες (src/lib/payments.js)
     'Το ποσό της πληρωμής δεν αντιστοιχεί στην κράτηση': 'El importe del pago no corresponde al de la reserva',
     'Η κράτηση είχε ήδη πληρωθεί (διπλή πληρωμή)': 'La reserva ya estaba pagada (pago duplicado)',
     'Η κράτηση είχε ήδη ακυρωθεί': 'La reserva ya estaba cancelada',
     'Η πληρωμή ολοκληρώθηκε αφού έληξε η προσωρινή δέσμευση και το αυτοκίνητο δεν ήταν πλέον διαθέσιμο':
-      'El pago se completó cuando ya había caducado la reserva provisional del coche, que ya no estaba disponible',
+      'El pago se completó después de que caducara la reserva provisional, y el coche ya no estaba disponible',
 
     // ---------- emails/deposit-link.ejs ----------
     'Για την παραλαβή του αυτοκινήτου (κράτηση <strong>{ref}</strong>, {pickup}) απαιτείται εγγύηση <strong>{amount}</strong>.':
@@ -382,7 +382,7 @@ module.exports = {
     'Η τράπεζά σας μπορεί να χρειαστεί λίγες εργάσιμες ημέρες για να εμφανίσει το ποσό ως διαθέσιμο.':
       'Su banco puede tardar unos días hábiles en mostrar el importe como disponible.',
     'Παραμένει υπόλοιπο <strong>{amount}</strong> από αποδεκτές χρεώσεις. Μπορείτε να το εξοφλήσετε από τη σελίδα <a href="{url}">{url}</a>.':
-      'Queda un saldo pendiente de <strong>{amount}</strong> por cargos aceptados. Puede abonarlo en la página <a href="{url}">{url}</a>.',
+      'Queda un saldo pendiente de <strong>{amount}</strong> por cargos aceptados. Puede pagarlo desde la página <a href="{url}">{url}</a>.',
     'Εκκρεμεί η απάντησή σας για {count} χρέωση/εις ζημιάς, την οποία μπορείτε να αποδεχθείτε ή να αμφισβητήσετε από τη σελίδα της κράτησης.':
       'Seguimos a la espera de su respuesta sobre {count} cargo(s) por daños, que puede aceptar o impugnar desde la página de la reserva.',
     'Για απορίες ή αντιρρήσεις επικοινωνήστε μαζί μας.': 'Si tiene alguna pregunta u objeción, póngase en contacto con nosotros.',
@@ -394,7 +394,7 @@ module.exports = {
       'Tras la devolución del coche (reserva <strong>{ref}</strong>), se ha registrado el siguiente cargo, conforme a las tarifas de las condiciones de alquiler que usted aceptó:',
     'Κατηγορία': 'Categoría',
     'Περιγραφή': 'Descripción',
-    'Τεκμηρίωση': 'Justificación',
+    'Τεκμηρίωση': 'Documentación',
     'Ποσό': 'Importe',
     'Συναίνεση': 'Consentimiento',
     'Γραπτή συναίνεση πελάτη: {note}': 'Consentimiento por escrito del cliente: {note}',
@@ -406,11 +406,11 @@ module.exports = {
 
     // ---------- emails/charge-notice.ejs ----------
     'Κατά τον έλεγχο του αυτοκινήτου μετά την επιστροφή (κράτηση <strong>{ref}</strong>) καταγράψαμε την παρακάτω χρέωση, που χρειάζεται την αποδοχή σας:':
-      'Durante la revisión del coche tras su devolución (reserva <strong>{ref}</strong>), registramos el siguiente cargo, que requiere su aceptación:',
+      'Durante la revisión del coche tras su devolución (reserva <strong>{ref}</strong>), hemos registrado el siguiente cargo, que requiere su aceptación:',
     'Απάντηση έως': 'Plazo de respuesta',
     'Η ευθύνη σας για ζημιές περιορίζεται στην απαλλαγή της κράτησής σας ({amount}), εκτός από τις εξαιρέσεις των όρων ενοικίασης (§7).':
-      'Su responsabilidad por daños se limita a la franquicia de su reserva ({amount}), salvo las excepciones de las condiciones de alquiler (§7).',
-    'Καμία τέτοια χρέωση δεν γίνεται χωρίς τη συναίνεσή σας.': 'No se realiza ningún cargo de este tipo sin su consentimiento.',
+      'Su responsabilidad por daños se limita a la franquicia de su reserva ({amount}), salvo las exclusiones previstas en las condiciones de alquiler (§7).',
+    'Καμία τέτοια χρέωση δεν γίνεται χωρίς τη συναίνεσή σας.': 'No se realizará ningún cargo de este tipo sin su consentimiento.',
     'Μπορείτε να την αποδεχθείτε ή να την αμφισβητήσετε (με τα σχόλιά σας) από τη σελίδα της κράτησης:':
       'Puede aceptarlo o impugnarlo (con sus comentarios) desde la página de la reserva:',
     '<a href="{url}">{url}</a> (κωδικός <strong>{ref}</strong> και το email σας).': '<a href="{url}">{url}</a> (código <strong>{ref}</strong> y su email).',
@@ -419,7 +419,7 @@ module.exports = {
 
     // ---------- emails/welcome.ejs ----------
     'Καλώς ήρθατε στην {company}! Ο λογαριασμός σας δημιουργήθηκε με το email <strong>{email}</strong>.':
-      '¡Bienvenido/a a {company}! Su cuenta se ha creado con el email <strong>{email}</strong>.',
+      '¡Le damos la bienvenida a {company}! Su cuenta se ha creado con el email <strong>{email}</strong>.',
     'Βρείτε το αυτοκίνητο για το επόμενο ταξίδι σας': 'Encuentre el coche para su próximo viaje',
 
     // ---------- emails/password-reset.ejs ----------
@@ -434,7 +434,7 @@ module.exports = {
     'Θα σας απαντήσουμε αιτιολογημένα εντός 15 ημερών.': 'Le enviaremos una respuesta motivada en un plazo de 15 días.',
     'Θα σας απαντήσουμε το συντομότερο.': 'Le responderemos lo antes posible.',
     'Αν δεν βρεθεί λύση, μπορείτε να απευθυνθείτε στον Συνήγορο του Καταναλωτή (www.synigoroskatanaloti.gr).':
-      'Si no se encuentra una solución, puede dirigirse al Defensor del Consumidor de Grecia (www.synigoroskatanaloti.gr).',
+      'Si no se alcanza una solución, puede dirigirse al Defensor del Consumidor de Grecia (www.synigoroskatanaloti.gr).',
 
     // ---------- auth/login.ejs ----------
     'Κωδικός': 'Contraseña',
@@ -446,7 +446,7 @@ module.exports = {
     // ---------- auth/register.ejs ----------
     'Δημιουργία λογαριασμού': 'Crear una cuenta',
     'Με λογαριασμό βλέπετε όλες τις κρατήσεις σας και κλείνετε πιο γρήγορα την επόμενη.':
-      'Con una cuenta puede ver todas sus reservas y hacer la siguiente más rápido.',
+      'Con una cuenta puede ver todas sus reservas y hacer la próxima con mayor rapidez.',
     'Όνομα': 'Nombre',
     'Επώνυμο': 'Apellidos',
     'Κινητό (προαιρετικό)': 'Móvil (opcional)',
@@ -510,9 +510,9 @@ module.exports = {
     'Ο λογαριασμός σας δημιουργήθηκε.': 'Su cuenta se ha creado.',
     'Ο κωδικός σας άλλαξε.': 'Su contraseña se ha cambiado.',
     'Τα στοιχεία σας ενημερώθηκαν.': 'Sus datos se han actualizado.',
-    'Ο λογαριασμός διαχειριστή δεν μπορεί να διαγραφεί από εδώ.': 'Una cuenta de administrador no puede eliminarse desde aquí.',
+    'Ο λογαριασμός διαχειριστή δεν μπορεί να διαγραφεί από εδώ.': 'Las cuentas de administrador no pueden eliminarse desde aquí.',
     'Ο κωδικός είναι λάθος. Ο λογαριασμός δεν διαγράφηκε.': 'La contraseña es incorrecta. La cuenta no se ha eliminado.',
     'Έχετε ενεργή κράτηση, εγγύηση ή εκκρεμή χρέωση. Ο λογαριασμός μπορεί να διαγραφεί μόλις ολοκληρωθούν (ή ακυρώστε πρώτα την κράτηση).':
-      'Tiene una reserva o una fianza activa o un cargo pendiente. Podrá eliminar la cuenta cuando se hayan completado (o cancele antes la reserva).',
+      'Tiene una reserva activa, una fianza activa o un cargo pendiente. Podrá eliminar la cuenta cuando hayan finalizado (o bien cancele primero la reserva).',
   },
 };
