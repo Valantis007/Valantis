@@ -88,6 +88,13 @@ for (const locale of ['en', 'es']) {
     const bad = await h.post(agent, p('/booking'), { ...h.searchParams(), ...h.driver({ ...LATIN_DRIVER, email: 'not-an-email', birth_date: '2010-01-01', terms: '' }) }, p(`/booking/new?${search}`));
     assert.equal(bad.status, 422);
     assertNoGreek(bad.text, `${p('/booking')} (σφάλματα)`);
+    // Η επιλογή γλώσσας μετά το POST οδηγεί στη φόρμα (που ανοίγει με GET), όχι στο /booking.
+    assert.match(bad.text, /<a href="\/es\/booking\/new\?car_id=1&amp;[^"]*" hreflang="es"/);
+    assert.match(bad.text, /<a href="\/booking\/new\?car_id=1&amp;[^"]*" hreflang="el"/);
+    // Φόρμα που έληξε (CSRF)
+    const expired = await h.agent(app).post(p('/contact')).type('form').send({ name: 'x', _csrf: 'invalid' });
+    assert.equal(expired.status, 403);
+    assertNoGreek(expired.text, `${p('/contact')} (CSRF)`);
     // Κράτηση
     const ok = await h.post(agent, p('/booking'), { ...h.searchParams(), ...h.driver(LATIN_DRIVER) }, p(`/booking/new?${search}`));
     assert.equal(ok.status, 303);
@@ -111,8 +118,13 @@ for (const locale of ['en', 'es']) {
     const acc = h.agent(app);
     const reg = await h.post(acc, p('/register'), { first_name: 'Ann', last_name: 'Lee', email: 'ann@example.com', password: 'Password123', password_confirm: 'Password123' }, p('/register'));
     assert.equal(reg.status, 303);
+    // Κράτηση από τον λογαριασμό: εμφανίζεται στη λίστα, με το σημείο παραλαβής στη γλώσσα.
+    const own = h.searchParams({ car: 2 });
+    const mine = await h.post(acc, p('/booking'), { ...own, ...h.driver({ ...LATIN_DRIVER, email: 'ann@example.com' }) }, p(`/booking/new?${new URLSearchParams(own)}`));
+    assert.equal(mine.status, 303);
     const account = await acc.get(p('/account'));
     assert.equal(account.status, 200);
+    assert.ok(account.text.includes(h.bookingRef(mine)), 'η κράτηση εμφανίζεται στον λογαριασμό');
     assertNoGreek(account.text, p('/account'));
   });
 
@@ -166,6 +178,9 @@ for (const locale of ['en', 'es']) {
       const html = await mailer.render(template, data, locale);
       assertNoGreek(html, `email ${template}`);
     }
+    // Χρέωση ζημιάς με γραπτή συναίνεση: η συναίνεση αποθηκεύεται στα ελληνικά, εμφανίζεται μεταφρασμένη.
+    const consented = { ...charge, status: 'accepted', consent: 'Γραπτή συναίνεση πελάτη: damage report 12, signed' };
+    assertNoGreek(await mailer.render('charge-added', { ...data, charge: consented }, locale), 'email charge-added (συναίνεση)');
     // Το θέμα του email επιβεβαίωσης και τα συνημμένα (μετάφραση + ελληνικό πρωτότυπο).
     await h.mailer.flush();
     const mail = h.mailer.outbox.find((m) => m.to === 'john@example.com');
