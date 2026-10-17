@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 160" role="img" aria-label="family">
+  <ellipse cx="160" cy="132" rx="138" ry="7" fill="#dfe4eb"/>
+  <path d="M22 114 V94 Q24 84 42 80 L92 74 L120 52 Q128 46 142 46 L266 46 Q278 46 283 58 L292 80 Q298 86 298 98 V114 Z" fill="#b7c2cf"/>
+  <path d="M126 56 Q132 52 142 52 L172 52 L172 74 L104 74 Z M180 52 L226 52 L226 74 L180 74 Z M234 52 L266 52 Q274 52 277 60 L283 74 L234 74 Z" fill="#e9edf2"/>
+  <circle cx="84" cy="114" r="20" fill="#4a5a6e"/><circle cx="84" cy="114" r="9" fill="#c9d2dc"/>
+  <circle cx="244" cy="114" r="20" fill="#4a5a6e"/><circle cx="244" cy="114" r="9" fill="#c9d2dc"/>
+</svg>

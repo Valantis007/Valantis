@@ -1,0 +1,18 @@
+<%- include('_top') %>
+<p><%= t('Αγαπητέ/ή {name},', { name: booking.first_name }) %></p>
+<p><%- th('Σας ευχαριστούμε! Η κράτησή σας <strong>επιβεβαιώθηκε</strong>.') %></p>
+<%- include('_booking-table', { booking, extras }) %>
+<p><strong><%= t('Τι να έχετε μαζί σας στην παραλαβή:') %></strong></p>
+<ul>
+  <li><%= t('Δίπλωμα οδήγησης (και Διεθνή Άδεια για διπλώματα εκτός ΕΕ)') %></li>
+  <li><%= t('Ταυτότητα ή διαβατήριο') %></li>
+  <li><%= t('Πιστωτική κάρτα στο όνομα του οδηγού για την εγγύηση') %></li>
+</ul>
+<p><strong><%= t('Ακύρωση:') %></strong> <%= t('Δεν υφίσταται δικαίωμα υπαναχώρησης 14 ημερών (ενοικίαση για συγκεκριμένες ημερομηνίες).') %> <% if (booking.late_cancel_fee_cents) { %><%= t('Δωρεάν ακύρωση έως {hours} ώρες πριν την παραλαβή· μετά, ή σε μη εμφάνιση, παρακρατείται {fee} από ό,τι έχετε προπληρώσει (αν πληρώνετε στην παραλαβή, δεν οφείλεται χρέωση).', { hours: config.rules.freeCancellationHours, fee: format.money(booking.late_cancel_fee_cents) }) %><% } else { %><%= t('Δωρεάν ακύρωση έως {hours} ώρες πριν την παραλαβή.', { hours: config.rules.freeCancellationHours }) %><% } %>
+<%- th('Για να δείτε ή να ακυρώσετε την κράτηση: <a href="{url}">{url}</a> με τον κωδικό <strong>{ref}</strong> και το email σας.', { url: `${baseUrl}/manage`, ref: booking.reference }) %></p>
+<p><%- th('<strong>Εγγύηση:</strong> δεσμεύεται στο γραφείο μας κατά την παραλαβή με πιστωτική κάρτα στο όνομα του κύριου οδηγού, ή online αν σας στείλουμε σύνδεσμο (ενεργοποιείται {hours} ώρες πριν την παραλαβή).', { hours: config.deposits.linkOpensHoursBeforePickup }) %></p>
+<% const complaintContacts = [company.email, company.phone].filter(Boolean).join(' · '); %>
+<p><strong><%= t('Παράπονα:') %></strong> <% if (complaintContacts) { %><%= complaintContacts %>. <% } %><%= t('Εξωδικαστική επίλυση: Συνήγορος του Καταναλωτή (www.synigoroskatanaloti.gr).') %></p>
+<% if (locals.termsAttached) { %><p><%= t('Επισυνάπτονται οι όροι ενοικίασης (έκδοση {version}) που αποδεχθήκατε.', { version: booking.terms_version || config.termsVersion }) %></p><% } else { %><p><%- th('Οι όροι ενοικίασης (έκδοση {version}) που αποδεχθήκατε: <a href="{url}">{url}</a>', { version: booking.terms_version || config.termsVersion, url: `${baseUrl}/terms` }) %></p><% } %>
+<p><%= t('Καλό ταξίδι!') %><br><%= company.name %></p>
+<%- include('_bottom') %>

@@ -1,0 +1,8 @@
+<%- include('../partials/header') %>
+<div class="container section narrow center">
+  <p class="error-code"><%= status %></p>
+  <h1><%= t(title) %></h1>
+  <p><%= t(message) %></p>
+  <p><a class="btn" href="<%= u('/') %>"><%= t('Αρχική σελίδα') %></a></p>
+</div>
+<%- include('../partials/footer') %>

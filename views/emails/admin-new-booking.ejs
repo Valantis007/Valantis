@@ -1,0 +1,6 @@
+<%- include('_top') %>
+<p><strong>Νέα κράτηση</strong></p>
+<%- include('_booking-table', { booking, extras }) %>
+<p>Email πελάτη: <%= booking.email %><% if (booking.invoice_requested) { %><br><strong>Ζητήθηκε τιμολόγιο</strong><% } %></p>
+<p><a href="<%= baseUrl %>/admin/bookings/<%= booking.id %>">Άνοιγμα στη διαχείριση</a></p>
+<%- include('_bottom') %>

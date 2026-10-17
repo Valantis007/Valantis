@@ -1,0 +1,60 @@
+<%- include('../partials/header') %>
+<div class="container section two-col">
+  <div>
+    <h1><%= t('Επικοινωνία') %></h1>
+    <p><%= t('Είμαστε στη διάθεσή σας για κάθε ερώτηση σχετικά με κρατήσεις, τιμές ή ειδικά αιτήματα.') %></p>
+    <ul class="contact-list">
+      <% if (company.phone) { %><li><strong><%= t('Τηλέφωνο:') %></strong> <a href="tel:<%= company.phone.replace(/\s/g, '') %>"><%= company.phone %></a></li><% } %>
+      <% if (company.email) { %><li><strong>Email:</strong> <a href="mailto:<%= company.email %>"><%= company.email %></a></li><% } %>
+      <% if (company.address) { %><li><strong><%= t('Διεύθυνση:') %></strong> <%= company.address %></li><% } %>
+      <li><strong><%= t('Ωράριο:') %></strong> <%= t('καθημερινά {from} - {to}', { from: `${String(config.rules.openingHour).padStart(2, '0')}:00`, to: `${config.rules.closingHour}:00` }) %></li>
+    </ul>
+  </div>
+  <form method="post" action="<%= u('/contact') %>" class="card pad stack" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+    <div class="hp" aria-hidden="true"><label><%= t('Ιστοσελίδα') %> <input name="website" tabindex="-1" autocomplete="off"></label></div>
+    <div class="field">
+      <label for="name"><%= t('Ονοματεπώνυμο') %></label>
+      <input id="name" name="name" value="<%= values.name || '' %>" required autocomplete="name">
+      <% if (errors.name) { %><span class="error"><%= t(errors.name) %></span><% } %>
+    </div>
+    <div class="grid-2">
+      <div class="field">
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" value="<%= values.email || '' %>" required autocomplete="email">
+        <% if (errors.email) { %><span class="error"><%= t(errors.email) %></span><% } %>
+      </div>
+      <div class="field">
+        <label for="phone"><%= t('Τηλέφωνο (προαιρετικό)') %></label>
+        <input id="phone" name="phone" type="tel" value="<%= values.phone || '' %>" autocomplete="tel">
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="field">
+        <label for="kind"><%= t('Είδος') %></label>
+        <select id="kind" name="kind">
+          <% [['question', 'Ερώτηση'], ['complaint', 'Παράπονο'], ['charge_dispute', 'Αμφισβήτηση χρέωσης']].forEach(function (k) { %>
+            <option value="<%= k[0] %>" <%= values.kind === k[0] ? 'selected' : '' %>><%= t(k[1]) %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="field">
+        <label for="booking_reference"><%= t('Κωδικός κράτησης (αν υπάρχει)') %></label>
+        <input id="booking_reference" name="booking_reference" value="<%= values.booking_reference || '' %>" maxlength="8" class="uppercase">
+      </div>
+    </div>
+    <div class="field">
+      <label for="subject"><%= t('Θέμα') %></label>
+      <input id="subject" name="subject" value="<%= values.subject || '' %>" required>
+      <% if (errors.subject) { %><span class="error"><%= t(errors.subject) %></span><% } %>
+    </div>
+    <div class="field">
+      <label for="body"><%= t('Μήνυμα') %></label>
+      <textarea id="body" name="body" rows="6" required><%= values.body || '' %></textarea>
+      <% if (errors.body) { %><span class="error"><%= t(errors.body) %></span><% } %>
+    </div>
+    <p class="small muted"><%= t('Τα στοιχεία σας χρησιμοποιούνται μόνο για να απαντήσουμε στο μήνυμά σας.') %> <a href="<%= u('/privacy') %>"><%= t('Πολιτική απορρήτου') %></a></p>
+    <button class="btn btn-primary" type="submit"><%= t('Αποστολή') %></button>
+  </form>
+</div>
+<%- include('../partials/footer') %>

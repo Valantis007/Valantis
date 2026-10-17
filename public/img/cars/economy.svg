@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 160" role="img" aria-label="economy">
+  <ellipse cx="160" cy="132" rx="138" ry="7" fill="#dfe4eb"/>
+  <path d="M34 114 V94 Q36 82 54 78 L98 72 L128 50 Q138 44 152 44 L214 44 Q228 44 238 54 L262 76 L280 80 Q290 84 290 96 V114 Z" fill="#b7c2cf"/>
+  <path d="M134 54 Q140 50 150 50 L180 50 L180 72 L106 72 Z M188 50 L212 50 Q224 50 232 58 L250 74 L188 74 Z" fill="#e9edf2"/>
+  <circle cx="88" cy="114" r="20" fill="#4a5a6e"/><circle cx="88" cy="114" r="9" fill="#c9d2dc"/>
+  <circle cx="236" cy="114" r="20" fill="#4a5a6e"/><circle cx="236" cy="114" r="9" fill="#c9d2dc"/>
+</svg>

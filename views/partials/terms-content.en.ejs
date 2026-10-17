@@ -1,0 +1,81 @@
+<% const t = config.tariff; const r = config.rules; %>
+<%# English translation of terms-content.ejs. Keep it in sync with the Greek original (same variables and conditions). %>
+
+  <p class="alert alert-info small translation-note">This is a translation provided for convenience. In case of any discrepancy, the Greek version prevails. <a href="<%= locals.siteUrl || '' %>/terms" hreflang="el">Read the Greek version</a>.</p>
+
+  <h2 id="lessor">1. Lessor</h2>
+  <p><%= company.legalName %><% if (company.seat) { %>, registered office: <%= company.seat %><% } %><% if (company.address && company.address !== company.seat) { %>, office: <%= company.address %><% } %>.
+    <% if (company.phone) { %>Tel. <%= company.phone %>. <% } %><% if (company.email) { %>Email <%= company.email %>. <% } %>
+    <% if (company.gemi) { %>General Commercial Registry (GEMI) No. <%= company.gemi %>. <% } %><% if (company.vat) { %>VAT No. <%= company.vat %><% if (company.taxOffice) { %> (<%= company.taxOffice %>)<% } %>. <% } %>
+    <% if (company.mhte) { %>Register of Tourism Businesses (MHTE) No. <%= company.mhte %>. <% } %>Competent authority: <%= company.authority %>.</p>
+
+  <h2 id="process">2. How to book</h2>
+  <ol>
+    <li>Search by pick-up/return locations and dates.</li>
+    <li>Choose a car and any extras — the final price is shown before you book.</li>
+    <li>Enter the driver’s details, the payment method and (optionally) invoice details.</li>
+    <li>Check the summary: you can correct any detail before you press ‘Book with obligation to pay’.</li>
+    <li>If you chose to pay by card, make the payment on the payment provider’s secure page.</li>
+  </ol>
+  <p>If you pay at pick-up, the contract is concluded when you press the button; if you pay by card, when the payment is successful. We archive the contract and it is available on the ‘My booking’ page; the terms you accepted are sent to you with the confirmation email. Language of the contract: Greek.</p>
+
+  <h2 id="driver">3. Driver</h2>
+  <ul>
+    <li>Minimum driver age: as stated for each car. A valid driving licence, issued at least <%= r.minLicenseYears %> <%= r.minLicenseYears === 1 ? 'year' : 'years' %> before pick-up. For certain non-EU licences an International Driving Permit is required.</li>
+    <li>At pick-up you must present your driving licence, identity card or passport, and a credit card in the main driver’s name for the security deposit.</li>
+    <li>Only drivers who have been declared to us may drive the car. An additional driver must meet the same requirements.</li>
+    <li>The car is the model shown ‘or similar’ in the same category. If the category is not available, we will upgrade you to a higher category at no extra charge or refund the full amount.</li>
+  </ul>
+
+  <h2 id="payment">4. Prices, payment and security deposit</h2>
+  <ul>
+    <li>All prices are in euros and include <%= r.vatPercent %>% VAT. Rental is charged per 24-hour period from the pick-up time; a late return of up to <%= r.graceMinutes %> minutes is not charged.</li>
+    <% if (r.durationDiscounts.length) { %><li>Long-rental discounts: <%= r.durationDiscounts.map(function (d) { return `${d.percent}% for ${d.minDays}+ days`; }).join(', ') %>.</li><% } %>
+    <% if (r.oneWayFeeCents) { %><li>Return to a different location: <%= format.money(r.oneWayFeeCents) %>.</li><% } %>
+    <li><strong>Payment:</strong> <%= paymentsEnabled ? 'online by card when you book, or ' : '' %>at pick-up by debit/credit card, IRIS or cash up to <%= format.money(t.cashLimitCents) %>. No surcharge is applied for any payment method.</li>
+    <li><strong>Security deposit:</strong> a hold (not a charge) of the amount shown for each car before booking, on a Visa or Mastercard credit card in the main driver’s name. Debit or prepaid cards and cash are not accepted for the security deposit. The hold is placed using the card terminal (POS) at our office or online (from <%= config.deposits.linkOpensHoursBeforePickup %> hours before pick-up) for the exact amount you authorise, and never for a higher amount without your fresh consent. It is released without delay after the return<% if (config.deposits.autoReleaseHours > 0) { %> (at the latest within <%= config.deposits.autoReleaseHours %> hours if there are no charges)<% } %>; how long it takes for the amount to show as available depends on your bank.</li>
+    <li>Only the charges in the price list (§6) are deducted from the security deposit and, for damage, only with your consent and up to the excess (§7). You will receive a detailed statement for every charge.</li>
+  </ul>
+
+  <h2 id="cancellation">5. Cancellations</h2>
+  <ul>
+    <li><strong>There is no 14-day right of withdrawal</strong>, because this is a car rental for specific dates (Article 3ib of Greek Law 2251/1994). Cancellations are subject to the policy below.</li>
+    <li><strong>Free cancellation</strong> up to <%= r.freeCancellationHours %> hours before pick-up, online from the ‘My booking’ page. The refund to the original payment method is initiated immediately.</li>
+    <li><strong>Cancellation within <%= r.freeCancellationHours %> hours or no-show:</strong> an amount <%= t.lateCancelFeeCents ? `of ${format.money(t.lateCancelFeeCents)}` : 'equal to one day’s rental, excluding extras,' %> is retained (the exact amount is shown in your booking) and the balance is refunded. If you have not prepaid, no charge is due.</li>
+    <li>If we cancel, or cannot provide a car in the booked category, we will upgrade you to a higher category at no extra charge or immediately refund the full amount.</li>
+    <li>An early return does not entitle you to a refund for the unused days.</li>
+  </ul>
+
+  <h2 id="use">6. Use of the car and price list of charges</h2>
+  <ul>
+    <li><strong>Fuel:</strong> the car must be returned with the same fuel level as at pick-up, unless you purchased the ‘Prepaid full tank’ extra (unused fuel is not refunded).</li>
+    <li><strong>Ferries or travel abroad:</strong> only with our prior written permission<%= t.ferryFeeCents ? ` (charge: ${format.money(t.ferryFeeCents)})` : '' %>. Outside the EU a Green Card is required. Any damage during transport by ferry must be reported in writing to the ferry company before disembarking.</li>
+    <li>Smoking, driving under the influence of alcohol or drugs, and using the car for racing, towing or off-road driving are prohibited.</li>
+    <li><strong>Fines and tolls</strong> incurred during the rental are payable by the renter. Where the Greek Road Traffic Code allows it, we provide your details to the relevant authority so that the penalty notice is issued in your name.</li>
+  </ul>
+  <h3 id="tariff">Price list of charges after the return</h3>
+  <table class="table">
+    <tbody>
+      <tr><td>Missing fuel</td><td><%= format.money(t.fuelPerLitreCents) %> / litre + refuelling fee <%= format.money(t.refuelFeeCents) %></td></tr>
+      <tr><td>Late return of more than <%= r.graceMinutes %> minutes</td><td>An extra day at the daily rate of the booking</td></tr>
+      <tr><td>Special cleaning (smoking, sand, pets)</td><td><%= format.money(t.cleaningFeeCents) %></td></tr>
+      <tr><td>Fines / tolls</td><td>The exact amount, with a copy of the notice, + administration fee <%= format.money(t.finesAdminFeeCents) %></td></tr>
+      <tr><td>Lost key</td><td><%= format.money(t.lostKeyFeeCents) %></td></tr>
+    </tbody>
+  </table>
+  <p>Charges not included in the price list are made only with your written consent.</p>
+
+  <h2 id="damage">7. Insurance, damage cover and damage procedure</h2>
+  <ul>
+    <li>The price includes compulsory third-party liability insurance and basic cover for damage to the vehicle (CDW) with an excess (your contribution towards damage), as shown for each car before booking.</li>
+    <li>The <strong>Full Damage Waiver (FDW)</strong> reduces the excess to zero. It is not an insurance product; it is a contractual waiver by the company of claims for damage to the vehicle.</li>
+    <li>CDW and FDW do not cover damage caused intentionally or through gross negligence, or resulting from driving under the influence of alcohol or drugs, driving by an undeclared driver, off-road driving or transport by ferry without permission.</li>
+    <li>At pick-up and at return, the condition of the car is recorded with date- and time-stamped photographs.</li>
+    <li>For damage found on return, we send you written notice with the supporting evidence (photographs, repair estimate or invoice). The amount is the actual cost of the repair, up to the excess of your booking. <strong>No damage charge is made without your consent</strong>; you have <%= config.deposits.damageResponseDays %> days to accept or dispute it. If the final cost turns out to be lower, we refund the difference.</li>
+    <li>In the event of an accident, notify us and the authorities immediately and complete an accident report.</li>
+  </ul>
+
+  <h2 id="law">8. Governing law, complaints and dispute resolution</h2>
+  <p>These terms are governed by Greek law. The courts of Thessaloniki have jurisdiction, without prejudice to the consumer’s right to bring proceedings before the courts of their place of residence where the law so provides.</p>
+  <p>Complaints: <%= company.email || 'contact form' %><% if (company.phone) { %>, <%= company.phone %><% } %>, the <a href="<%= locals.baseUrl ? `${locals.baseUrl}/complaints` : u('/complaints') %>">complaints form</a> or in person at our office. We acknowledge receipt within 2 working days and send a reasoned reply within 15 days.</p>
+  <p>For out-of-court resolution you may refer the matter to the <strong>Greek Consumer Ombudsman</strong> (www.synigoroskatanaloti.gr), an Alternative Dispute Resolution body; the company <%= company.adrCommitment ? 'undertakes to take part' : 'decides on a case-by-case basis whether to take part' %>. Consumers from other EU countries can seek assistance from the European Consumer Centre Greece (www.eccgreece.gr).</p>

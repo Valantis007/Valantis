@@ -1,0 +1,19 @@
+<div class="table-wrap">
+<table class="table">
+  <thead><tr><th>Κωδικός</th><th>Πελάτης</th><th>Αυτοκίνητο</th><th>Παραλαβή</th><th>Επιστροφή</th><th>Ποσό</th><th>Κατάσταση</th></tr></thead>
+  <tbody>
+    <% rows.forEach(function (b) { %>
+      <tr>
+        <td><a href="/admin/bookings/<%= b.id %>" class="ref"><%= b.reference %></a></td>
+        <td><%= b.first_name %> <%= b.last_name %><br><span class="small muted"><%= b.phone %></span></td>
+        <td><%= b.make %> <%= b.model %><br><span class="small muted"><%= b.plate %></span></td>
+        <td><%= format.dateTime(b.pickup_at) %><% if (b.pickup_location_name) { %><br><span class="small muted"><%= b.pickup_location_name %></span><% } %></td>
+        <td><%= format.dateTime(b.return_at) %><% if (b.return_location_name) { %><br><span class="small muted"><%= b.return_location_name %></span><% } %></td>
+        <td><%= format.money(b.total_cents) %><br><span class="small <%= b.payment_status === 'paid' ? 'success' : 'muted' %>"><%= format.label('paymentStatus', b.payment_status) %></span></td>
+        <td><span class="status status-<%= b.status %>"><%= format.label('status', b.status) %></span></td>
+      </tr>
+    <% }) %>
+    <% if (!rows.length) { %><tr><td colspan="7" class="muted center">Καμία κράτηση.</td></tr><% } %>
+  </tbody>
+</table>
+</div>

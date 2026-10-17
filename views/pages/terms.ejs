@@ -1,0 +1,9 @@
+<%- include('../partials/header') %>
+<div class="container section prose">
+  <h1><%= t('Όροι ενοικίασης') %></h1>
+  <p class="muted small"><%= t('Έκδοση {version}', { version: config.termsVersion }) %></p>
+  <% if (!config.isProduction) { %><p class="alert alert-info small"><%= t('Το κείμενο πρέπει να ελεγχθεί από νομικό σύμβουλο πριν τη δημοσίευση της ιστοσελίδας (αυτή η σημείωση δεν εμφανίζεται σε παραγωγή).') %></p><% } %>
+  <%# Ένα αρχείο ανά γλώσσα (terms-content.ejs = ελληνικό πρωτότυπο). Το EJS δεν προσθέτει .ejs σε όνομα με τελεία (terms-content.en). %>
+  <%- include(lt('../partials/terms-content')) %>
+</div>
+<%- include('../partials/footer') %>

@@ -1,0 +1,37 @@
+<%- include('../partials/header') %>
+<div class="container section">
+  <%- include('_nav') %>
+  <div class="section-head">
+    <h1>Στόλος</h1>
+    <a class="btn btn-primary" href="/admin/cars/new">+ Νέο αυτοκίνητο</a>
+  </div>
+  <div class="table-wrap">
+  <table class="table">
+    <thead><tr><th></th><th>Αυτοκίνητο</th><th>Πινακίδα</th><th>Κατηγορία</th><th>Τιμή/ημέρα</th><th>Ανοιχτές κρατήσεις</th><th>Κατάσταση</th></tr></thead>
+    <tbody>
+      <% cars.forEach(function (c) { %>
+        <tr class="<%= c.active ? '' : 'inactive' %>">
+          <td><img src="<%= c.image || `/img/cars/${c.category}.svg` %>" alt="" class="thumb-sm"></td>
+          <td><a href="/admin/cars/<%= c.id %>"><%= c.make %> <%= c.model %></a> <span class="muted small"><%= c.year %></span></td>
+          <td><%= c.plate %></td>
+          <td><%= format.label('category', c.category) %> · <%= format.label('transmission', c.transmission) %></td>
+          <td><%= format.money(c.daily_rate_cents) %></td>
+          <td><%= c.open_bookings %></td>
+          <td><%= c.active ? 'Ενεργό' : 'Ανενεργό' %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  </div>
+  <div class="card pad stack">
+    <h2 class="h4">Ενδεικτικές φωτογραφίες</h2>
+    <p class="small">Για να δείτε πώς φαίνεται η ιστοσελίδα με φωτογραφίες: κατεβάζει από τη Wikipedia (Wikimedia Commons) μία φωτογραφία με ελεύθερη άδεια για κάθε αυτοκίνητο που δεν έχει δική σας φωτογραφία, μαζί με την αναφορά του δημιουργού (εμφανίζεται κάτω από τη φωτογραφία, όπως απαιτεί η άδεια). Χρειάζεται σύνδεση στο internet και διαρκεί λίγα δευτερόλεπτα.</p>
+    <p class="small muted">Πριν το άνοιγμα, αντικαταστήστε τες με φωτογραφίες των δικών σας αυτοκινήτων: ανοίξτε το αυτοκίνητο και ανεβάστε νέα φωτογραφία.</p>
+    <form method="post" action="/admin/cars/demo-photos">
+      <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+      <button class="btn" type="submit">Λήψη ενδεικτικών φωτογραφιών</button>
+    </form>
+  </div>
+  <p class="small muted">Τα αυτοκίνητα δεν διαγράφονται (για να διατηρείται το ιστορικό κρατήσεων). Απενεργοποιήστε τα για να μην εμφανίζονται στην ιστοσελίδα.</p>
+</div>
+<%- include('../partials/footer') %>

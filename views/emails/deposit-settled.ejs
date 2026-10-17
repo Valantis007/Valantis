@@ -1,0 +1,19 @@
+<%- include('_top') %>
+<p><%= t('Αγαπητέ/ή {name},', { name: booking.first_name }) %></p>
+<% if (capturedCents > 0) { %>
+<p><%- th('Η εγγύηση για την κράτηση <strong>{ref}</strong> εκκαθαρίστηκε:', { ref: booking.reference }) %></p>
+<table role="presentation" width="100%" cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-size:14px;margin:12px 0;">
+  <% charges.forEach(function (c) { if (!c.paid_cents) return; %>
+    <tr><td><%= format.label('chargeCategory', c.category) %>: <%= c.description %></td><td align="right"><%= format.money(c.paid_cents) %></td></tr>
+  <% }) %>
+  <tr><td><strong><%= t('Παρακράτηση από την εγγύηση') %></strong></td><td align="right"><strong><%= format.money(capturedCents) %></strong></td></tr>
+  <tr><td><%= t('Αποδεσμεύτηκαν') %></td><td align="right"><%= format.money(releasedCents) %></td></tr>
+</table>
+<% } else { %>
+<p><%- th('Η εγγύηση <strong>{amount}</strong> για την κράτηση <strong>{ref}</strong> <strong>αποδεσμεύτηκε πλήρως</strong>, χωρίς καμία χρέωση.', { amount: format.money(releasedCents), ref: booking.reference }) %></p>
+<% } %>
+<p style="color:#6b7280;font-size:13px;"><%= t('Η τράπεζά σας μπορεί να χρειαστεί λίγες εργάσιμες ημέρες για να εμφανίσει το ποσό ως διαθέσιμο.') %></p>
+<% if (outstandingCents > 0) { %><p><%- th('Παραμένει υπόλοιπο <strong>{amount}</strong> από αποδεκτές χρεώσεις. Μπορείτε να το εξοφλήσετε από τη σελίδα <a href="{url}">{url}</a>.', { amount: format.money(outstandingCents), url: `${baseUrl}/manage` }) %></p><% } %>
+<% if (unresolved.length) { %><p><%= t('Εκκρεμεί η απάντησή σας για {count} χρέωση/εις ζημιάς, την οποία μπορείτε να αποδεχθείτε ή να αμφισβητήσετε από τη σελίδα της κράτησης.', { count: unresolved.length }) %></p><% } %>
+<p><%= t('Για απορίες ή αντιρρήσεις επικοινωνήστε μαζί μας.') %><br><%= company.name %></p>
+<%- include('_bottom') %>

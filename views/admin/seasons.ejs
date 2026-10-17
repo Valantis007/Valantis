@@ -1,0 +1,27 @@
+<%- include('../partials/header') %>
+<div class="container section">
+  <%- include('_nav') %>
+  <h1>Εποχικές τιμές</h1>
+  <p class="muted small">Το ποσοστό εφαρμόζεται στη βασική τιμή κάθε αυτοκινήτου για κάθε ημέρα που πέφτει στην περίοδο (100 = κανονική τιμή, 140 = +40%, 80 = -20%). Οι ημερομηνίες γράφονται ΜΜ-ΗΗ και ισχύουν κάθε χρόνο. Αν επικαλύπτονται περίοδοι, ισχύει η υψηλότερη.</p>
+  <div class="stack">
+    <% rows.concat([null]).forEach(function (r) { %>
+      <div class="card pad inline-grid">
+        <form method="post" action="/admin/seasons<%= r ? `/${r.id}` : '' %>" class="inline-grid grow">
+          <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+          <div class="field grow"><label>Όνομα</label><input name="name" value="<%= r ? r.name : '' %>" required></div>
+          <div class="field"><label>Από (ΜΜ-ΗΗ)</label><input name="start_md" value="<%= r ? r.start_md : '' %>" pattern="\d{2}-\d{2}" placeholder="07-01" size="6" required></div>
+          <div class="field"><label>Έως (ΜΜ-ΗΗ)</label><input name="end_md" value="<%= r ? r.end_md : '' %>" pattern="\d{2}-\d{2}" placeholder="08-31" size="6" required></div>
+          <div class="field"><label>Ποσοστό %</label><input name="percent" type="number" min="10" max="500" value="<%= r ? r.percent : 100 %>" style="width:6em" required></div>
+          <button class="btn <%= r ? '' : 'btn-primary' %>" type="submit"><%= r ? 'Αποθήκευση' : '+ Προσθήκη' %></button>
+        </form>
+        <% if (r) { %>
+          <form method="post" action="/admin/seasons/<%= r.id %>/delete" data-confirm="Διαγραφή περιόδου;">
+            <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+            <button class="btn btn-danger" type="submit">Διαγραφή</button>
+          </form>
+        <% } %>
+      </div>
+    <% }) %>
+  </div>
+</div>
+<%- include('../partials/footer') %>

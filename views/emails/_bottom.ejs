@@ -1,0 +1,8 @@
+</td></tr>
+<tr><td style="padding:18px 28px;background:#f8f9fb;color:#6b7280;font-size:12px;line-height:1.5;">
+<%= company.legalName %><% if (company.vat) { %> · <%= t('ΑΦΜ') %> <%= company.vat %><% } %><% if (company.gemi) { %> · <%= t('ΓΕΜΗ') %> <%= company.gemi %><% } %><% if (company.mhte) { %> · <%= t('ΜΗΤΕ') %> <%= company.mhte %><% } %><br>
+<% if (company.address) { %><%= company.address %><br><% } %>
+<% if (company.phone) { %><%= company.phone %> · <% } %><% if (company.email) { %><a href="mailto:<%= company.email %>" style="color:#6b7280;"><%= company.email %></a> · <% } %><a href="<%= baseUrl %>/terms" style="color:#6b7280;"><%= t('Όροι ενοικίασης') %></a>
+</td></tr>
+</table></td></tr></table>
+</body></html>

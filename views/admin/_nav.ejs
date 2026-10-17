@@ -1,0 +1,6 @@
+<nav class="admin-nav" aria-label="Διαχείριση">
+  <% [['/admin', 'Πίνακας ελέγχου'], ['/admin/bookings', 'Κρατήσεις'], ['/admin/cars', 'Στόλος'], ['/admin/locations', 'Σημεία'], ['/admin/extras', 'Πρόσθετα'], ['/admin/seasons', 'Εποχικές τιμές'], ['/admin/users', 'Χρήστες'], ['/admin/messages', 'Μηνύματα'], ['/admin/system', 'Έλεγχος συστήματος']].forEach(function (item) {
+    const active = item[0] === '/admin' ? /^\/admin\/?$/.test(currentPath) : currentPath.startsWith(item[0]); %>
+    <a href="<%= item[0] %>" class="<%= active ? 'active' : '' %>"><%= item[1] %></a>
+  <% }) %>
+</nav>

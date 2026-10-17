@@ -1,0 +1,52 @@
+<%- include('../partials/header') %>
+<div class="container section narrow-wide">
+  <h1><%= t('Εγγύηση ενοικίασης') %></h1>
+  <p class="muted"><%- th('Κράτηση <span class="ref">{ref}</span>', { ref: booking.reference }) %> · <%= booking.make %> <%= booking.model %> · <%= format.dateTime(booking.pickup_at) %> → <%= format.dateTime(booking.return_at) %></p>
+
+  <% if (error) { %><div class="alert alert-error" role="alert"><%= t(error) %></div><% } %>
+  <% if (info) { %><div class="alert alert-info"><%= t(info) %></div><% } %>
+
+  <% if (deposit.status === 'awaiting') { %>
+    <% if (deposit.failure_reason) { %><div class="alert alert-warning"><%= t(deposit.failure_reason) %></div><% } %>
+    <div class="card pad">
+      <p class="deposit-amount"><%= format.money(deposit.amount_cents) %></p>
+      <p><%- th('<strong>Τι σημαίνει η εγγύηση:</strong> το ποσό <strong>δεσμεύεται</strong> (δεν χρεώνεται) στην πιστωτική σας κάρτα για όσο διαρκεί η ενοικίαση.') %></p>
+      <ul class="checklist">
+        <li><%- th('Γίνονται δεκτές <strong>μόνο πιστωτικές κάρτες</strong> στο όνομα του οδηγού. Χρεωστικές και προπληρωμένες κάρτες απορρίπτονται αυτόματα.') %></li>
+        <li><%- th('Μετά την επιστροφή του αυτοκινήτου το ποσό <strong>αποδεσμεύεται χωρίς καθυστέρηση</strong>. Η τράπεζά σας μπορεί να χρειαστεί λίγες ημέρες για να το εμφανίσει ως διαθέσιμο.') %></li>
+        <li><%- th('Από την εγγύηση μπορεί να αφαιρεθούν <strong>μόνο</strong> οι χρεώσεις του <a href="{url}" target="_blank">τιμοκαταλόγου</a>, με αναλυτικό email για καθεμία: καύσιμο που λείπει ({fuel}/λίτρο + {refuel}), καθυστέρηση επιστροφής (μίσθωμα ημέρας), ειδικός καθαρισμός (έως {cleaning}), διαχείριση προστίμου ({fines} ανά πρόστιμο), χαμένο κλειδί ({key}).', {
+          url: u('/terms#tariff'),
+          fuel: format.money(config.tariff.fuelPerLitreCents),
+          refuel: format.money(config.tariff.refuelFeeCents),
+          cleaning: format.money(config.tariff.cleaningFeeCents),
+          fines: format.money(config.tariff.finesAdminFeeCents),
+          key: format.money(config.tariff.lostKeyFeeCents),
+        }) %></li>
+        <li><%- th('Χρέωση για <strong>ζημιά</strong> ή οποιαδήποτε άλλη χρέωση γίνεται μόνο με τη συναίνεσή σας, και για ζημιά έως την απαλλαγή σας ({excess}), εκτός από τις εξαιρέσεις των όρων (§7). Θα λάβετε τεκμηρίωση και θα μπορείτε να την αμφισβητήσετε.', { excess: format.money(booking.excess_cents ?? booking.deposit_cents) }) %></li>
+      </ul>
+      <% if (!window.open) { %>
+        <div class="alert alert-info"><%- th('Η έγκριση της εγγύησης γίνεται από <strong>{from}</strong> έως την επιστροφή του αυτοκινήτου.', { from: format.dateTime(window.opensAt) }) %></div>
+      <% } else { %>
+        <form method="post" action="<%= u(`/deposit/${token}`) %>" class="stack">
+          <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+          <label class="check"><input type="checkbox" name="consent" value="1" required>
+            <span><%- th('Συμφωνώ να δεσμευτεί το ποσό <strong>{amount}</strong> στην πιστωτική μου κάρτα ως εγγύηση για την κράτηση {ref}, σύμφωνα με τους <a href="{url}" target="_blank">όρους ενοικίασης</a>.', { amount: format.money(deposit.amount_cents), ref: booking.reference, url: u('/terms') }) %></span></label>
+          <button class="btn btn-primary" type="submit"><%= t('Συνέχεια στην ασφαλή σελίδα πληρωμής') %></button>
+          <p class="small muted"><%= t('Τα στοιχεία της κάρτας σας τα καταχωρείτε στην ασφαλή σελίδα του παρόχου πληρωμών ({provider}). Δεν τα βλέπουμε και δεν τα αποθηκεύουμε.', { provider: format.label('depositMethod', deposit.method) }) %></p>
+        </form>
+      <% } %>
+    </div>
+  <% } else if (deposit.status === 'held') { %>
+    <div class="alert alert-success"><%- deposit.card_last4
+      ? th('Η εγγύηση <strong>{amount}</strong> δεσμεύτηκε επιτυχώς στην κάρτα •••• {last4}. Ευχαριστούμε!', { amount: format.money(deposit.amount_cents), last4: deposit.card_last4 })
+      : th('Η εγγύηση <strong>{amount}</strong> δεσμεύτηκε επιτυχώς. Ευχαριστούμε!', { amount: format.money(deposit.amount_cents) }) %></div>
+    <p><%- th('Θα αποδεσμευτεί μετά την επιστροφή του αυτοκινήτου. Μπορείτε να δείτε την κράτησή σας από τη σελίδα <a href="{url}">«Η κράτησή μου»</a>.', { url: u('/manage') }) %></p>
+  <% } else if (['released', 'captured'].includes(deposit.status)) { %>
+    <div class="alert alert-info"><%= deposit.captured_cents
+      ? t('Η εγγύηση έχει κλείσει: {status} — παρακράτηση {amount}.', { status: format.label('depositStatus', deposit.status), amount: format.money(deposit.captured_cents) })
+      : t('Η εγγύηση έχει κλείσει: {status}.', { status: format.label('depositStatus', deposit.status) }) %></div>
+  <% } else { %>
+    <div class="alert alert-error"><%= t('Αυτός ο σύνδεσμος δεν ισχύει πλέον. Επικοινωνήστε μαζί μας για νέο σύνδεσμο.') %></div>
+  <% } %>
+</div>
+<%- include('../partials/footer') %>

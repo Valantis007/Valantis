@@ -1,0 +1,77 @@
+<%- include('../partials/header') %>
+<% const v = values || {}; const e = errors || {};
+   function sel(a, b) { return String(a) === String(b) ? 'selected' : ''; } %>
+<div class="container section">
+  <%- include('_nav') %>
+  <p><a href="/admin/cars">← Στόλος</a></p>
+  <h1><%= car ? `${car.make} ${car.model} (${car.plate})` : 'Νέο αυτοκίνητο' %></h1>
+  <% if (Object.keys(e).length) { %><div class="alert alert-error">Ελέγξτε τα πεδία με σφάλμα.</div><% } %>
+  <div class="layout-sidebar reverse">
+    <form method="post" action="<%= car ? `/admin/cars/${car.id}` : '/admin/cars' %>" enctype="multipart/form-data" class="card pad stack">
+      <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+      <div class="grid-3">
+        <div class="field"><label for="make">Μάρκα</label><input id="make" name="make" value="<%= v.make || '' %>" required><% if (e.make) { %><span class="error"><%= e.make %></span><% } %></div>
+        <div class="field"><label for="model">Μοντέλο</label><input id="model" name="model" value="<%= v.model || '' %>" required><% if (e.model) { %><span class="error"><%= e.model %></span><% } %></div>
+        <div class="field"><label for="year">Έτος</label><input id="year" name="year" type="number" value="<%= v.year || '' %>" required><% if (e.year) { %><span class="error"><%= e.year %></span><% } %></div>
+        <div class="field"><label for="plate">Πινακίδα</label><input id="plate" name="plate" value="<%= v.plate || '' %>" required class="uppercase"><% if (e.plate) { %><span class="error"><%= e.plate %></span><% } %></div>
+        <div class="field"><label for="category">Κατηγορία</label><select id="category" name="category"><% categories.forEach(function (c) { %><option value="<%= c %>" <%= sel(v.category, c) %>><%= format.label('category', c) %></option><% }) %></select><% if (e.category) { %><span class="error"><%= e.category %></span><% } %></div>
+        <div class="field"><label for="transmission">Κιβώτιο</label><select id="transmission" name="transmission"><% transmissions.forEach(function (c) { %><option value="<%= c %>" <%= sel(v.transmission, c) %>><%= format.label('transmission', c) %></option><% }) %></select></div>
+        <div class="field"><label for="fuel">Καύσιμο</label><select id="fuel" name="fuel"><% fuels.forEach(function (c) { %><option value="<%= c %>" <%= sel(v.fuel, c) %>><%= format.label('fuel', c) %></option><% }) %></select></div>
+        <div class="field"><label for="seats">Θέσεις</label><input id="seats" name="seats" type="number" min="1" max="9" value="<%= v.seats || '' %>"><% if (e.seats) { %><span class="error"><%= e.seats %></span><% } %></div>
+        <div class="field"><label for="doors">Πόρτες</label><input id="doors" name="doors" type="number" min="2" max="5" value="<%= v.doors || '' %>"><% if (e.doors) { %><span class="error"><%= e.doors %></span><% } %></div>
+        <div class="field"><label for="luggage">Βαλίτσες</label><input id="luggage" name="luggage" type="number" min="0" max="10" value="<%= v.luggage || '' %>"><% if (e.luggage) { %><span class="error"><%= e.luggage %></span><% } %></div>
+        <div class="field"><label for="daily_rate">Βασική τιμή/ημέρα (€, με ΦΠΑ)</label><input id="daily_rate" name="daily_rate" inputmode="decimal" value="<%= v.daily_rate || '' %>" required><% if (e.daily_rate) { %><span class="error"><%= e.daily_rate %></span><% } %></div>
+        <div class="field"><label for="deposit">Εγγύηση (€)</label><input id="deposit" name="deposit" inputmode="decimal" value="<%= v.deposit || '' %>"><% if (e.deposit) { %><span class="error"><%= e.deposit %></span><% } %></div>
+        <div class="field"><label for="excess">Απαλλαγή ζημιών (€)</label><input id="excess" name="excess" inputmode="decimal" value="<%= v.excess || '' %>"><span class="hint">Μέγιστη συμμετοχή του πελάτη σε ζημιές· κενό = ίση με την εγγύηση. Να συμφωνεί με το ασφαλιστήριο.</span><% if (e.excess) { %><span class="error"><%= e.excess %></span><% } %></div>
+        <div class="field"><label for="min_driver_age">Ελάχ. ηλικία οδηγού</label><input id="min_driver_age" name="min_driver_age" type="number" min="18" max="30" value="<%= v.min_driver_age || '' %>"><% if (e.min_driver_age) { %><span class="error"><%= e.min_driver_age %></span><% } %></div>
+        <div class="field"><label for="mileage_policy">Χιλιόμετρα</label><input id="mileage_policy" name="mileage_policy" value="<%= v.mileage_policy || 'Απεριόριστα χιλιόμετρα' %>"></div>
+      </div>
+      <div class="field"><label for="description">Περιγραφή</label><textarea id="description" name="description" rows="3"><%= v.description || '' %></textarea></div>
+      <div class="grid-2">
+        <div class="field"><label for="description_en">Περιγραφή (English)</label><textarea id="description_en" name="description_en" rows="2"><%= v.description_en || '' %></textarea></div>
+        <div class="field"><label for="description_es">Περιγραφή (Español)</label><textarea id="description_es" name="description_es" rows="2"><%= v.description_es || '' %></textarea></div>
+      </div>
+      <div class="field"><label for="image">Φωτογραφία (JPG/PNG/WEBP, έως 5MB)</label><input id="image" name="image" type="file" accept="image/jpeg,image/png,image/webp">
+        <% if (car && car.image) { %><img src="<%= car.image %>" alt="" class="thumb"><% } %><% if (car && car.image_credit) { %><span class="small muted">Ενδεικτική φωτογραφία: <%= car.image_credit %></span><% } %></div>
+      <label class="check"><input type="checkbox" name="air_conditioning" value="1" <%= v.air_conditioning ? 'checked' : '' %>><span>Κλιματισμός</span></label>
+      <label class="check"><input type="checkbox" name="active" value="1" <%= v.active ? 'checked' : '' %>><span>Ενεργό (εμφανίζεται και κλείνεται online)</span></label>
+      <button class="btn btn-primary" type="submit">Αποθήκευση</button>
+    </form>
+
+    <% if (car) { %>
+    <aside class="stack">
+      <div class="card pad">
+        <h2 class="h4">Επόμενες κρατήσεις</h2>
+        <% if (!upcoming.length) { %><p class="muted small">Καμία.</p><% } %>
+        <ul class="plain">
+          <% upcoming.forEach(function (b) { %>
+            <li><a href="/admin/bookings/<%= b.id %>" class="ref"><%= b.reference %></a> <span class="small"><%= format.dateTime(b.pickup_at) %> → <%= format.dateTime(b.return_at) %></span></li>
+          <% }) %>
+        </ul>
+      </div>
+      <div class="card pad stack">
+        <h2 class="h4">Μη διαθεσιμότητα (σέρβις, βλάβη)</h2>
+        <ul class="plain">
+          <% blocks.forEach(function (bl) { %>
+            <li>
+              <span class="small"><%= format.dateTime(bl.start_at) %> → <%= format.dateTime(bl.end_at) %></span> <%= bl.reason %>
+              <form method="post" action="/admin/cars/<%= car.id %>/blocks/<%= bl.id %>/delete" class="inline-form">
+                <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+                <button type="submit" class="link-button small">Αφαίρεση</button>
+              </form>
+            </li>
+          <% }) %>
+        </ul>
+        <form method="post" action="/admin/cars/<%= car.id %>/blocks" class="stack">
+          <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+          <div class="field"><label for="start_at">Από</label><input id="start_at" name="start_at" type="datetime-local" required></div>
+          <div class="field"><label for="end_at">Έως</label><input id="end_at" name="end_at" type="datetime-local" required></div>
+          <div class="field"><label for="block_reason">Αιτία</label><input id="block_reason" name="reason" placeholder="π.χ. Service"></div>
+          <button class="btn" type="submit">Προσθήκη</button>
+        </form>
+      </div>
+    </aside>
+    <% } %>
+  </div>
+</div>
+<%- include('../partials/footer') %>

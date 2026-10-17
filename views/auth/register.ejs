@@ -1,0 +1,20 @@
+<%- include('../partials/header') %>
+<div class="container section narrow">
+  <h1><%= t('Δημιουργία λογαριασμού') %></h1>
+  <p class="muted"><%= t('Με λογαριασμό βλέπετε όλες τις κρατήσεις σας και κλείνετε πιο γρήγορα την επόμενη.') %></p>
+  <form method="post" action="<%= u('/register') %>" class="card pad stack" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+    <div class="grid-2">
+      <div class="field"><label for="first_name"><%= t('Όνομα') %></label><input id="first_name" name="first_name" value="<%= values.first_name || '' %>" required autocomplete="given-name"><% if (errors.first_name) { %><span class="error"><%= t(errors.first_name) %></span><% } %></div>
+      <div class="field"><label for="last_name"><%= t('Επώνυμο') %></label><input id="last_name" name="last_name" value="<%= values.last_name || '' %>" required autocomplete="family-name"><% if (errors.last_name) { %><span class="error"><%= t(errors.last_name) %></span><% } %></div>
+    </div>
+    <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" value="<%= values.email || '' %>" required autocomplete="email"><% if (errors.email) { %><span class="error"><%= t(errors.email) %></span><% } %></div>
+    <div class="field"><label for="phone"><%= t('Κινητό (προαιρετικό)') %></label><input id="phone" name="phone" type="tel" value="<%= values.phone || '' %>" autocomplete="tel"><% if (errors.phone) { %><span class="error"><%= t(errors.phone) %></span><% } %></div>
+    <div class="field"><label for="password"><%= t('Κωδικός') %></label><input id="password" name="password" type="password" required autocomplete="new-password" minlength="10"><span class="hint"><%= t('Τουλάχιστον 10 χαρακτήρες, με γράμματα και αριθμούς.') %></span><% if (errors.password) { %><span class="error"><%= t(errors.password) %></span><% } %></div>
+    <div class="field"><label for="password_confirm"><%= t('Επιβεβαίωση κωδικού') %></label><input id="password_confirm" name="password_confirm" type="password" required autocomplete="new-password"><% if (errors.password_confirm) { %><span class="error"><%= t(errors.password_confirm) %></span><% } %></div>
+    <p class="small muted"><%- th('Τα στοιχεία σας χρησιμοποιούνται για τον λογαριασμό και τις κρατήσεις σας, όπως περιγράφει η <a href="{url}" target="_blank">πολιτική απορρήτου</a>. Μπορείτε να τα κατεβάσετε ή να διαγράψετε τον λογαριασμό οποτεδήποτε.', { url: u('/privacy') }) %></p>
+    <button class="btn btn-primary" type="submit"><%= t('Δημιουργία λογαριασμού') %></button>
+  </form>
+  <p><%- th('Έχετε ήδη λογαριασμό; <a href="{url}">Συνδεθείτε</a>.', { url: u('/login') }) %></p>
+</div>
+<%- include('../partials/footer') %>

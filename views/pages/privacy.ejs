@@ -1,0 +1,9 @@
+<%- include('../partials/header') %>
+<div class="container section prose">
+  <h1><%= t('Πολιτική απορρήτου & cookies') %></h1>
+  <% if (!config.isProduction) { %><p class="alert alert-info small"><%= t('Το κείμενο πρέπει να ελεγχθεί από νομικό σύμβουλο πριν τη δημοσίευση (αυτή η σημείωση δεν εμφανίζεται σε παραγωγή).') %></p><% } %>
+
+<%# Το κείμενο της πολιτικής, ένα αρχείο ανά γλώσσα (privacy-content.ejs = ελληνικό πρωτότυπο). Το EJS δεν προσθέτει .ejs σε όνομα με τελεία (privacy-content.en). %>
+<%- include(lt('../partials/privacy-content')) %>
+</div>
+<%- include('../partials/footer') %>

@@ -1,0 +1,9 @@
+<!doctype html>
+<html lang="<%= locale %>"><head><meta charset="utf-8"><title><%= t('Όροι ενοικίασης') %> - <%= company.name %></title>
+<style>body{font-family:Arial,Helvetica,sans-serif;max-width:820px;margin:24px auto;padding:0 16px;line-height:1.55;color:#1d2433}table{border-collapse:collapse;width:100%}td,th{border:1px solid #dde3ec;padding:6px 8px;text-align:left}h2{margin-top:1.6em;font-size:1.2rem}.translation-note{border:1px solid #dde3ec;background:#f4f7fb;padding:8px 12px}</style>
+</head><body>
+<h1><%= t('Όροι ενοικίασης') %> — <%= company.name %></h1>
+<p><%= t('Έκδοση {version}', { version: config.termsVersion }) %></p>
+<%# Στα αγγλικά/ισπανικά: η μετάφραση, με τη σημείωση ότι υπερισχύει το ελληνικό κείμενο. %>
+<%- include(lt('../partials/terms-content')) %>
+</body></html>

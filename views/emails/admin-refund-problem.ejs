@@ -1,0 +1,7 @@
+<%- include('_top') %>
+<p><strong><%= failed ? 'Η επιστροφή χρημάτων ΑΠΕΤΥΧΕ οριστικά' : 'Η επιστροφή χρημάτων δεν ολοκληρώθηκε (θα ξαναδοκιμαστεί αυτόματα)' %></strong></p>
+<p>Κράτηση: <%= booking.reference %> · <%= booking.first_name %> <%= booking.last_name %><br>
+Ποσό: <%= format.money(refund.amount_cents) %> · Πάροχος: <%= refund.provider %> · Προσπάθειες: <%= refund.attempts %><br>
+Σφάλμα: <%= refund.last_error %></p>
+<p><a href="<%= baseUrl %>/admin/bookings/<%= booking.id %>">Άνοιγμα στη διαχείριση</a></p>
+<%- include('_bottom') %>

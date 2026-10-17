@@ -1,0 +1,45 @@
+<%- include('../partials/header') %>
+<div class="container section">
+  <p><a href="<%= u('/cars') %><%= search.ok ? `?${query}` : '' %>"><%= t('← Πίσω στα αποτελέσματα') %></a></p>
+  <div class="car-detail">
+    <div>
+      <figure class="card car-hero"><img src="<%= car.image || `/img/cars/${car.category}.svg` %>" alt="<%= car.make %> <%= car.model %>">
+        <% if (car.image_credit) { %><figcaption class="photo-credit"><%= t('Φωτογραφία') %>: <% if (car.image_source) { %><a href="<%= car.image_source %>" target="_blank" rel="noopener nofollow"><%= car.image_credit %></a><% } else { %><%= car.image_credit %><% } %></figcaption><% } %>
+      </figure>
+      <div class="card pad">
+        <span class="badge"><%= format.label('category', car.category) %></span>
+        <h1><%= car.make %> <%= car.model %> <span class="muted small">(<%= car.year %>) <%= t('ή παρόμοιο') %></span></h1>
+        <%- include('../partials/car-specs', { car, full: true }) %>
+        <% if (car.description) { %><p><%= tf(car, 'description') %></p><% } %>
+        <h2 class="h4"><%= t('Περιλαμβάνονται στην τιμή') %></h2>
+        <ul class="checklist">
+          <li><%= t(car.mileage_policy) %></li>
+          <li><%= t('Υποχρεωτική ασφάλιση αστικής ευθύνης (έναντι τρίτων)') %></li>
+          <li><%= t('Βασική κάλυψη ζημιών (CDW) — απαλλαγή {amount} (0 € με την Πλήρη Απαλλαγή FDW)', { amount: format.money(car.excess_cents ?? car.deposit_cents) }) %></li>
+          <% if (company.roadsideAssistance) { %><li><%= t('Οδική βοήθεια 24/7') %></li><% } %>
+          <li><%= t('ΦΠΑ {vat}%', { vat: config.rules.vatPercent }) %></li>
+        </ul>
+        <h2 class="h4"><%= t('Απαιτήσεις') %></h2>
+        <ul class="checklist muted">
+          <li><%= t('Ελάχιστη ηλικία οδηγού: {age} ετών', { age: car.min_driver_age }) %></li>
+          <li><%= t('Δίπλωμα οδήγησης τουλάχιστον {years} έτους', { years: config.rules.minLicenseYears }) %></li>
+          <li><%- th('Εγγύηση {amount}: δέσμευση (όχι χρέωση) σε <strong>πιστωτική</strong> κάρτα στο όνομα του κύριου οδηγού — όχι χρεωστική ή προπληρωμένη', { amount: format.money(car.deposit_cents) }) %></li>
+        </ul>
+      </div>
+    </div>
+    <aside class="card pad sticky">
+      <h2 class="h3"><%= t('Τιμή & διαθεσιμότητα') %></h2>
+      <%- include('../partials/search-form', { locations, values: searchValues, errors, stacked: true, action: `/cars/${car.id}`, buttonLabel: 'Έλεγχος διαθεσιμότητας' }) %>
+      <% if (search.ok && available === false) { %>
+        <div class="alert alert-error"><%- th('Το αυτοκίνητο δεν είναι διαθέσιμο για αυτές τις ημερομηνίες. <a href="{url}">Δείτε διαθέσιμα αυτοκίνητα</a>.', { url: u(`/cars?${query}`) }) %></div>
+      <% } else if (quote) { %>
+        <%- include('../booking/_quote', { quote }) %>
+        <%- include('../partials/payment-means') %>
+        <a class="btn btn-primary btn-block" href="<%= u(`/booking/new?car_id=${car.id}`) %>&<%= query %>"><%= t('Συνέχεια στην κράτηση') %></a>
+      <% } else { %>
+        <p class="price"><%- th('από <strong>{price}</strong> / ημέρα', { price: format.money(car.daily_rate_cents) }) %></p>
+      <% } %>
+    </aside>
+  </div>
+</div>
+<%- include('../partials/footer') %>
