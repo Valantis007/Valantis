@@ -146,6 +146,7 @@ module.exports = function publicRoutes(db) {
       vat: money(quote.vatCents),
       deposit: money(quote.depositCents),
       excess: money(quote.excessCents),
+      hasWaiver: quote.hasWaiver,
       totalCents: quote.totalCents,
       extrasCents: quote.extrasCents,
       discountCents: quote.discountCents,

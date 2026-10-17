@@ -51,6 +51,19 @@
 
     var state = { start: parseIso(start.value), end: parseIso(end.value), picking: 'start', view: null };
 
+    // Ημέρες ενοικίασης όπως στην τιμή: 24ωρα από την ώρα παραλαβής, με την ανοχή καθυστέρησης
+    // (π.χ. παραλαβή 10:00 και επιστροφή 12:00 τρεις ημέρες μετά = 4 ημέρες).
+    var grace = Number(form.getAttribute('data-grace-minutes')) || 0;
+    function minutesOf(name) {
+      var select = form.querySelector('[name="' + name + '"]');
+      var m = /^(\d{1,2}):(\d{2})/.exec(select ? select.value : '');
+      return m ? Number(m[1]) * 60 + Number(m[2]) : 0;
+    }
+    function rentalDays() {
+      var minutes = daysBetween(state.start, state.end) * 1440 + minutesOf('return_time') - minutesOf('pickup_time');
+      return Math.max(1, Math.ceil((minutes - grace) / 1440));
+    }
+
     function makeDisplay(input, label) {
       var btn = document.createElement('button');
       btn.type = 'button';
@@ -167,7 +180,7 @@
       foot.className = 'cal-foot';
       var summary = document.createElement('span');
       if (state.start && state.end) {
-        var n = Math.max(daysBetween(state.start, state.end), 1);
+        var n = rentalDays();
         summary.textContent = n === 1 ? texts.oneDay || '' : fill(texts.days, n);
       }
       var close = document.createElement('button');

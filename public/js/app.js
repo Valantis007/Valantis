@@ -72,8 +72,9 @@
             var el = quote.querySelector('[data-q="' + key + '"]');
             if (el) el.textContent = data[key];
           });
-          var excessText = document.querySelector('[data-q="excessText"]');
-          if (excessText && data.excess) excessText.textContent = data.excess;
+          // Η απαλλαγή της βασικής κάλυψης (CDW) δεν αλλάζει· με την FDW εμφανίζεται η σημείωση «0 €».
+          var fdwRow = document.querySelector('[data-q-row="fdw"]');
+          if (fdwRow) fdwRow.classList.toggle('hidden', !data.hasWaiver);
           var discount = quote.querySelector('[data-q="discount"]');
           if (discount && data.discount) discount.textContent = data.discount;
           var extrasRow = quote.querySelector('[data-q-row="extras"]');

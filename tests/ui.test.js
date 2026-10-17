@@ -64,3 +64,28 @@ test('σελίδα κράτησης με πάροχο πληρωμών: δεν �
   assert.match(page.text, /value="card"/);
   assert.doesNotMatch(page.text, /Μόνο εσείς \(διαχειριστής\)/);
 });
+
+test('ενημέρωση πριν την κράτηση: η απαλλαγή της βασικής κάλυψης μένει ίδια, η FDW εμφανίζεται χωριστά', async () => {
+  const { db, app } = h.setup();
+  const fdw = db.prepare("SELECT id FROM extras WHERE kind = 'damage_waiver'").get().id;
+  const car = db.prepare('SELECT * FROM cars WHERE id = 1').get();
+  const excess = (car.excess_cents ?? car.deposit_cents) / 100;
+  const query = new URLSearchParams({ ...h.searchParams(), [`extra_${fdw}`]: '1' });
+
+  const without = await h.request(app).get(`/booking/new?${new URLSearchParams(h.searchParams())}`);
+  assert.match(without.text, new RegExp(`\\(CDW\\) με απαλλαγή <strong data-q="excessText">${excess},00\\s€</strong>`));
+  assert.match(without.text, /<li data-q-row="fdw" class="hidden">/);
+
+  // Η φόρμα ξαναεμφανίζεται (π.χ. με σφάλμα) με επιλεγμένη την FDW.
+  const agent = h.agent(app);
+  const withFdw = await h.post(agent, '/booking', { ...h.searchParams(), ...h.driver({ email: 'λάθος' }), [`extra_${fdw}`]: '1' }, `/booking/new?${new URLSearchParams(h.searchParams())}`);
+  assert.equal(withFdw.status, 422);
+  assert.match(withFdw.text, new RegExp(`\\(CDW\\) με απαλλαγή <strong data-q="excessText">${excess},00\\s€</strong>`), 'όχι «απαλλαγή 0 €» για τη βασική κάλυψη');
+  assert.match(withFdw.text, /<li data-q-row="fdw" class="">/);
+
+  const api = await h.request(app).get(`/en/api/quote?${query}`);
+  assert.equal(api.body.hasWaiver, true);
+  assert.equal(api.body.excess, '€0.00');
+  const en = await h.request(app).get(`/en/booking/new?${query}`);
+  assert.match(en.text, /as you have chosen it, your excess for damage is reduced to €0\.00/);
+});
