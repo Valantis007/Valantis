@@ -74,7 +74,8 @@ module.exports = function bookingRoutes(db) {
       last_name: user ? user.last_name : '',
       email: user ? user.email : '',
       phone: user ? user.phone || '' : '',
-      license_country: req.t('Ελλάδα'),
+      // Στα ελληνικά προτείνεται «Ελλάδα»· στις άλλες γλώσσες ο πελάτης τη συμπληρώνει (συνήθως ξένο δίπλωμα).
+      license_country: req.locale === 'el' ? 'Ελλάδα' : '',
       payment_method: providers.onlineEnabled() ? 'card' : 'pay_at_pickup',
     };
   }

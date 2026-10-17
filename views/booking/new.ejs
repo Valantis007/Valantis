@@ -3,7 +3,7 @@
    function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
    function err(name) { return e[name] ? `<span class="error" id="err-${name}">${esc(t(e[name]))}</span>` : ''; }
    // Προεπιλεγμένη χώρα διπλώματος στη γλώσσα της σελίδας (ό,τι πληκτρολόγησε ο πελάτης μένει ως έχει).
-   const licenseCountry = d.license_country === undefined || d.license_country === null || d.license_country === 'Ελλάδα' ? t('Ελλάδα') : d.license_country;
+   const licenseCountry = d.license_country === 'Ελλάδα' ? t('Ελλάδα') : (d.license_country || '');
    const providerHint = t('Θα μεταφερθείτε στην ασφαλή σελίδα πληρωμής ({provider}). Η κράτηση ολοκληρώνεται με την επιτυχή πληρωμή.', { provider: paymentProviderLabel });
    const pickupHint = t('Η πληρωμή γίνεται κατά την παραλαβή.'); %>
 <div class="container section">
