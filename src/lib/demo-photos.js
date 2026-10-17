@@ -134,7 +134,15 @@ async function addDemoPhotos(db, uploadDir) {
         continue;
       }
       const image = await download(file, uploadDir);
-      db.prepare('UPDATE cars SET image = ?, image_credit = ?, image_source = ? WHERE id = ?').run(image, file.credit, file.source, car.id);
+      // Μόνο αν το αυτοκίνητο έχει ακόμα το γενικό σχέδιο: αν στο μεταξύ ο διαχειριστής ανέβασε δική του
+      // φωτογραφία, αυτή μένει και η ενδεικτική διαγράφεται.
+      const res = db
+        .prepare("UPDATE cars SET image = ?, image_credit = ?, image_source = ? WHERE id = ? AND (image IS NULL OR image LIKE '/img/cars/%')")
+        .run(image, file.credit, file.source, car.id);
+      if (!res.changes) {
+        await fs.rm(path.join(uploadDir, path.basename(image)), { force: true });
+        continue;
+      }
       added.push(label);
     } catch (err) {
       let reason = err.message;

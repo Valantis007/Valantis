@@ -1,7 +1,7 @@
 <%# Παράμετροι: locations, values, errors, compact (προαιρετικό), action (προαιρετικό), buttonLabel (προαιρετικό, ελληνικό κείμενο) %>
 <% const v = values || {}; const e = errors || {}; const slots = time.timeSlots(); %>
 <% const calendarTexts = { pickup: t('Παραλαβή'), return: t('Επιστροφή'), choosePickup: t('Επιλέξτε ημερομηνία παραλαβής'), chooseReturn: t('Επιλέξτε ημερομηνία επιστροφής'), prev: t('Προηγούμενος μήνας'), next: t('Επόμενος μήνας'), done: t('Εντάξει'), calendar: t('Ημερολόγιο'), days: t('{n} ημέρες ενοικίασης'), oneDay: t('1 ημέρα ενοικίασης') }; %>
-<form class="search-form <%= locals.stacked ? 'stacked' : '' %>" method="get" action="<%= u(locals.action || '/cars') %>" data-search-form data-calendar="<%= JSON.stringify(calendarTexts) %>" data-max-advance-days="<%= config.rules.maxAdvanceDays %>" data-grace-minutes="<%= config.rules.graceMinutes %>">
+<form class="search-form <%= locals.stacked ? 'stacked' : '' %>" method="get" action="<%= u(locals.action || '/cars') %>" data-search-form data-calendar="<%= JSON.stringify(calendarTexts) %>" data-max-advance-days="<%= config.rules.maxAdvanceDays %>" data-grace-minutes="<%= config.rules.graceMinutes %>" data-max-rental-days="<%= config.rules.maxRentalDays %>">
   <div class="field">
     <label for="pickup_location"><%= t('Σημείο παραλαβής') %></label>
     <select id="pickup_location" name="pickup_location" required>

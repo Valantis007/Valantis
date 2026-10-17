@@ -121,15 +121,26 @@
 
 // Φίλτρα αποτελεσμάτων: στο κινητό κλειστά (ανοίγουν με πάτημα), και εφαρμόζονται αμέσως μόλις αλλάξουν.
 (function () {
-  if (window.matchMedia('(max-width: 900px)').matches) {
-    document.querySelectorAll('details[data-mobile-collapsed]').forEach(function (box) {
-      // Η αναζήτηση μένει ανοιχτή αν έχει σφάλμα που πρέπει να διορθωθεί.
-      if (!box.querySelector('.error')) box.open = false;
+  var mobile = window.matchMedia('(max-width: 900px)');
+  var boxes = document.querySelectorAll('details[data-mobile-collapsed]');
+  function layout() {
+    boxes.forEach(function (box) {
+      // Σε μεγάλη οθόνη πάντα ανοιχτά (π.χ. tablet που γύρισε οριζόντια)· στο κινητό κλειστά,
+      // εκτός αν η αναζήτηση έχει σφάλμα που πρέπει να διορθωθεί.
+      box.open = !mobile.matches || Boolean(box.querySelector('.error'));
     });
   }
+  layout();
+  if (mobile.addEventListener) mobile.addEventListener('change', layout);
+
   document.querySelectorAll('form[data-autosubmit]').forEach(function (form) {
     form.querySelectorAll('select').forEach(function (select) {
-      select.addEventListener('change', function () { form.submit(); });
+      // Μόνο μετά από επιλογή με ποντίκι/αφή: με τα βέλη του πληκτρολογίου η σελίδα δεν ξαναφορτώνει
+      // σε κάθε βήμα (ο χρήστης πατά «Εφαρμογή»).
+      var pointer = false;
+      select.addEventListener('pointerdown', function () { pointer = true; });
+      select.addEventListener('keydown', function () { pointer = false; });
+      select.addEventListener('change', function () { if (pointer) form.submit(); });
     });
   });
 })();

@@ -108,7 +108,7 @@ function validateDriver(input, car, pickupAt, options) {
 
   const pickupDate = time.datePart(pickupAt);
   if (!time.isValidDate(values.birth_date)) {
-    errors.birth_date = 'Συμπληρώστε την ημερομηνία γέννησης.';
+    errors.birth_date = values.birth_date ? 'Μη έγκυρη ημερομηνία' : 'Συμπληρώστε την ημερομηνία γέννησης.';
   } else {
     const age = time.yearsBetween(values.birth_date, pickupDate);
     if (age < car.min_driver_age) {
@@ -120,7 +120,7 @@ function validateDriver(input, car, pickupAt, options) {
   if (!values.license_number) errors.license_number = 'Συμπληρώστε τον αριθμό διπλώματος.';
   if (!values.license_country) errors.license_country = 'Συμπληρώστε τη χώρα έκδοσης.';
   if (!time.isValidDate(values.license_issued)) {
-    errors.license_issued = 'Συμπληρώστε την ημερομηνία έκδοσης του διπλώματος.';
+    errors.license_issued = values.license_issued ? 'Μη έγκυρη ημερομηνία' : 'Συμπληρώστε την ημερομηνία έκδοσης του διπλώματος.';
   } else if (values.license_issued > pickupDate) {
     errors.license_issued = 'Η ημερομηνία έκδοσης δεν μπορεί να είναι μεταγενέστερη της παραλαβής.';
   } else if (time.yearsBetween(values.license_issued, pickupDate) < config.rules.minLicenseYears) {
