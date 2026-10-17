@@ -5,7 +5,9 @@
    // Προεπιλεγμένη χώρα διπλώματος στη γλώσσα της σελίδας (ό,τι πληκτρολόγησε ο πελάτης μένει ως έχει).
    const licenseCountry = d.license_country === 'Ελλάδα' ? t('Ελλάδα') : (d.license_country || '');
    const providerHint = t('Θα μεταφερθείτε στην ασφαλή σελίδα πληρωμής ({provider}). Η κράτηση ολοκληρώνεται με την επιτυχή πληρωμή.', { provider: paymentProviderLabel });
-   const pickupHint = t('Η πληρωμή γίνεται κατά την παραλαβή.'); %>
+   const pickupHint = t('Η πληρωμή γίνεται κατά την παραλαβή.');
+   // Αριθμοί καρτών που αφαιρέθηκαν από τις σημειώσεις (bookings.maskCardNumbers): η ένδειξη στη γλώσσα της σελίδας.
+   function unmasked(s) { return String(s || '').split('[αφαιρέθηκε]').join(t('[αφαιρέθηκε]')); } %>
 <div class="container section">
   <p><a href="<%= u(`/cars/${car.id}?${query}`) %>">← <%= t('Πίσω') %></a></p>
   <h1><%= t('Ολοκλήρωση κράτησης') %></h1>
@@ -62,11 +64,11 @@
         </div>
         <div class="grid-2">
           <div class="field"><label for="flight_number"><%= t('Αριθμός πτήσης / πλοίου (προαιρετικό)') %></label><input id="flight_number" name="flight_number" value="<%= d.flight_number || '' %>" placeholder="<%= t('π.χ. A3 123') %>"><span class="hint"><%= t('Για να σας περιμένουμε σε περίπτωση καθυστέρησης.') %></span></div>
-          <div class="field"><label for="notes"><%= t('Σημειώσεις / ειδικά αιτήματα (προαιρετικό)') %></label><textarea id="notes" name="notes" rows="2"><%= d.notes || '' %></textarea><span class="hint"><%= t('Μην αναγράφετε πληροφορίες υγείας ή αριθμούς καρτών.') %></span></div>
+          <div class="field"><label for="notes"><%= t('Σημειώσεις / ειδικά αιτήματα (προαιρετικό)') %></label><textarea id="notes" name="notes" rows="2"><%= unmasked(d.notes) %></textarea><span class="hint"><%= t('Μην αναγράφετε πληροφορίες υγείας ή αριθμούς καρτών.') %></span></div>
         </div>
         <div class="field <%= extras.some(function (x) { return x.kind === 'child_seat' && selected[x.id]; }) || e.child_info ? '' : 'hidden' %>" data-child-info>
           <label for="child_info"><%= t('Ηλικία και βάρος παιδιού/παιδιών (για παιδικό κάθισμα)') %></label>
-          <input id="child_info" name="child_info" value="<%= d.child_info || '' %>" placeholder="<%= t('π.χ. 3 ετών, 15 κιλά') %>">
+          <input id="child_info" name="child_info" value="<%= unmasked(d.child_info) %>" placeholder="<%= t('π.χ. 3 ετών, 15 κιλά') %>">
           <span class="hint"><%= t('Υποχρεωτικό αν επιλέξετε παιδικό κάθισμα, ώστε να σας δώσουμε την κατάλληλη κλάση (ECE R44/R129).') %></span>
           <%- err('child_info') %>
         </div>

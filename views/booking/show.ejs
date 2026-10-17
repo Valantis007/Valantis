@@ -49,7 +49,7 @@
             <% charges.forEach(function (c) { %>
               <tr>
                 <td><strong><%= format.label('chargeCategory', c.category) %></strong><br><%= c.description %>
-                  <% if (c.evidence) { %><br><span class="small muted"><%= t('Τεκμηρίωση') %>: <%= c.evidence %></span><% } %></td>
+                  <% if (c.evidence) { %><br><span class="small muted"><%= t('Τεκμηρίωση') %>: <%= String(c.evidence || '').replace(/^Πέραν της απαλλαγής: (.*)$/m, function (m, note) { return t('Πέραν της απαλλαγής: {note}', { note: note }); }) %></span><% } %></td>
                 <td><%= format.money(c.amount_cents) %><% if (c.paid_cents && c.paid_cents < c.amount_cents) { %><br><span class="small muted"><%= t('εξοφλήθηκαν {amount}', { amount: format.money(c.paid_cents) }) %></span><% } %></td>
                 <td><%= format.label('chargeStatus', c.status) %></td>
               </tr>

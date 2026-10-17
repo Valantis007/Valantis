@@ -3,7 +3,7 @@
 <p><%- th('Κατά τον έλεγχο του αυτοκινήτου μετά την επιστροφή (κράτηση <strong>{ref}</strong>) καταγράψαμε την παρακάτω χρέωση, που χρειάζεται την αποδοχή σας:', { ref: booking.reference }) %></p>
 <table role="presentation" width="100%" cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-size:14px;margin:12px 0;">
   <tr><td style="color:#6b7280;width:35%;"><%= t('Περιγραφή') %></td><td><%= charge.description %></td></tr>
-  <tr><td style="color:#6b7280;"><%= t('Τεκμηρίωση') %></td><td><%= charge.evidence %></td></tr>
+  <tr><td style="color:#6b7280;"><%= t('Τεκμηρίωση') %></td><td><%= String(charge.evidence || '').replace(/^Πέραν της απαλλαγής: (.*)$/m, function (m, note) { return t('Πέραν της απαλλαγής: {note}', { note: note }); }) %></td></tr>
   <tr><td style="color:#6b7280;"><%= t('Ποσό') %></td><td><strong><%= format.money(charge.amount_cents) %></strong></td></tr>
   <tr><td style="color:#6b7280;"><%= t('Απάντηση έως') %></td><td><%= format.date(charge.respond_by) %></td></tr>
 </table>

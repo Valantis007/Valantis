@@ -109,7 +109,9 @@ module.exports = function accountRoutes(db) {
     const messages = db
       .prepare('SELECT name, email, phone, subject, body, kind, booking_reference, created_at FROM messages WHERE user_id = ?')
       .all(user.id);
-    res.set('Content-Disposition', `attachment; filename="ta-dedomena-mou-${new Date().toISOString().slice(0, 10)}.json"`);
+    // Όνομα αρχείου στη γλώσσα της σελίδας.
+    const fileName = { en: 'my-data', es: 'mis-datos' }[req.locale] || 'ta-dedomena-mou';
+    res.set('Content-Disposition', `attachment; filename="${fileName}-${new Date().toISOString().slice(0, 10)}.json"`);
     res.type('application/json').send(JSON.stringify({ exportedAt: new Date().toISOString(), account: user, bookings: bookingsOut, messages }, null, 2));
   });
 

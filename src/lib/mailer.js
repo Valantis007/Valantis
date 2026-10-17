@@ -114,15 +114,24 @@ async function flush() {
   while (pending.size) await Promise.allSettled([...pending]);
 }
 
+// Ονόματα των συνημμένων με τους όρους στη γλώσσα του email ({v}: έκδοση των όρων).
+const TERMS_FILES = {
+  en: { translation: 'rental-terms-{v}-en.html', original: 'rental-terms-{v}-greek-original.html' },
+  es: { translation: 'condiciones-de-alquiler-{v}-es.html', original: 'condiciones-de-alquiler-{v}-original-griego.html' },
+};
+
 // Οι όροι ενοικίασης ως συνημμένο (σταθερό μέσο - ν. 2251/1994 άρθ. 3δ). Σε άλλη γλώσσα
 // επισυνάπτεται η μετάφραση ΚΑΙ το ελληνικό κείμενο, που υπερισχύει.
 async function termsAttachments(locale = i18n.DEFAULT_LOCALE) {
   const files = [];
   const greek = await render('terms-document', {}, i18n.DEFAULT_LOCALE);
-  files.push({ filename: `oroi-enoikiasis-${config.termsVersion}.html`, content: greek, contentType: 'text/html; charset=utf-8' });
-  if (i18n.isLocale(locale) && locale !== i18n.DEFAULT_LOCALE) {
+  const foreign = i18n.isLocale(locale) && locale !== i18n.DEFAULT_LOCALE;
+  const names = foreign ? TERMS_FILES[locale] || { ...TERMS_FILES.en, translation: `rental-terms-{v}-${locale}.html` } : null;
+  const name = (pattern) => pattern.replace('{v}', config.termsVersion);
+  files.push({ filename: names ? name(names.original) : `oroi-enoikiasis-${config.termsVersion}.html`, content: greek, contentType: 'text/html; charset=utf-8' });
+  if (names) {
     const translated = await render('terms-document', {}, locale);
-    files.unshift({ filename: `rental-terms-${config.termsVersion}-${locale}.html`, content: translated, contentType: 'text/html; charset=utf-8' });
+    files.unshift({ filename: name(names.translation), content: translated, contentType: 'text/html; charset=utf-8' });
   }
   return files;
 }

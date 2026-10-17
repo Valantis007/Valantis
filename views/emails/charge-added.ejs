@@ -4,7 +4,7 @@
 <table role="presentation" width="100%" cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-size:14px;margin:12px 0;">
   <tr><td style="color:#6b7280;width:35%;"><%= t('Κατηγορία') %></td><td><%= format.label('chargeCategory', charge.category) %></td></tr>
   <tr><td style="color:#6b7280;"><%= t('Περιγραφή') %></td><td><%= charge.description %></td></tr>
-  <% if (charge.evidence) { %><tr><td style="color:#6b7280;"><%= t('Τεκμηρίωση') %></td><td><%= charge.evidence %></td></tr><% } %>
+  <% if (charge.evidence) { %><tr><td style="color:#6b7280;"><%= t('Τεκμηρίωση') %></td><td><%= String(charge.evidence || '').replace(/^Πέραν της απαλλαγής: (.*)$/m, function (m, note) { return t('Πέραν της απαλλαγής: {note}', { note: note }); }) %></td></tr><% } %>
   <tr><td style="color:#6b7280;"><%= t('Ποσό') %></td><td><strong><%= format.money(charge.amount_cents) %></strong></td></tr>
   <% if (['damage', 'other'].includes(charge.category) && charge.consent) { const written = /^Γραπτή συναίνεση πελάτη: ([\s\S]*)$/.exec(charge.consent); %><tr><td style="color:#6b7280;"><%= t('Συναίνεση') %></td><td><%= written ? t('Γραπτή συναίνεση πελάτη: {note}', { note: written[1] }) : t(charge.consent) %></td></tr><% } %>
 </table>
