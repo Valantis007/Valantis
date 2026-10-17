@@ -32,7 +32,7 @@
         <div class="field"><label for="description_es">Περιγραφή (Español)</label><textarea id="description_es" name="description_es" rows="2"><%= v.description_es || '' %></textarea></div>
       </div>
       <div class="field"><label for="image">Φωτογραφία (JPG/PNG/WEBP, έως 5MB)</label><input id="image" name="image" type="file" accept="image/jpeg,image/png,image/webp">
-        <% if (car && car.image) { %><img src="<%= car.image %>" alt="" class="thumb"><% } %></div>
+        <% if (car && car.image) { %><img src="<%= car.image %>" alt="" class="thumb"><% } %><% if (car && car.image_credit) { %><span class="small muted">Ενδεικτική φωτογραφία: <%= car.image_credit %></span><% } %></div>
       <label class="check"><input type="checkbox" name="air_conditioning" value="1" <%= v.air_conditioning ? 'checked' : '' %>><span>Κλιματισμός</span></label>
       <label class="check"><input type="checkbox" name="active" value="1" <%= v.active ? 'checked' : '' %>><span>Ενεργό (εμφανίζεται και κλείνεται online)</span></label>
       <button class="btn btn-primary" type="submit">Αποθήκευση</button>

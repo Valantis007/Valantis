@@ -13,6 +13,7 @@
     "seed": "node --disable-warning=ExperimentalWarning src/db/seed.js",
     "create-admin": "node --disable-warning=ExperimentalWarning src/db/create-admin.js",
     "revolut:webhook": "node --disable-warning=ExperimentalWarning src/db/revolut-webhook.js",
+    "demo-photos": "node --disable-warning=ExperimentalWarning src/db/demo-photos.js",
     "clear-test-data": "node --disable-warning=ExperimentalWarning src/db/clear-test-data.js",
     "test": "node --disable-warning=ExperimentalWarning --test --test-concurrency=1 \"tests/**/*.test.js\""
   },

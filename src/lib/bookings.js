@@ -8,7 +8,7 @@ const { isCarAvailable } = require('./availability');
 const { transaction } = require('../db');
 const { str, isEmail, isPhone, intOrNull, checkbox } = require('./validation');
 const mailer = require('./mailer');
-const { Msg } = require('./i18n');
+const { Msg, msg } = require('./i18n');
 
 const REF_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
@@ -112,7 +112,7 @@ function validateDriver(input, car, pickupAt, options) {
   } else {
     const age = time.yearsBetween(values.birth_date, pickupDate);
     if (age < car.min_driver_age) {
-      errors.birth_date = `Για αυτό το αυτοκίνητο ο οδηγός πρέπει να είναι τουλάχιστον ${car.min_driver_age} ετών κατά την παραλαβή.`;
+      errors.birth_date = msg('Για αυτό το αυτοκίνητο ο οδηγός πρέπει να είναι τουλάχιστον {age} ετών κατά την παραλαβή.', { age: car.min_driver_age });
     } else if (age > 100) {
       errors.birth_date = 'Ελέγξτε την ημερομηνία γέννησης.';
     }
@@ -124,7 +124,8 @@ function validateDriver(input, car, pickupAt, options) {
   } else if (values.license_issued > pickupDate) {
     errors.license_issued = 'Η ημερομηνία έκδοσης δεν μπορεί να είναι μεταγενέστερη της παραλαβής.';
   } else if (time.yearsBetween(values.license_issued, pickupDate) < config.rules.minLicenseYears) {
-    errors.license_issued = `Απαιτείται δίπλωμα τουλάχιστον ${config.rules.minLicenseYears} έτους.`;
+    const years = config.rules.minLicenseYears;
+    errors.license_issued = msg(years === 1 ? 'Απαιτείται δίπλωμα τουλάχιστον {years} έτους.' : 'Απαιτείται δίπλωμα τουλάχιστον {years} ετών.', { years });
   }
   if (
     !errors.license_issued &&

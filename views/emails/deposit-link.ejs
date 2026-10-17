@@ -1,7 +1,7 @@
 <%- include('_top') %>
-<p>Αγαπητέ/ή <%= booking.first_name %>,</p>
-<p>Για την παραλαβή του αυτοκινήτου (κράτηση <strong><%= booking.reference %></strong>, <%= format.dateTime(booking.pickup_at) %>) απαιτείται εγγύηση <strong><%= format.money(deposit.amount_cents) %></strong>.</p>
-<p>Η εγγύηση είναι <strong>δέσμευση ποσού, όχι χρέωση</strong>, σε <strong>πιστωτική κάρτα</strong> στο όνομα του οδηγού, και αποδεσμεύεται μετά την επιστροφή του αυτοκινήτου.</p>
-<p><a href="<%= url %>" style="display:inline-block;background:#0b5cad;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none;">Έγκριση εγγύησης</a></p>
-<p style="color:#6b7280;font-size:13px;">Ο σύνδεσμος μπορεί να χρησιμοποιηθεί από <%= format.dateTime(window.opensAt) %> έως την επιστροφή του αυτοκινήτου.</p>
+<p><%= t('Αγαπητέ/ή {name},', { name: booking.first_name }) %></p>
+<p><%- th('Για την παραλαβή του αυτοκινήτου (κράτηση <strong>{ref}</strong>, {pickup}) απαιτείται εγγύηση <strong>{amount}</strong>.', { ref: booking.reference, pickup: format.dateTime(booking.pickup_at), amount: format.money(deposit.amount_cents) }) %></p>
+<p><%- th('Η εγγύηση είναι <strong>δέσμευση ποσού, όχι χρέωση</strong>, σε <strong>πιστωτική κάρτα</strong> στο όνομα του οδηγού, και αποδεσμεύεται μετά την επιστροφή του αυτοκινήτου.') %></p>
+<p><a href="<%= url %>" style="display:inline-block;background:#0b5cad;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none;"><%= t('Έγκριση εγγύησης') %></a></p>
+<p style="color:#6b7280;font-size:13px;"><%= t('Ο σύνδεσμος μπορεί να χρησιμοποιηθεί από {from} έως την επιστροφή του αυτοκινήτου.', { from: format.dateTime(window.opensAt) }) %></p>
 <%- include('_bottom') %>

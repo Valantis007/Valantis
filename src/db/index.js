@@ -434,6 +434,17 @@ const MIGRATIONS = [
   UPDATE cars SET description_en = 'A convertible for summer drives.', description_es = 'Un descapotable para los paseos de verano.' WHERE description = 'Ανοιχτό αυτοκίνητο για τις καλοκαιρινές βόλτες.' AND description_en IS NULL;
 
   `,
+
+  // 8: Μετάφραση της ενδεικτικής διεύθυνσης του γραφείου (αν δεν έχει αλλάξει).
+  `
+  UPDATE locations SET address_en = 'Street 1, City centre', address_es = 'Calle 1, Centro'
+    WHERE address = 'Οδός 1, Κέντρο' AND address_en IS NULL;
+  `,
+  // 9: Αναφορά δημιουργού για φωτογραφίες τρίτων (π.χ. ενδεικτικές από το Wikimedia Commons).
+  `
+  ALTER TABLE cars ADD COLUMN image_credit TEXT;
+  ALTER TABLE cars ADD COLUMN image_source TEXT;
+  `,
 ];
 
 function migrate(db) {

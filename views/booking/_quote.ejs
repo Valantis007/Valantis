@@ -1,10 +1,10 @@
 <dl class="quote" data-quote>
-  <div><dt>Ενοικίαση (<span data-q="days"><%= quote.days %></span> <%= quote.days === 1 ? 'ημέρα' : 'ημέρες' %>)</dt><dd data-q="base"><%= format.money(quote.baseCents) %></dd></div>
-  <div class="<%= quote.discountCents ? '' : 'hidden' %>" data-q-row="discount"><dt>Έκπτωση διάρκειας (<span data-q="discountPercent"><%= quote.discountPercent %></span>%)</dt><dd class="success" data-q="discount">-<%= format.money(quote.discountCents) %></dd></div>
-  <% quote.feeLines.forEach(function (f) { %><div><dt><%= f.name %></dt><dd><%= format.money(f.cents) %></dd></div><% }) %>
-  <div class="<%= quote.extrasCents ? '' : 'hidden' %>" data-q-row="extras"><dt>Πρόσθετα</dt><dd data-q="extras"><%= format.money(quote.extrasCents) %></dd></div>
-  <div class="total-row"><dt>Σύνολο</dt><dd data-q="total"><%= format.money(quote.totalCents) %></dd></div>
-  <div class="small muted"><dt>Περιλαμβάνεται ΦΠΑ</dt><dd data-q="vat"><%= format.money(quote.vatCents) %></dd></div>
-  <div class="small muted"><dt>Απαλλαγή (συμμετοχή σε ζημιές)</dt><dd data-q="excess"><%= format.money(quote.excessCents) %></dd></div>
-  <div class="small muted"><dt>Εγγύηση (δέσμευση σε πιστωτική κάρτα — όχι χρέωση)</dt><dd><%= format.money(quote.depositCents) %></dd></div>
+  <div><dt><%- quote.days === 1 ? th('Ενοικίαση (<span data-q="days">{days}</span> ημέρα)', { days: quote.days }) : th('Ενοικίαση (<span data-q="days">{days}</span> ημέρες)', { days: quote.days }) %></dt><dd data-q="base"><%= format.money(quote.baseCents) %></dd></div>
+  <div class="<%= quote.discountCents ? '' : 'hidden' %>" data-q-row="discount"><dt><%- th('Έκπτωση διάρκειας (<span data-q="discountPercent">{percent}</span>%)', { percent: quote.discountPercent }) %></dt><dd class="success" data-q="discount">-<%= format.money(quote.discountCents) %></dd></div>
+  <% quote.feeLines.forEach(function (f) { %><div><dt><%= f.location ? t('Χρέωση σημείου ({name})', { name: tf(f.location, 'name') }) : t(f.name) %></dt><dd><%= format.money(f.cents) %></dd></div><% }) %>
+  <div class="<%= quote.extrasCents ? '' : 'hidden' %>" data-q-row="extras"><dt><%= t('Πρόσθετα') %></dt><dd data-q="extras"><%= format.money(quote.extrasCents) %></dd></div>
+  <div class="total-row"><dt><%= t('Σύνολο') %></dt><dd data-q="total"><%= format.money(quote.totalCents) %></dd></div>
+  <div class="small muted"><dt><%= t('Περιλαμβάνεται ΦΠΑ') %></dt><dd data-q="vat"><%= format.money(quote.vatCents) %></dd></div>
+  <div class="small muted"><dt><%= t('Απαλλαγή (συμμετοχή σε ζημιές)') %></dt><dd data-q="excess"><%= format.money(quote.excessCents) %></dd></div>
+  <div class="small muted"><dt><%= t('Εγγύηση (δέσμευση σε πιστωτική κάρτα — όχι χρέωση)') %></dt><dd><%= format.money(quote.depositCents) %></dd></div>
 </dl>

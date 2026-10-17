@@ -214,7 +214,7 @@ function sendLinkEmail(db, bookingId, depositId, url) {
   const deposit = getDeposit(db, depositId);
   mailer.sendInBackground({
     to: booking.email,
-    subject: `Εγγύηση για την κράτηση ${booking.reference}`,
+    subject: i18n.msg('Εγγύηση για την κράτηση {ref}', { ref: booking.reference }),
     template: 'deposit-link',
     data: { booking, deposit, url, window: holdWindow(booking) },
   });
@@ -239,7 +239,7 @@ async function startOnlineHold(db, token) {
   const window = holdWindow(booking);
   if (!window.open) {
     throw new BookingError(
-      `Η δέσμευση της εγγύησης γίνεται από ${format.dateTime(window.opensAt)} έως την επιστροφή του αυτοκινήτου.`,
+      i18n.msg('Η δέσμευση της εγγύησης γίνεται από {from} έως την επιστροφή του αυτοκινήτου.', { from: format.dateTime(window.opensAt) }),
     );
   }
   const provider = providers.get(deposit.method);
@@ -257,7 +257,7 @@ async function startOnlineHold(db, token) {
     booking,
     refId: deposit.id,
     amountCents: deposit.amount_cents,
-    description: 'Εγγύηση ενοικίασης - δέσμευση ποσού (όχι χρέωση)',
+    description: i18n.t(booking.locale, 'Εγγύηση ενοικίασης - δέσμευση ποσού (όχι χρέωση)'),
     expiresAtMs: Date.now() + 60 * 60 * 1000,
     successUrl: `${i18n.siteUrl(booking.locale)}/deposit/${token}/return`,
     cancelUrl: `${i18n.siteUrl(booking.locale)}/deposit/${token}`,
@@ -323,7 +323,7 @@ async function syncFromCheckout(db, row, state, { actor = 'system' } = {}) {
       const booking = bookings.getById(db, row.booking_id);
       mailer.sendInBackground({
         to: booking.email,
-        subject: `Δέσμευση εγγύησης - κράτηση ${booking.reference}`,
+        subject: i18n.msg('Δέσμευση εγγύησης - κράτηση {ref}', { ref: booking.reference }),
         template: 'deposit-held',
         data: { booking, deposit: getDeposit(db, decision.depositId) },
       });
@@ -454,7 +454,7 @@ function addCharge(db, bookingId, { category, description, amountCents, evidence
   // Ο πελάτης ενημερώνεται αναλυτικά για κάθε χρέωση: για αποδοχή ή για ενημέρωση.
   mailer.sendInBackground({
     to: booking.email,
-    subject: charge.status === 'proposed' ? `Χρέωση για αποδοχή - κράτηση ${booking.reference}` : `Χρέωση μετά την επιστροφή - κράτηση ${booking.reference}`,
+    subject: i18n.msg(charge.status === 'proposed' ? 'Χρέωση για αποδοχή - κράτηση {ref}' : 'Χρέωση μετά την επιστροφή - κράτηση {ref}', { ref: booking.reference }),
     template: charge.status === 'proposed' ? 'charge-notice' : 'charge-added',
     data: { booking, charge },
   });
@@ -656,7 +656,7 @@ async function settleDeposit(db, depositId, { actor, force = false, posConfirmed
   const releasedCents = Math.max(dep.amount_cents - capturedCents, 0);
   mailer.sendInBackground({
     to: booking.email,
-    subject: `Εγγύηση κράτησης ${booking.reference}: ${capturedCents > 0 ? 'εκκαθάριση' : 'αποδέσμευση'}`,
+    subject: i18n.msg(capturedCents > 0 ? 'Εγγύηση κράτησης {ref}: εκκαθάριση' : 'Εγγύηση κράτησης {ref}: αποδέσμευση', { ref: booking.reference }),
     template: 'deposit-settled',
     data: {
       booking,

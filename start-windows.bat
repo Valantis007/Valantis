@@ -17,6 +17,11 @@ if not exist node_modules (
   if errorlevel 1 ( pause & exit /b 1 )
 )
 
+if not exist .env (
+  copy .env.local.example .env >nul
+  echo Δημιουργήθηκε το αρχείο ρυθμίσεων .env ^(για δοκιμαστικές πληρωμές βάλτε εκεί το κλειδί του Stripe^).
+)
+
 if exist data\app.db goto run
 echo Δημιουργία βάσης με ενδεικτικά αυτοκίνητα...
 call npm run seed

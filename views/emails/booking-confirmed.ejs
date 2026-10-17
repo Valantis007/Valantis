@@ -1,17 +1,17 @@
 <%- include('_top') %>
-<p>Αγαπητέ/ή <%= booking.first_name %>,</p>
-<p>Σας ευχαριστούμε! Η κράτησή σας <strong>επιβεβαιώθηκε</strong>.</p>
+<p><%= t('Αγαπητέ/ή {name},', { name: booking.first_name }) %></p>
+<p><%- th('Σας ευχαριστούμε! Η κράτησή σας <strong>επιβεβαιώθηκε</strong>.') %></p>
 <%- include('_booking-table', { booking, extras }) %>
-<p><strong>Τι να έχετε μαζί σας στην παραλαβή:</strong></p>
+<p><strong><%= t('Τι να έχετε μαζί σας στην παραλαβή:') %></strong></p>
 <ul>
-  <li>Δίπλωμα οδήγησης (και Διεθνή Άδεια για διπλώματα εκτός ΕΕ)</li>
-  <li>Ταυτότητα ή διαβατήριο</li>
-  <li>Πιστωτική κάρτα στο όνομα του οδηγού για την εγγύηση</li>
+  <li><%= t('Δίπλωμα οδήγησης (και Διεθνή Άδεια για διπλώματα εκτός ΕΕ)') %></li>
+  <li><%= t('Ταυτότητα ή διαβατήριο') %></li>
+  <li><%= t('Πιστωτική κάρτα στο όνομα του οδηγού για την εγγύηση') %></li>
 </ul>
-<p><strong>Ακύρωση:</strong> Δεν υφίσταται δικαίωμα υπαναχώρησης 14 ημερών (ενοικίαση για συγκεκριμένες ημερομηνίες). Δωρεάν ακύρωση έως <%= config.rules.freeCancellationHours %> ώρες πριν την παραλαβή<% if (booking.late_cancel_fee_cents) { %>· μετά, ή σε μη εμφάνιση, παρακρατείται <%= format.money(booking.late_cancel_fee_cents) %> από ό,τι έχετε προπληρώσει (αν πληρώνετε στην παραλαβή, δεν οφείλεται χρέωση)<% } %>.
-Για να δείτε ή να ακυρώσετε την κράτηση: <a href="<%= baseUrl %>/manage"><%= baseUrl %>/manage</a> με τον κωδικό <strong><%= booking.reference %></strong> και το email σας.</p>
-<p><strong>Εγγύηση:</strong> δεσμεύεται στο γραφείο μας κατά την παραλαβή με πιστωτική κάρτα στο όνομα του κύριου οδηγού, ή online αν σας στείλουμε σύνδεσμο (ενεργοποιείται <%= config.deposits.linkOpensHoursBeforePickup %> ώρες πριν την παραλαβή).</p>
-<p><strong>Παράπονα:</strong> <%= company.email %><% if (company.phone) { %> · <%= company.phone %><% } %>. Εξωδικαστική επίλυση: Συνήγορος του Καταναλωτή (www.synigoroskatanaloti.gr).</p>
-<% if (locals.termsAttached) { %><p>Επισυνάπτονται οι όροι ενοικίασης (έκδοση <%= booking.terms_version || config.termsVersion %>) που αποδεχθήκατε.</p><% } else { %><p>Οι όροι ενοικίασης (έκδοση <%= booking.terms_version || config.termsVersion %>) που αποδεχθήκατε: <a href="<%= baseUrl %>/terms"><%= baseUrl %>/terms</a></p><% } %>
-<p>Καλό ταξίδι!<br><%= company.name %></p>
+<p><strong><%= t('Ακύρωση:') %></strong> <%= t('Δεν υφίσταται δικαίωμα υπαναχώρησης 14 ημερών (ενοικίαση για συγκεκριμένες ημερομηνίες).') %> <% if (booking.late_cancel_fee_cents) { %><%= t('Δωρεάν ακύρωση έως {hours} ώρες πριν την παραλαβή· μετά, ή σε μη εμφάνιση, παρακρατείται {fee} από ό,τι έχετε προπληρώσει (αν πληρώνετε στην παραλαβή, δεν οφείλεται χρέωση).', { hours: config.rules.freeCancellationHours, fee: format.money(booking.late_cancel_fee_cents) }) %><% } else { %><%= t('Δωρεάν ακύρωση έως {hours} ώρες πριν την παραλαβή.', { hours: config.rules.freeCancellationHours }) %><% } %>
+<%- th('Για να δείτε ή να ακυρώσετε την κράτηση: <a href="{url}">{url}</a> με τον κωδικό <strong>{ref}</strong> και το email σας.', { url: `${baseUrl}/manage`, ref: booking.reference }) %></p>
+<p><%- th('<strong>Εγγύηση:</strong> δεσμεύεται στο γραφείο μας κατά την παραλαβή με πιστωτική κάρτα στο όνομα του κύριου οδηγού, ή online αν σας στείλουμε σύνδεσμο (ενεργοποιείται {hours} ώρες πριν την παραλαβή).', { hours: config.deposits.linkOpensHoursBeforePickup }) %></p>
+<p><strong><%= t('Παράπονα:') %></strong> <%= company.email %><% if (company.phone) { %> · <%= company.phone %><% } %>. <%= t('Εξωδικαστική επίλυση: Συνήγορος του Καταναλωτή (www.synigoroskatanaloti.gr).') %></p>
+<% if (locals.termsAttached) { %><p><%= t('Επισυνάπτονται οι όροι ενοικίασης (έκδοση {version}) που αποδεχθήκατε.', { version: booking.terms_version || config.termsVersion }) %></p><% } else { %><p><%- th('Οι όροι ενοικίασης (έκδοση {version}) που αποδεχθήκατε: <a href="{url}">{url}</a>', { version: booking.terms_version || config.termsVersion, url: `${baseUrl}/terms` }) %></p><% } %>
+<p><%= t('Καλό ταξίδι!') %><br><%= company.name %></p>
 <%- include('_bottom') %>

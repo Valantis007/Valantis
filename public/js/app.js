@@ -62,7 +62,9 @@
       });
       if (pending) pending.abort();
       pending = new AbortController();
-      fetch('/api/quote?' + params.toString(), { signal: pending.signal, headers: { Accept: 'application/json' } })
+      // Ίδια γλώσσα με τη σελίδα (/en, /es ή χωρίς πρόθεμα για τα ελληνικά), ώστε τα ποσά να έρχονται στη σωστή μορφή.
+      var prefix = document.documentElement.getAttribute('data-lang-prefix') || '';
+      fetch(prefix + '/api/quote?' + params.toString(), { signal: pending.signal, headers: { Accept: 'application/json' } })
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (data) {
           if (!data || !quote) return;
@@ -86,7 +88,8 @@
       el.addEventListener('change', refreshQuote);
     });
 
-    // Το κουμπί γράφει ΠΑΝΤΑ «Κράτηση με υποχρέωση πληρωμής» (νόμος)· αλλάζει μόνο η σημείωση.
+    // Το κουμπί γράφει ΠΑΝΤΑ «Κράτηση με υποχρέωση πληρωμής» (νόμος, σε κάθε γλώσσα)· αλλάζει μόνο η σημείωση.
+    // Τα κείμενα έρχονται από τη σελίδα (data-hint-*), ήδη μεταφρασμένα.
     var hint = bookingForm.querySelector('[data-submit-hint]');
     bookingForm.querySelectorAll('[name="payment_method"]').forEach(function (el) {
       el.addEventListener('change', function () {
@@ -113,4 +116,19 @@
       if (field) field.scrollIntoView({ block: 'center' });
     }
   }
+})();
+
+// Φίλτρα αποτελεσμάτων: στο κινητό κλειστά (ανοίγουν με πάτημα), και εφαρμόζονται αμέσως μόλις αλλάξουν.
+(function () {
+  if (window.matchMedia('(max-width: 900px)').matches) {
+    document.querySelectorAll('details[data-mobile-collapsed]').forEach(function (box) {
+      // Η αναζήτηση μένει ανοιχτή αν έχει σφάλμα που πρέπει να διορθωθεί.
+      if (!box.querySelector('.error')) box.open = false;
+    });
+  }
+  document.querySelectorAll('form[data-autosubmit]').forEach(function (form) {
+    form.querySelectorAll('select').forEach(function (select) {
+      select.addEventListener('change', function () { form.submit(); });
+    });
+  });
 })();

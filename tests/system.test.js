@@ -87,3 +87,26 @@ test('διαγραφή δοκιμαστικών δεδομένων: φεύγου
   assert.equal(db.prepare('SELECT COUNT(*) n FROM cars').get().n, cars);
   assert.equal(db.prepare('PRAGMA foreign_key_check').all().length, 0);
 });
+
+test('προεπισκόπηση emails: το email επιβεβαίωσης φαίνεται στη διαχείριση, στη γλώσσα του πελάτη, απομονωμένο', async () => {
+  const { db, app } = h.setup();
+  const customer = h.agent(app);
+  const search = new URLSearchParams(h.searchParams()).toString();
+  const booked = await h.post(customer, '/en/booking', { ...h.searchParams(), ...h.driver({ first_name: 'John', last_name: 'Smith', email: 'john@example.com', license_country: 'United Kingdom' }) }, `/en/booking/new?${search}`);
+  assert.equal(booked.status, 303);
+  await h.mailer.flush();
+
+  const aa = await adminAgent(app, db);
+  const page = await aa.get('/admin/system');
+  const link = /href="(\/admin\/system\/emails\/\d+)"[^>]*>Προβολή<\/a><br><span class="muted">\+ ([^<]+)</.exec(page.text);
+  assert.ok(link, 'σύνδεσμος προβολής με τα συνημμένα');
+  assert.match(link[2], /\.pdf|\.html/);
+  const preview = await aa.get(link[1]);
+  assert.equal(preview.status, 200);
+  assert.match(preview.headers['content-security-policy'], /sandbox/);
+  assert.match(preview.text, /<html/);
+  assert.match(preview.text, /Booking|booking/);
+
+  assert.equal((await aa.get('/admin/system/emails/999999')).status, 404);
+  assert.notEqual((await customer.get(link[1])).status, 200, 'μόνο για διαχειριστές');
+});

@@ -1,14 +1,14 @@
 <%- include('_top') %>
-<p>Αγαπητέ/ή <%= booking.first_name %>,</p>
-<p>Μετά την επιστροφή του αυτοκινήτου (κράτηση <strong><%= booking.reference %></strong>) καταχωρήθηκε η παρακάτω χρέωση, <%= ['damage', 'other'].includes(charge.category) ? 'σύμφωνα με τη γραπτή συναίνεσή σας' : 'σύμφωνα με τον τιμοκατάλογο των όρων ενοικίασης που αποδεχθήκατε' %>:</p>
+<p><%= t('Αγαπητέ/ή {name},', { name: booking.first_name }) %></p>
+<% if (['damage', 'other'].includes(charge.category)) { %><p><%- th('Μετά την επιστροφή του αυτοκινήτου (κράτηση <strong>{ref}</strong>) καταχωρήθηκε η παρακάτω χρέωση, σύμφωνα με τη γραπτή συναίνεσή σας:', { ref: booking.reference }) %></p><% } else { %><p><%- th('Μετά την επιστροφή του αυτοκινήτου (κράτηση <strong>{ref}</strong>) καταχωρήθηκε η παρακάτω χρέωση, σύμφωνα με τον τιμοκατάλογο των όρων ενοικίασης που αποδεχθήκατε:', { ref: booking.reference }) %></p><% } %>
 <table role="presentation" width="100%" cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-size:14px;margin:12px 0;">
-  <tr><td style="color:#6b7280;width:35%;">Κατηγορία</td><td><%= format.label('chargeCategory', charge.category) %></td></tr>
-  <tr><td style="color:#6b7280;">Περιγραφή</td><td><%= charge.description %></td></tr>
-  <% if (charge.evidence) { %><tr><td style="color:#6b7280;">Τεκμηρίωση</td><td><%= charge.evidence %></td></tr><% } %>
-  <tr><td style="color:#6b7280;">Ποσό</td><td><strong><%= format.money(charge.amount_cents) %></strong></td></tr>
-  <% if (['damage', 'other'].includes(charge.category) && charge.consent) { %><tr><td style="color:#6b7280;">Συναίνεση</td><td><%= charge.consent %></td></tr><% } %>
+  <tr><td style="color:#6b7280;width:35%;"><%= t('Κατηγορία') %></td><td><%= format.label('chargeCategory', charge.category) %></td></tr>
+  <tr><td style="color:#6b7280;"><%= t('Περιγραφή') %></td><td><%= charge.description %></td></tr>
+  <% if (charge.evidence) { %><tr><td style="color:#6b7280;"><%= t('Τεκμηρίωση') %></td><td><%= charge.evidence %></td></tr><% } %>
+  <tr><td style="color:#6b7280;"><%= t('Ποσό') %></td><td><strong><%= format.money(charge.amount_cents) %></strong></td></tr>
+  <% if (['damage', 'other'].includes(charge.category) && charge.consent) { const written = /^Γραπτή συναίνεση πελάτη: ([\s\S]*)$/.exec(charge.consent); %><tr><td style="color:#6b7280;"><%= t('Συναίνεση') %></td><td><%= written ? t('Γραπτή συναίνεση πελάτη: {note}', { note: written[1] }) : t(charge.consent) %></td></tr><% } %>
 </table>
-<p>Το ποσό θα αφαιρεθεί από την εγγύηση (αν έχει δεσμευτεί) και το υπόλοιπο θα αποδεσμευτεί· θα λάβετε ξεχωριστό email με την εκκαθάριση. <% if (!['damage', 'other'].includes(charge.category)) { %>Ο τιμοκατάλογος: <a href="<%= baseUrl %>/terms#tariff"><%= baseUrl %>/terms#tariff</a>.<% } %></p>
-<p>Αν διαφωνείτε με τη χρέωση, απαντήστε σε αυτό το email ή γράψτε μας από τη <a href="<%= baseUrl %>/contact">φόρμα επικοινωνίας</a> (επιλέξτε «Αμφισβήτηση χρέωσης»).</p>
+<p><%= t('Το ποσό θα αφαιρεθεί από την εγγύηση (αν έχει δεσμευτεί) και το υπόλοιπο θα αποδεσμευτεί· θα λάβετε ξεχωριστό email με την εκκαθάριση.') %> <% if (!['damage', 'other'].includes(charge.category)) { %><%- th('Ο τιμοκατάλογος: <a href="{url}">{url}</a>.', { url: `${baseUrl}/terms#tariff` }) %><% } %></p>
+<p><%- th('Αν διαφωνείτε με τη χρέωση, απαντήστε σε αυτό το email ή γράψτε μας από τη <a href="{url}">φόρμα επικοινωνίας</a> (επιλέξτε «Αμφισβήτηση χρέωσης»).', { url: `${baseUrl}/contact` }) %></p>
 <p><%= company.name %></p>
 <%- include('_bottom') %>

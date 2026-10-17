@@ -2,40 +2,55 @@
 <section class="hero">
   <div class="container">
     <div class="hero-text">
-      <h1>Ενοικίαση αυτοκινήτου, απλά και με διαφάνεια</h1>
-      <p class="lead">Δείτε την τελική τιμή πριν κλείσετε. Χωρίς κρυφές χρεώσεις, με δωρεάν ακύρωση έως <%= config.rules.freeCancellationHours %> ώρες πριν την παραλαβή.</p>
+      <h1><%= t('Βρείτε αυτοκίνητο για τις ημερομηνίες σας') %></h1>
+      <p class="lead"><%= t('Συγκρίνετε όλο τον στόλο μας με την τελική τιμή. Δωρεάν ακύρωση έως {hours} ώρες πριν την παραλαβή.', { hours: config.rules.freeCancellationHours }) %></p>
     </div>
     <div class="card search-card">
       <%- include('../partials/search-form', { locations, values: search, errors: {} }) %>
     </div>
+    <ul class="hero-checks">
+      <li><%= t('Τελική τιμή με ΦΠΑ, χωρίς κρυφές χρεώσεις') %></li>
+      <% if (allUnlimited) { %><li><%= t('Απεριόριστα χιλιόμετρα') %></li><% } %>
+      <li><%= paymentsEnabled ? t('Πληρωμή online ή στην παραλαβή') : t('Πληρωμή κατά την παραλαβή') %></li>
+    </ul>
   </div>
 </section>
 
+<% if (categories.length) { %>
 <section class="container section">
-  <div class="usp-grid">
-    <div class="usp"><h3>Τελική τιμή από την αρχή</h3><p>Η τιμή που βλέπετε περιλαμβάνει ΦΠΑ, υποχρεωτική ασφάλιση αστικής ευθύνης και βασική κάλυψη ζημιών (CDW). Χωρίς κρυφές χρεώσεις.</p></div>
-    <div class="usp"><h3>Δωρεάν ακύρωση</h3><p>Ακυρώστε online έως <%= config.rules.freeCancellationHours %> ώρες πριν και παίρνετε πίσω όλο το ποσό.</p></div>
-    <div class="usp"><h3>Ασφαλής πληρωμή</h3><p><%= paymentsEnabled ? `Πληρώστε online με κάρτα μέσω ${paymentProviderLabel} ή` : 'Πληρώστε' %> κατά την παραλαβή του αυτοκινήτου. Καμία επιβάρυνση για τον τρόπο πληρωμής.</p></div>
-    <div class="usp"><h3>Παράδοση όπου βρίσκεστε</h3><p>Παραλαβή από γραφείο, αεροδρόμιο, λιμάνι ή παράδοση στο ξενοδοχείο σας.</p></div>
+  <h2><%= t('Κατηγορίες και τιμές από') %></h2>
+  <div class="cat-grid">
+    <% categories.forEach(function (c) { %>
+      <a class="card cat-card" href="<%= u(`/cars?category=${encodeURIComponent(c.category)}`) %>">
+        <strong><%= format.label('category', c.category) %></strong>
+        <span class="small muted"><%= c.models.join(', ') %></span>
+        <span class="price"><%- th('από <strong>{price}</strong> / ημέρα', { price: format.money(c.fromCents) }) %></span>
+      </a>
+    <% }) %>
   </div>
 </section>
+<% } %>
 
 <% if (featured.length) { %>
 <section class="container section">
   <div class="section-head">
-    <h2>Ο στόλος μας</h2>
-    <a href="/cars">Όλα τα αυτοκίνητα →</a>
+    <h2><%= t('Δημοφιλή αυτοκίνητα') %></h2>
+    <a href="<%= u('/cars') %>"><%= t('Όλα τα αυτοκίνητα ({n}) →', { n: carCount }) %></a>
   </div>
-  <div class="car-grid">
+  <div class="car-list">
     <% featured.forEach(function (car) { %>
-      <article class="card car-card">
-        <a href="/cars/<%= car.id %>" class="car-image"><img src="<%= car.image || `/img/cars/${car.category}.svg` %>" alt="<%= car.make %> <%= car.model %>" loading="lazy"></a>
+      <article class="card car-row compact">
+        <a href="<%= u(`/cars/${car.id}`) %>" class="car-image"><img src="<%= car.image || `/img/cars/${car.category}.svg` %>" alt="<%= car.make %> <%= car.model %>" loading="lazy"></a>
         <div class="car-body">
-          <span class="badge"><%= format.label('category', car.category) %></span>
-          <h3><a href="/cars/<%= car.id %>"><%= car.make %> <%= car.model %></a></h3>
-          <p class="muted small">ή παρόμοιο</p>
+          <h3><a href="<%= u(`/cars/${car.id}`) %>"><%= car.make %> <%= car.model %></a></h3>
+          <p class="small muted"><%= t('ή παρόμοιο') %> · <%= format.label('category', car.category) %></p>
           <%- include('../partials/car-specs', { car }) %>
-          <p class="price">από <strong><%= format.money(car.daily_rate_cents) %></strong> / ημέρα</p>
+          <span class="pill-success"><%= t('Δωρεάν ακύρωση') %></span>
+        </div>
+        <div class="car-price">
+          <div class="total"><%= t('από {price}', { price: format.money(car.daily_rate_cents) }) %></div>
+          <div class="small muted"><%= t('ανά ημέρα') %></div>
+          <a class="btn btn-primary" href="<%= u(`/cars/${car.id}`) %>"><%= t('Επιλογή') %></a>
         </div>
       </article>
     <% }) %>
@@ -43,13 +58,29 @@
 </section>
 <% } %>
 
-<section class="container section steps">
-  <h2>Πώς λειτουργεί</h2>
-  <ol class="steps-list">
-    <li><strong>Αναζήτηση</strong><span>Επιλέξτε ημερομηνίες και σημεία παραλαβής/επιστροφής.</span></li>
-    <li><strong>Επιλογή</strong><span>Διαλέξτε αυτοκίνητο και πρόσθετα — βλέπετε αμέσως την τελική τιμή.</span></li>
-    <li><strong>Κράτηση</strong><span>Συμπληρώστε τα στοιχεία οδηγού και λάβετε άμεσα επιβεβαίωση με email.</span></li>
-    <li><strong>Παραλαβή</strong><span>Φέρτε δίπλωμα, ταυτότητα/διαβατήριο και πιστωτική κάρτα για την εγγύηση.</span></li>
-  </ol>
+<section class="container section">
+  <div class="grid-2 info-boxes">
+    <div class="card pad">
+      <h2 class="h4"><%= t('Τι περιλαμβάνει η τιμή') %></h2>
+      <ul class="checklist">
+        <li><%= t('Υποχρεωτική ασφάλιση αστικής ευθύνης (έναντι τρίτων)') %></li>
+        <li><%= t('Βασική κάλυψη ζημιών (CDW), με απαλλαγή που εξαρτάται από το αυτοκίνητο') %></li>
+        <% if (allUnlimited) { %><li><%= t('Απεριόριστα χιλιόμετρα') %></li><% } %>
+        <li><%= t('ΦΠΑ {vat}%', { vat: config.rules.vatPercent }) %></li>
+        <% if (company.roadsideAssistance) { %><li><%= t('Οδική βοήθεια 24/7') %></li><% } %>
+      </ul>
+      <p class="small muted"><%= t('Τα πρόσθετα (π.χ. Πλήρης Απαλλαγή FDW, παιδικό κάθισμα) και τυχόν χρέωση σημείου (π.χ. αεροδρόμιο) εμφανίζονται χωριστά πριν την κράτηση.') %></p>
+    </div>
+    <div class="card pad">
+      <h2 class="h4"><%= t('Τι χρειάζεστε στην παραλαβή') %></h2>
+      <ul class="bullets">
+        <li><%= t('Δίπλωμα οδήγησης τουλάχιστον {years} έτους', { years: config.rules.minLicenseYears }) %></li>
+        <li><%= t('Ταυτότητα ή διαβατήριο') %></li>
+        <li><%= t('Πιστωτική κάρτα στο όνομα του κύριου οδηγού, για την εγγύηση (δέσμευση ποσού, όχι χρέωση)') %></li>
+        <li><%= t('Τον κωδικό της κράτησής σας') %></li>
+      </ul>
+      <p class="small"><a href="<%= u('/faq') %>"><%= t('Συχνές ερωτήσεις') %> →</a></p>
+    </div>
+  </div>
 </section>
 <%- include('../partials/footer') %>

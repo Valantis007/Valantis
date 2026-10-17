@@ -2,72 +2,72 @@
 <div class="container section narrow-wide">
   <div class="section-head">
     <div>
-      <h1>Κράτηση <span class="ref"><%= booking.reference %></span></h1>
+      <h1><%- th('Κράτηση <span class="ref">{ref}</span>', { ref: booking.reference }) %></h1>
       <span class="status status-<%= booking.status %>"><%= format.label('status', booking.status) %></span>
     </div>
-    <a class="btn" href="/booking/<%= booking.reference %>/print" target="_blank">Εκτύπωση</a>
+    <a class="btn" href="<%= u(`/booking/${booking.reference}/print`) %>" target="_blank"><%= t('Εκτύπωση') %></a>
   </div>
 
   <% if (booking.status === 'pending_payment') { %>
     <div class="alert alert-warning">
-      Η κράτηση δεν έχει ολοκληρωθεί — εκκρεμεί η πληρωμή.
-      <% if (canPay) { %>Το αυτοκίνητο είναι δεσμευμένο για εσάς έως τις <strong><%= new Date(booking.hold_expires_at).toLocaleTimeString('el-GR', { timeZone: config.rules.timezone, hour: '2-digit', minute: '2-digit' }) %></strong>.<% } %>
+      <%= t('Η κράτηση δεν έχει ολοκληρωθεί — εκκρεμεί η πληρωμή.') %>
+      <% if (canPay) { %><%- th('Το αυτοκίνητο είναι δεσμευμένο για εσάς έως τις <strong>{time}</strong>.', { time: new Date(booking.hold_expires_at).toLocaleTimeString(intlLocale, { timeZone: config.rules.timezone, hour: '2-digit', minute: '2-digit' }) }) %><% } %>
     </div>
     <% if (canPay) { %>
-      <form method="post" action="/booking/<%= booking.reference %>/pay" class="inline-form">
+      <form method="post" action="<%= u(`/booking/${booking.reference}/pay`) %>" class="inline-form">
         <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
-        <button class="btn btn-primary" type="submit">Πληρωμή <%= format.money(booking.total_cents) %></button>
+        <button class="btn btn-primary" type="submit"><%= t('Πληρωμή {amount}', { amount: format.money(booking.total_cents) }) %></button>
       </form>
     <% } %>
   <% } else if (booking.status === 'expired') { %>
-    <div class="alert alert-error">Η κράτηση έληξε επειδή δεν ολοκληρώθηκε η πληρωμή. <a href="/cars">Κάντε νέα αναζήτηση</a>.</div>
+    <div class="alert alert-error"><%- th('Η κράτηση έληξε επειδή δεν ολοκληρώθηκε η πληρωμή. <a href="{url}">Κάντε νέα αναζήτηση</a>.', { url: u('/cars') }) %></div>
   <% } else if (booking.status === 'confirmed') { %>
-    <div class="alert alert-success">Η κράτησή σας είναι επιβεβαιωμένη. Σας περιμένουμε στις <strong><%= format.dateTime(booking.pickup_at) %></strong> στο σημείο «<%= booking.pickup_location_name %>».</div>
+    <div class="alert alert-success"><%- th('Η κράτησή σας είναι επιβεβαιωμένη. Σας περιμένουμε στις <strong>{date}</strong> στο σημείο «{location}».', { date: format.dateTime(booking.pickup_at), location: tf(booking, 'pickup_location_name') }) %></div>
   <% } %>
 
   <%- include('_details', { booking, extras }) %>
 
   <% if (pendingRefundCents) { %>
-    <div class="alert alert-info">Επιστροφή <%= format.money(pendingRefundCents) %> στην κάρτα σας είναι σε εξέλιξη.</div>
+    <div class="alert alert-info"><%= t('Επιστροφή {amount} στην κάρτα σας είναι σε εξέλιξη.', { amount: format.money(pendingRefundCents) }) %></div>
   <% } %>
 
   <% if (deposit && ['held', 'released', 'captured'].includes(deposit.status)) { %>
     <div class="card pad">
-      <h2 class="h4">Εγγύηση</h2>
-      <p><%= format.money(deposit.amount_cents) %> · <strong><%= format.label('depositStatus', deposit.status) %></strong><% if (deposit.card_last4) { %> · κάρτα •••• <%= deposit.card_last4 %><% } %></p>
-      <% if (deposit.status === 'captured') { %><p class="small">Παρακρατήθηκαν <%= format.money(deposit.captured_cents) %>, αποδεσμεύτηκαν <%= format.money(deposit.amount_cents - deposit.captured_cents) %>.</p><% } %>
+      <h2 class="h4"><%= t('Εγγύηση') %></h2>
+      <p><%= format.money(deposit.amount_cents) %> · <strong><%= format.label('depositStatus', deposit.status) %></strong><% if (deposit.card_last4) { %> · <%= t('κάρτα •••• {last4}', { last4: deposit.card_last4 }) %><% } %></p>
+      <% if (deposit.status === 'captured') { %><p class="small"><%= t('Παρακρατήθηκαν {captured}, αποδεσμεύτηκαν {released}.', { captured: format.money(deposit.captured_cents), released: format.money(deposit.amount_cents - deposit.captured_cents) }) %></p><% } %>
     </div>
   <% } %>
 
   <% if (charges.length) { %>
     <div class="card pad">
-      <h2 class="h4">Χρεώσεις μετά την επιστροφή</h2>
+      <h2 class="h4"><%= t('Χρεώσεις μετά την επιστροφή') %></h2>
       <div class="table-wrap">
         <table class="table">
-          <thead><tr><th>Χρέωση</th><th>Ποσό</th><th>Κατάσταση</th></tr></thead>
+          <thead><tr><th><%= t('Χρέωση') %></th><th><%= t('Ποσό') %></th><th><%= t('Κατάσταση') %></th></tr></thead>
           <tbody>
             <% charges.forEach(function (c) { %>
               <tr>
                 <td><strong><%= format.label('chargeCategory', c.category) %></strong><br><%= c.description %>
-                  <% if (c.evidence) { %><br><span class="small muted">Τεκμηρίωση: <%= c.evidence %></span><% } %></td>
-                <td><%= format.money(c.amount_cents) %><% if (c.paid_cents && c.paid_cents < c.amount_cents) { %><br><span class="small muted">εξοφλήθηκαν <%= format.money(c.paid_cents) %></span><% } %></td>
+                  <% if (c.evidence) { %><br><span class="small muted"><%= t('Τεκμηρίωση') %>: <%= c.evidence %></span><% } %></td>
+                <td><%= format.money(c.amount_cents) %><% if (c.paid_cents && c.paid_cents < c.amount_cents) { %><br><span class="small muted"><%= t('εξοφλήθηκαν {amount}', { amount: format.money(c.paid_cents) }) %></span><% } %></td>
                 <td><%= format.label('chargeStatus', c.status) %></td>
               </tr>
               <% if (c.status === 'proposed') { %>
                 <tr><td colspan="3">
-                  <p class="small">Παρακαλούμε απαντήστε έως <strong><%= format.date(c.respond_by) %></strong>. Αν διαφωνείτε, πατήστε «Αμφισβήτηση» και περιγράψτε τον λόγο — θα επικοινωνήσουμε μαζί σας.</p>
+                  <p class="small"><%- th('Παρακαλούμε απαντήστε έως <strong>{date}</strong>. Αν διαφωνείτε, πατήστε «Αμφισβήτηση» και περιγράψτε τον λόγο — θα επικοινωνήσουμε μαζί σας.', { date: format.date(c.respond_by) }) %></p>
                   <div class="inline-grid">
-                    <form method="post" action="/booking/<%= booking.reference %>/charges/<%= c.id %>/respond" class="stack grow" data-confirm="Αποδέχεστε τη χρέωση <%= format.money(c.amount_cents) %>;">
+                    <form method="post" action="<%= u(`/booking/${booking.reference}/charges/${c.id}/respond`) %>" class="stack grow" data-confirm="<%= t('Αποδέχεστε τη χρέωση {amount};', { amount: format.money(c.amount_cents) }) %>">
                       <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
                       <input type="hidden" name="decision" value="accept">
-                      <label class="check"><input type="checkbox" name="confirm" value="1" required><span>Αποδέχομαι τη χρέωση <%= format.money(c.amount_cents) %> για «<%= c.description %>».</span></label>
-                      <button class="btn btn-primary" type="submit">Αποδοχή</button>
+                      <label class="check"><input type="checkbox" name="confirm" value="1" required><span><%= t('Αποδέχομαι τη χρέωση {amount} για «{description}».', { amount: format.money(c.amount_cents), description: c.description }) %></span></label>
+                      <button class="btn btn-primary" type="submit"><%= t('Αποδοχή') %></button>
                     </form>
-                    <form method="post" action="/booking/<%= booking.reference %>/charges/<%= c.id %>/respond" class="stack grow">
+                    <form method="post" action="<%= u(`/booking/${booking.reference}/charges/${c.id}/respond`) %>" class="stack grow">
                       <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
                       <input type="hidden" name="decision" value="dispute">
-                      <textarea name="note" rows="2" placeholder="Γιατί διαφωνείτε;" required></textarea>
-                      <button class="btn" type="submit">Αμφισβήτηση</button>
+                      <textarea name="note" rows="2" placeholder="<%= t('Γιατί διαφωνείτε;') %>" required></textarea>
+                      <button class="btn" type="submit"><%= t('Αμφισβήτηση') %></button>
                     </form>
                   </div>
                 </td></tr>
@@ -77,11 +77,11 @@
         </table>
       </div>
       <% if (outstanding > 0) { %>
-        <p>Υπόλοιπο προς πληρωμή: <strong><%= format.money(outstanding) %></strong></p>
+        <p><%- th('Υπόλοιπο προς πληρωμή: <strong>{amount}</strong>', { amount: format.money(outstanding) }) %></p>
         <% if (canPayCharges) { %>
-          <form method="post" action="/booking/<%= booking.reference %>/charges/pay">
+          <form method="post" action="<%= u(`/booking/${booking.reference}/charges/pay`) %>">
             <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
-            <button class="btn btn-primary" type="submit">Πληρωμή <%= format.money(outstanding) %></button>
+            <button class="btn btn-primary" type="submit"><%= t('Πληρωμή {amount}', { amount: format.money(outstanding) }) %></button>
           </form>
         <% } %>
       <% } %>
@@ -90,33 +90,33 @@
 
   <% if (['confirmed', 'pending_payment'].includes(booking.status)) { %>
     <div class="card pad">
-      <h2 class="h4">Τι να έχετε μαζί σας</h2>
+      <h2 class="h4"><%= t('Τι να έχετε μαζί σας') %></h2>
       <ul class="checklist">
-        <li>Δίπλωμα οδήγησης (και Διεθνή Άδεια για διπλώματα εκτός ΕΕ)</li>
-        <li>Ταυτότητα ή διαβατήριο</li>
-        <li>Πιστωτική κάρτα στο όνομα του οδηγού για την εγγύηση</li>
-        <li>Τον κωδικό κράτησης <strong><%= booking.reference %></strong></li>
+        <li><%= t('Δίπλωμα οδήγησης (και Διεθνή Άδεια για διπλώματα εκτός ΕΕ)') %></li>
+        <li><%= t('Ταυτότητα ή διαβατήριο') %></li>
+        <li><%= t('Πιστωτική κάρτα στο όνομα του οδηγού για την εγγύηση') %></li>
+        <li><%- th('Τον κωδικό κράτησης <strong>{ref}</strong>', { ref: booking.reference }) %></li>
       </ul>
     </div>
     <div class="card pad">
-      <h2 class="h4">Ακύρωση</h2>
+      <h2 class="h4"><%= t('Ακύρωση') %></h2>
       <% if (cancellation.allowed) { %>
         <% if (cancellation.late && cancellation.feeCents > 0) { %>
-          <p>Είμαστε εντός <%= config.rules.freeCancellationHours %> ωρών πριν την παραλαβή: ισχύει η <strong>χρέωση ακύρωσης <%= format.money(cancellation.feeCents) %></strong> που γνωστοποιήθηκε στην κράτηση. Θα επιστραφούν <strong><%= format.money(booking.paid_cents - booking.refunded_cents - cancellation.feeCents) %></strong>.</p>
+          <p><%- th('Είμαστε εντός {hours} ωρών πριν την παραλαβή: ισχύει η <strong>χρέωση ακύρωσης {fee}</strong> που γνωστοποιήθηκε στην κράτηση. Θα επιστραφούν <strong>{refund}</strong>.', { hours: config.rules.freeCancellationHours, fee: format.money(cancellation.feeCents), refund: format.money(booking.paid_cents - booking.refunded_cents - cancellation.feeCents) }) %></p>
         <% } else if (cancellation.late) { %>
-          <p>Μπορείτε να ακυρώσετε χωρίς χρέωση, επειδή δεν έχετε προπληρώσει.</p>
+          <p><%= t('Μπορείτε να ακυρώσετε χωρίς χρέωση, επειδή δεν έχετε προπληρώσει.') %></p>
         <% } else { %>
-          <p>Μπορείτε να ακυρώσετε δωρεάν.<% if (booking.paid_cents && booking.payment_ref) { %> Το ποσό που πληρώσατε επιστρέφεται αυτόματα στην κάρτα σας.<% } else if (booking.paid_cents) { %> Θα επικοινωνήσουμε μαζί σας για την επιστροφή του ποσού που πληρώσατε.<% } %></p>
+          <p><%= t('Μπορείτε να ακυρώσετε δωρεάν.') %><% if (booking.paid_cents && booking.payment_ref) { %> <%= t('Το ποσό που πληρώσατε επιστρέφεται αυτόματα στην κάρτα σας.') %><% } else if (booking.paid_cents) { %> <%= t('Θα επικοινωνήσουμε μαζί σας για την επιστροφή του ποσού που πληρώσατε.') %><% } %></p>
         <% } %>
-        <form method="post" action="/booking/<%= booking.reference %>/cancel" class="stack" data-confirm="Σίγουρα θέλετε να ακυρώσετε την κράτηση;">
+        <form method="post" action="<%= u(`/booking/${booking.reference}/cancel`) %>" class="stack" data-confirm="<%= t('Σίγουρα θέλετε να ακυρώσετε την κράτηση;') %>">
           <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
           <% if (cancellation.late && cancellation.feeCents > 0) { %>
-            <label class="check"><input type="checkbox" name="accept_fee" value="1" required><span>Αποδέχομαι τη χρέωση ακύρωσης <%= format.money(cancellation.feeCents) %>.</span></label>
+            <label class="check"><input type="checkbox" name="accept_fee" value="1" required><span><%= t('Αποδέχομαι τη χρέωση ακύρωσης {fee}.', { fee: format.money(cancellation.feeCents) }) %></span></label>
           <% } %>
-          <button class="btn btn-danger" type="submit">Ακύρωση κράτησης</button>
+          <button class="btn btn-danger" type="submit"><%= t('Ακύρωση κράτησης') %></button>
         </form>
       <% } else { %>
-        <p class="muted"><%= cancellation.reason %></p>
+        <p class="muted"><%= t(cancellation.reason) %></p>
       <% } %>
     </div>
   <% } %>

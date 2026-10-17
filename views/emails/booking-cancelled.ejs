@@ -1,9 +1,9 @@
 <%- include('_top') %>
-<p>Αγαπητέ/ή <%= booking.first_name %>,</p>
-<p>Η κράτηση <strong><%= booking.reference %></strong> (<%= booking.make %> <%= booking.model %>, <%= format.dateTime(booking.pickup_at) %>) <strong>ακυρώθηκε</strong>.</p>
-<% if (reason) { %><p>Αιτία: <%= reason %></p><% } %>
-<% if (refundedCents > 0) { %><p>Η επιστροφή <strong><%= format.money(refundedCents) %></strong> στην κάρτα σας ξεκίνησε. Το ποσό θα εμφανιστεί στον λογαριασμό σας σε 5-10 εργάσιμες ημέρες.</p><% } %>
-<% if (locals.refundDueCents > 0) { %><p>Θα επικοινωνήσουμε μαζί σας για την επιστροφή <strong><%= format.money(refundDueCents) %></strong> που είχατε πληρώσει.</p><% } %>
-<p>Αν δεν ζητήσατε εσείς την ακύρωση ή έχετε απορίες, επικοινωνήστε μαζί μας.</p>
+<p><%= t('Αγαπητέ/ή {name},', { name: booking.first_name }) %></p>
+<p><%- th('Η κράτηση <strong>{ref}</strong> ({car}, {pickup}) <strong>ακυρώθηκε</strong>.', { ref: booking.reference, car: `${booking.make} ${booking.model}`, pickup: format.dateTime(booking.pickup_at) }) %></p>
+<% if (reason) { %><p><%= t('Αιτία: {reason}', { reason: t(reason) }) %></p><% } %>
+<% if (refundedCents > 0) { %><p><%- th('Η επιστροφή <strong>{amount}</strong> στην κάρτα σας ξεκίνησε. Το ποσό θα εμφανιστεί στον λογαριασμό σας σε 5-10 εργάσιμες ημέρες.', { amount: format.money(refundedCents) }) %></p><% } %>
+<% if (locals.refundDueCents > 0) { %><p><%- th('Θα επικοινωνήσουμε μαζί σας για την επιστροφή <strong>{amount}</strong> που είχατε πληρώσει.', { amount: format.money(refundDueCents) }) %></p><% } %>
+<p><%= t('Αν δεν ζητήσατε εσείς την ακύρωση ή έχετε απορίες, επικοινωνήστε μαζί μας.') %></p>
 <p><%= company.name %></p>
 <%- include('_bottom') %>

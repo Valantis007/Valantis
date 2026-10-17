@@ -1,0 +1,45 @@
+<%# Traducción al español de privacy-content.ejs. Mantener sincronizada con el original griego (mismas variables y condiciones). %>
+  <p class="alert alert-info small translation-note">Esta es una traducción facilitada a título informativo. En caso de discrepancia, prevalece la versión griega. <a href="<%= locals.siteUrl || '' %>/privacy" hreflang="el">Consulte la versión griega</a>.</p>
+
+  <h2>1. Responsable del tratamiento</h2>
+  <p><%= company.legalName %><% if (company.vat) { %>, NIF <%= company.vat %><% } %><% if (company.gemi) { %>, n.º GEMI <%= company.gemi %><% } %><% if (company.seat) { %>, <%= company.seat %><% } %>.
+    Para cuestiones relativas a datos personales: <% if (company.privacyEmail) { %><a href="mailto:<%= company.privacyEmail %>"><%= company.privacyEmail %></a><% } else { %>a través del <a href="<%= u('/contact') %>">formulario de contacto</a><% } %>.</p>
+
+  <h2>2. Qué datos tratamos, con qué finalidad y durante cuánto tiempo</h2>
+  <div class="table-wrap">
+  <table class="table">
+    <thead><tr><th>Finalidad</th><th>Datos</th><th>Base jurídica (RGPD)</th><th>Plazo de conservación</th></tr></thead>
+    <tbody>
+      <tr><td>Reserva y ejecución del contrato de alquiler</td><td>Nombre y apellidos, correo electrónico, teléfono, fecha de nacimiento, datos del permiso de conducir, vuelo, observaciones, datos del niño para la silla infantil</td><td>Ejecución de un contrato (art. 6.1.b)</td><td>Datos del permiso de conducir, fecha de nacimiento, teléfono, vuelo y observaciones: <%= config.retention.operationalMonths %> meses después de la devolución, salvo que haya pendiente una reclamación por daños o una multa</td></tr>
+      <tr><td>Documentos fiscales (myDATA) y libros contables</td><td>Nombre y apellidos/razón social, NIF (para la factura), importes, fechas</td><td>Obligación legal (art. 6.1.c)</td><td>El plazo que establezca la legislación tributaria</td></tr>
+      <tr><td>Identificación del conductor ante las autoridades por infracciones de tráfico cometidas durante el alquiler</td><td>Datos del conductor y de la reserva</td><td>Obligación legal (art. 6.1.c)</td><td>Hasta la tramitación de la infracción</td></tr>
+      <tr><td>Fianza, daños, prevención del fraude, prueba en disputas sobre pagos</td><td>Tipo y 4 últimos dígitos de la tarjeta, número de autorización, actas de estado y fotografías del coche, correspondencia</td><td>Interés legítimo (art. 6.1.f): protección de nuestra flota y defensa frente a reclamaciones</td><td>Hasta la liquidación de la fianza y la prescripción de las reclamaciones correspondientes</td></tr>
+      <tr><td>Cuenta de cliente</td><td>Correo electrónico, contraseña (cifrada), nombre, teléfono</td><td>Ejecución de un contrato (art. 6.1.b)</td><td>Hasta la eliminación de la cuenta</td></tr>
+      <tr><td>Respuesta a mensajes y reclamaciones</td><td>Nombre, correo electrónico, teléfono, mensaje</td><td>Interés legítimo / medidas precontractuales</td><td><%= config.retention.messagesMonths %> meses</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Facilitar los datos de la reserva es necesario para celebrar el contrato; sin ellos no podemos completar la reserva. La comprobación de la edad y de la antigüedad del permiso de conducir se realiza automáticamente conforme a las normas publicadas; puede ponerse en contacto con nosotros para solicitar que una persona revise la decisión. No le enviamos mensajes publicitarios sin su consentimiento.</p>
+
+  <h2>3. Datos de la tarjeta</h2>
+  <p>Los pagos con tarjeta se realizan en la página segura del proveedor de pagos (Stripe o Revolut) o en el TPV de nuestro banco. <strong>No vemos ni almacenamos el número completo ni el CVV de su tarjeta.</strong> Para la fianza solo almacenamos el tipo de tarjeta (p. ej., Visa de crédito), los 4 últimos dígitos y el número de autorización.</p>
+
+  <h2>4. Destinatarios</h2>
+  <ul>
+    <li>Proveedores de pagos: Stripe Payments Europe Ltd. y/o Revolut, y el banco que gestiona nuestro TPV. Los proveedores de pagos actúan también como responsables independientes del tratamiento respecto de sus propias obligaciones (p. ej., la prevención del fraude).</li>
+    <li>Proveedores de alojamiento del sitio web y de envío de correo electrónico (encargados del tratamiento, con contrato conforme al art. 28 del RGPD).</li>
+    <li>Nuestro gestor contable y el proveedor de facturación electrónica, y la Autoridad Independiente de Ingresos Públicos de Grecia (AADE) (myDATA).</li>
+    <li>La compañía de seguros (en caso de daños o accidente) y las autoridades (Policía de Tráfico, ayuntamientos) cuando lo exija la ley.</li>
+  </ul>
+
+  <h2>5. Transferencias fuera del EEE</h2>
+  <p>Algunos proveedores (p. ej., el grupo Stripe) pueden tratar datos en los Estados Unidos. Las transferencias se realizan sobre la base del Marco de Privacidad de Datos UE-EE. UU. (Data Privacy Framework) o de las Cláusulas Contractuales Tipo de la Comisión Europea.</p>
+
+  <h2>6. Sus derechos</h2>
+  <p>Tiene derecho de acceso, rectificación, supresión, limitación del tratamiento y portabilidad de sus datos. Puede descargar sus datos o eliminar su cuenta desde la página «Mi cuenta», o escribirnos; respondemos en el plazo de un mes. En caso de supresión, solo se conservan los datos que exija la legislación tributaria o los relacionados con una reclamación pendiente.</p>
+  <p><strong>Derecho de oposición (artículo 21 del RGPD):</strong> puede oponerse en cualquier momento, por motivos relacionados con su situación particular, al tratamiento basado en nuestro interés legítimo.</p>
+  <p>También tiene derecho a presentar una reclamación ante la Autoridad Helénica de Protección de Datos (www.dpa.gr).</p>
+  <p>Los conductores adicionales son informados sobre el tratamiento de sus datos mediante un documento impreso en la recogida.</p>
+
+  <h2>7. Cookies</h2>
+  <p>Utilizamos <strong>una única cookie estrictamente necesaria</strong>, <code>sid</code>, para el inicio de sesión en la cuenta, la seguridad de los formularios y la finalización de la reserva. Dura hasta que cierra el navegador (o 30 días, si marca «Recordarme» al iniciar sesión). No utilizamos cookies publicitarias ni de estadísticas, por lo que no se requiere consentimiento.</p>

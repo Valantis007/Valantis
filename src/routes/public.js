@@ -10,6 +10,7 @@ const { availableCarIds } = require('../lib/availability');
 const bookings = require('../lib/bookings');
 const deposits = require('../lib/deposits');
 const payments = require('../lib/payments');
+const { msg } = require('../lib/i18n');
 const { str, isEmail, intOrNull, checkbox } = require('../lib/validation');
 const { limits } = require('../middleware/security');
 
@@ -37,18 +38,26 @@ module.exports = function publicRoutes(db) {
   }
 
   router.get('/', (req, res) => {
-    const featured = db
-      .prepare(
-        `SELECT * FROM cars WHERE active = 1 AND id IN (
-           SELECT MIN(id) FROM cars WHERE active = 1 GROUP BY category)
-         ORDER BY daily_rate_cents LIMIT 6`,
-      )
-      .all();
+    const cars = db.prepare('SELECT * FROM cars WHERE active = 1 ORDER BY daily_rate_cents, id').all();
+    // Κατηγορίες με την τιμή «από» και ενδεικτικά μοντέλα (με τη σειρά της τιμής).
+    const byCategory = new Map();
+    for (const car of cars) {
+      if (!byCategory.has(car.category)) byCategory.set(car.category, { category: car.category, fromCents: car.daily_rate_cents, models: [], count: 0 });
+      const group = byCategory.get(car.category);
+      group.count += 1;
+      const name = `${car.make} ${car.model}`;
+      if (group.models.length < 2 && !group.models.includes(name)) group.models.push(name);
+    }
+    // Δημοφιλή: το φθηνότερο αυτοκίνητο κάθε κατηγορίας.
+    const featured = [...byCategory.keys()].map((category) => cars.find((c) => c.category === category)).slice(0, 4);
     res.render('pages/home', {
       title: 'Ενοικίαση αυτοκινήτων',
       locations: locations(),
       search: defaultSearch(),
+      categories: [...byCategory.values()],
       featured,
+      carCount: cars.length,
+      allUnlimited: cars.length > 0 && cars.every((c) => c.mileage_policy === 'Απεριόριστα χιλιόμετρα'),
     });
   });
 
@@ -122,19 +131,21 @@ module.exports = function publicRoutes(db) {
   router.get('/api/quote', (req, res) => {
     const car = db.prepare('SELECT * FROM cars WHERE id = ? AND active = 1').get(intOrNull(req.query.car_id) ?? -1);
     const search = parseSearch(db, req.query);
-    if (!car || !search.ok) return res.status(400).json({ error: 'Μη έγκυρα στοιχεία αναζήτησης.' });
+    if (!car || !search.ok) return res.status(400).json({ error: req.t('Μη έγκυρα στοιχεία αναζήτησης.') });
     const quote = bookings.quoteFor(db, { car, search, extras: bookings.parseExtras(db, req.query) });
+    // Ποσά στη μορφή της γλώσσας της σελίδας (π.χ. «€75.00» στα αγγλικά).
+    const { money } = format.forLocale(req.locale);
     res.json({
       days: quote.days,
-      total: format.money(quote.totalCents),
-      base: format.money(quote.baseCents),
-      discount: quote.discountCents ? `-${format.money(quote.discountCents)}` : null,
+      total: money(quote.totalCents),
+      base: money(quote.baseCents),
+      discount: quote.discountCents ? `-${money(quote.discountCents)}` : null,
       discountPercent: quote.discountPercent,
-      extras: format.money(quote.extrasCents),
-      fees: format.money(quote.feesCents),
-      vat: format.money(quote.vatCents),
-      deposit: format.money(quote.depositCents),
-      excess: format.money(quote.excessCents),
+      extras: money(quote.extrasCents),
+      fees: money(quote.feesCents),
+      vat: money(quote.vatCents),
+      deposit: money(quote.depositCents),
+      excess: money(quote.excessCents),
       totalCents: quote.totalCents,
       extrasCents: quote.extrasCents,
       discountCents: quote.discountCents,
@@ -200,12 +211,16 @@ module.exports = function publicRoutes(db) {
       values.booking_reference || null,
       req.user ? req.user.id : null,
     );
-    // Επιβεβαίωση λήψης στον πελάτη (υποχρεωτική για παράπονα).
+    // Επιβεβαίωση λήψης στον πελάτη (υποχρεωτική για παράπονα), στη γλώσσα της σελίδας.
     mailer.sendInBackground({
       to: values.email,
-      subject: `Λάβαμε το μήνυμά σας: ${values.subject}`,
+      subject: msg('Λάβαμε το μήνυμά σας: {subject}', { subject: values.subject }),
       template: 'contact-ack',
-      data: { message: values, receivedAt: format.utcTimestamp(new Date().toISOString().replace('T', ' ').slice(0, 19), config.rules.timezone) },
+      locale: req.locale,
+      data: {
+        message: values,
+        receivedAt: format.forLocale(req.locale).utcTimestamp(new Date().toISOString().replace('T', ' ').slice(0, 19), config.rules.timezone),
+      },
     });
     mailer.sendInBackground({
       to: config.mail.adminNotify,
@@ -258,7 +273,7 @@ module.exports = function publicRoutes(db) {
       if (!(err instanceof bookings.BookingError)) console.error('[deposit]', err);
       return renderDeposit(res, findLiveDeposit(req.params.token), {
         status: 409,
-        error: err instanceof bookings.BookingError ? err.message : 'Δεν ήταν δυνατή η σύνδεση με την υπηρεσία πληρωμών. Δοκιμάστε ξανά.',
+        error: err instanceof bookings.BookingError ? err.i18n || err.message : 'Δεν ήταν δυνατή η σύνδεση με την υπηρεσία πληρωμών. Δοκιμάστε ξανά.',
       });
     }
   });

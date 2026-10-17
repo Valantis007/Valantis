@@ -26,10 +26,19 @@ const transport = smtpConfigured
 // Στα tests κρατάμε τα emails εδώ για να ελέγχουμε τι στάλθηκε.
 const outbox = [];
 
-// Τα τελευταία emails (μόνο παραλήπτης, θέμα, αποτέλεσμα) για τη σελίδα «Έλεγχος συστήματος».
+// Τα τελευταία emails για τη σελίδα «Έλεγχος συστήματος» (μόνο στη μνήμη, χάνονται με την επανεκκίνηση).
+// Το περιεχόμενο κρατιέται μόνο σε δοκιμές (εκτός παραγωγής ή χωρίς SMTP), για προεπισκόπηση.
 const recent = [];
-function remember(entry) {
-  recent.unshift({ at: new Date().toISOString(), ...entry });
+let lastId = 0;
+const keepContent = () => !config.isProduction || !smtpConfigured;
+function remember(entry, message = null) {
+  lastId += 1;
+  const item = { id: lastId, at: new Date().toISOString(), ...entry };
+  if (message && keepContent()) {
+    item.html = message.html;
+    item.attachments = (message.attachments || []).map((a) => a.filename).filter(Boolean);
+  }
+  recent.unshift(item);
   recent.length = Math.min(recent.length, 30);
 }
 
@@ -78,16 +87,16 @@ async function send({ to, subject, template, data = {}, replyTo, attachments, lo
     const message = { from: config.mail.from, to, subject, html, replyTo, attachments };
     if (config.isTest) {
       outbox.push(message);
-      remember({ to, subject, status: 'sent' });
+      remember({ to, subject, locale: lang, status: 'sent' }, message);
       return true;
     }
     await transport.sendMail(message);
     if (!smtpConfigured) console.log(`[email δεν στάλθηκε - δεν έχει ρυθμιστεί SMTP] Προς: ${to} | Θέμα: ${subject}`);
-    remember({ to, subject, status: smtpConfigured ? 'sent' : 'not_configured' });
+    remember({ to, subject, locale: lang, status: smtpConfigured ? 'sent' : 'not_configured' }, message);
     return true;
   } catch (err) {
     console.error(`[email] Αποτυχία αποστολής προς ${to}:`, err.message);
-    remember({ to, subject, status: 'failed', error: String(err.message).slice(0, 200) });
+    remember({ to, subject, locale: lang, status: 'failed', error: String(err.message).slice(0, 200) });
     return false;
   }
 }

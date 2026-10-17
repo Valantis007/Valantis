@@ -55,10 +55,11 @@
 
   <div class="card pad">
     <h2 class="h4">Τελευταία emails</h2>
+    <p class="small muted">Κάντε μια δοκιμαστική κράτηση από την ιστοσελίδα και πατήστε «Προβολή» για να δείτε το email επιβεβαίωσης όπως θα το λάβει ο πελάτης (στη γλώσσα του), ακόμα κι αν δεν έχει ρυθμιστεί αποστολή email.</p>
     <% if (!recentEmails.length) { %><p class="small muted">Δεν έχουν σταλεί emails από την τελευταία επανεκκίνηση.</p><% } else { %>
       <div class="table-wrap">
         <table class="table small">
-          <thead><tr><th>Ώρα</th><th>Προς</th><th>Θέμα</th><th>Αποτέλεσμα</th></tr></thead>
+          <thead><tr><th>Ώρα</th><th>Προς</th><th>Θέμα</th><th>Αποτέλεσμα</th><th></th></tr></thead>
           <tbody>
             <% recentEmails.forEach(function (m) { %>
               <tr>
@@ -66,6 +67,7 @@
                 <td><%= m.to %></td>
                 <td><%= m.subject %></td>
                 <td class="<%= m.status === 'sent' ? 'success' : 'error' %>"><%= { sent: 'Στάλθηκε', failed: 'Απέτυχε', not_configured: 'Δεν στάλθηκε (χωρίς SMTP)' }[m.status] %><% if (m.error) { %><br><span class="muted"><%= m.error %></span><% } %></td>
+                <td><% if (m.html) { %><a href="/admin/system/emails/<%= m.id %>" target="_blank" rel="noopener">Προβολή</a><% if (m.attachments && m.attachments.length) { %><br><span class="muted">+ <%= m.attachments.join(', ') %></span><% } %><% } %></td>
               </tr>
             <% }) %>
           </tbody>

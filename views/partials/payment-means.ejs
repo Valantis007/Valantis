@@ -1,7 +1,7 @@
 <%# Τρόποι πληρωμής: πρέπει να φαίνονται από την αρχή της διαδικασίας παραγγελίας (ν. 2251/1994). %>
 <p class="small payment-means">
-  <strong>Τρόποι πληρωμής:</strong>
-  <% if (paymentsEnabled) { %>online με κάρτα (Visa, Mastercard, Apple Pay, Google Pay) μέσω <%= paymentProviderLabel %>, ή <% } %>κατά την παραλαβή με χρεωστική/πιστωτική κάρτα, IRIS ή μετρητά έως <%= format.money(config.tariff.cashLimitCents) %>.
-  Καμία επιβάρυνση για τον τρόπο πληρωμής.
-  <strong>Εγγύηση:</strong> μόνο πιστωτική κάρτα στο όνομα του κύριου οδηγού — χρεωστικές και προπληρωμένες κάρτες δεν γίνονται δεκτές για την εγγύηση.
+  <strong><%= t('Τρόποι πληρωμής:') %></strong>
+  <% if (paymentsEnabled) { %><%= t('online με κάρτα (Visa, Mastercard, Apple Pay, Google Pay) μέσω {provider}, ή κατά την παραλαβή με χρεωστική/πιστωτική κάρτα, IRIS ή μετρητά έως {cash}.', { provider: paymentProviderLabel, cash: format.money(config.tariff.cashLimitCents) }) %><% } else { %><%= t('κατά την παραλαβή με χρεωστική/πιστωτική κάρτα, IRIS ή μετρητά έως {cash}.', { cash: format.money(config.tariff.cashLimitCents) }) %><% } %>
+  <%= t('Καμία επιβάρυνση για τον τρόπο πληρωμής.') %>
+  <strong><%= t('Εγγύηση:') %></strong> <%= t('μόνο πιστωτική κάρτα στο όνομα του κύριου οδηγού — χρεωστικές και προπληρωμένες κάρτες δεν γίνονται δεκτές για την εγγύηση.') %>
 </p>

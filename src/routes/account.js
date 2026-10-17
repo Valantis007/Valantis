@@ -7,6 +7,7 @@ const { str, isPhone, passwordProblems } = require('../lib/validation');
 const { BCRYPT_ROUNDS } = require('./auth');
 const { transaction } = require('../db');
 const time = require('../lib/time');
+const { languageLinks } = require('../lib/i18n');
 
 module.exports = function accountRoutes(db) {
   const router = express.Router();
@@ -15,11 +16,14 @@ module.exports = function accountRoutes(db) {
   function render(req, res, extra = {}) {
     const list = db
       .prepare(
-        `SELECT b.*, c.make, c.model, c.image, c.category, pl.name AS pickup_location_name
+        `SELECT b.*, c.make, c.model, c.image, c.category, pl.name AS pickup_location_name,
+           pl.name_en AS pickup_location_name_en, pl.name_es AS pickup_location_name_es
          FROM bookings b JOIN cars c ON c.id = b.car_id JOIN locations pl ON pl.id = b.pickup_location_id
          WHERE b.user_id = ? ORDER BY b.pickup_at DESC`,
       )
       .all(req.user.id);
+    // Μετά από POST (/account/profile, /account/password) η επιλογή γλώσσας οδηγεί στον λογαριασμό.
+    if (req.method !== 'GET') res.locals.languages = languageLinks(req.locale, '/account');
     res.render('account/index', {
       title: 'Ο λογαριασμός μου',
       bookings: list,

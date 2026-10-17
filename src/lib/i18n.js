@@ -126,8 +126,22 @@ function field(row, name, locale) {
   return row[name] ?? '';
 }
 
+// Αρχείο template ανά γλώσσα, με την κατάληξη .ejs (αλλιώς το EJS θεωρεί το «.en» κατάληξη):
+// lt('../partials/terms-content') -> '../partials/terms-content.en.ejs'
 function fileFor(name, locale) {
-  return !locale || locale === DEFAULT_LOCALE ? name : `${name}.${locale}`;
+  const base = String(name).replace(/\.ejs$/, '');
+  return !locale || locale === DEFAULT_LOCALE ? `${base}.ejs` : `${base}.${locale}.ejs`;
+}
+
+// Σύνδεσμοι της επιλογής γλώσσας για μια διαδρομή της ιστοσελίδας (χωρίς πρόθεμα γλώσσας).
+function languageLinks(locale, here) {
+  return LOCALES.map((code) => ({
+    code,
+    name: NAMES[code],
+    short: SHORT[code],
+    href: localizePath(code, here),
+    current: code === locale,
+  }));
 }
 
 /**
@@ -164,13 +178,9 @@ function middleware(req, res, next) {
     lt: (name) => fileFor(name, locale),
     tf: (row, name) => field(row, name, locale),
     langPrefix: prefix(locale),
-    languages: LOCALES.map((code) => ({
-      code,
-      name: NAMES[code],
-      short: SHORT[code],
-      href: localizePath(code, here + query),
-      current: code === locale,
-    })),
+    // Μετά από POST (π.χ. φόρμα με σφάλματα) η διαδρομή μπορεί να μην ανοίγει με GET: η σελίδα
+    // ορίζει τότε τη σωστή με res.locals.languages = languageLinks(req.locale, '/...').
+    languages: languageLinks(locale, here + query),
   });
   next();
 }
@@ -191,6 +201,7 @@ module.exports = {
   siteUrl,
   fileFor,
   field,
+  languageLinks,
   middleware,
   missing,
   dictionaries,

@@ -5,6 +5,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const config = require('../config');
 const mailer = require('../lib/mailer');
+const i18n = require('../lib/i18n');
 const { str, isEmail, isPhone, passwordProblems } = require('../lib/validation');
 const { limits } = require('../middleware/security');
 const { safeReturnTo } = require('../middleware/auth');
@@ -57,6 +58,8 @@ module.exports = function authRoutes(db) {
         error: 'Λάθος email ή κωδικός.',
       });
     }
+    // Η γλώσσα του λογαριασμού ακολουθεί την τελευταία σύνδεση (για τα emails χωρίς κράτηση).
+    if (user.locale !== req.locale) db.prepare('UPDATE users SET locale = ? WHERE id = ?').run(req.locale, user.id);
     const target = await logIn(req, user.id, { remember: req.body.remember === '1' });
     res.redirect(303, user.role === 'admin' && target === '/account' ? '/admin' : target);
   });
@@ -90,12 +93,13 @@ module.exports = function authRoutes(db) {
     }
     const hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
     const result = db
-      .prepare('INSERT INTO users (email, password_hash, first_name, last_name, phone) VALUES (?, ?, ?, ?, ?)')
-      .run(values.email, hash, values.first_name, values.last_name, values.phone || null);
+      .prepare('INSERT INTO users (email, password_hash, first_name, last_name, phone, locale) VALUES (?, ?, ?, ?, ?, ?)')
+      .run(values.email, hash, values.first_name, values.last_name, values.phone || null, req.locale);
     await mailer.send({
       to: values.email,
-      subject: `Καλώς ήρθατε στην ${config.company.name}`,
+      subject: i18n.msg('Καλώς ήρθατε στην {company}', { company: config.company.name }),
       template: 'welcome',
+      locale: req.locale,
       data: { user: values },
     });
     const target = await logIn(req, Number(result.lastInsertRowid));
@@ -125,11 +129,13 @@ module.exports = function authRoutes(db) {
         Date.now() + 60 * 60 * 1000,
         user.id,
       );
+      // Email και σύνδεσμος στη γλώσσα της σελίδας από την οποία ζητήθηκε η επαναφορά.
       await mailer.send({
         to: user.email,
         subject: 'Επαναφορά κωδικού πρόσβασης',
         template: 'password-reset',
-        data: { user, link: `${config.baseUrl}/reset-password/${token}` },
+        locale: req.locale,
+        data: { user, link: `${i18n.siteUrl(req.locale)}/reset-password/${token}` },
       });
     }
     // Ίδιο μήνυμα είτε υπάρχει ο λογαριασμός είτε όχι (δεν αποκαλύπτουμε ποια emails είναι εγγεγραμμένα).

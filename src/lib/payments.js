@@ -29,8 +29,10 @@ const MAX_REFUND_ATTEMPTS = 8;
 // Πληρωμή ενοικίασης
 // ---------------------------------------------------------------------------
 
+// Εμφανίζεται στη σελίδα πληρωμής του παρόχου: στη γλώσσα της κράτησης.
 function rentalDescription(booking) {
-  return `Ενοικίαση ${booking.make} ${booking.model} - ${booking.days} ${booking.days === 1 ? 'ημέρα' : 'ημέρες'}`;
+  const key = booking.days === 1 ? 'Ενοικίαση {car} - {days} ημέρα' : 'Ενοικίαση {car} - {days} ημέρες';
+  return i18n.t(booking.locale, key, { car: `${booking.make} ${booking.model}`, days: booking.days });
 }
 
 /**
@@ -151,7 +153,7 @@ async function handleRentalPaid(db, row, state, actor) {
     const b = bookings.getById(db, decision.bookingId);
     mailer.sendInBackground({
       to: b.email,
-      subject: `Επιστροφή πληρωμής - κράτηση ${b.reference}`,
+      subject: i18n.msg('Επιστροφή πληρωμής - κράτηση {ref}', { ref: b.reference }),
       template: 'payment-returned',
       data: { booking: b, amountCents: state.amountCents, reason: decision.reason },
     });
@@ -219,7 +221,7 @@ async function startChargesPayment(db, bookingId) {
     kind: 'charge',
     booking,
     amountCents: amount,
-    description: 'Χρεώσεις μετά την επιστροφή του αυτοκινήτου',
+    description: i18n.t(booking.locale, 'Χρεώσεις μετά την επιστροφή του αυτοκινήτου'),
     expiresAtMs: Date.now() + 60 * 60 * 1000,
     successUrl: `${i18n.siteUrl(booking.locale)}/booking/${booking.reference}/payment/return`,
     cancelUrl: `${i18n.siteUrl(booking.locale)}/booking/${booking.reference}`,
@@ -504,7 +506,8 @@ async function cancelBooking(db, bookingId, { actor, reason = null, refund = tru
         bookings.logEvent(db, b.id, 'system', 'refund_due', `Οφείλεται επιστροφή ${format.money(amount)} (πληρωμή εκτός συστήματος)`);
       }
     }
-    bookings.logEvent(db, b.id, actor, 'cancelled', reason);
+    // Το `reason` μπορεί να είναι Msg (μεταφράζεται στο email)· στο ιστορικό γράφεται στα ελληνικά.
+    bookings.logEvent(db, b.id, actor, 'cancelled', reason instanceof i18n.Msg ? String(reason) : reason);
     return { refundId, amount, refundDue };
   });
 
@@ -528,7 +531,7 @@ async function cancelBooking(db, bookingId, { actor, reason = null, refund = tru
   if (notify) {
     mailer.sendInBackground({
       to: updated.email,
-      subject: `Ακύρωση κράτησης ${updated.reference}`,
+      subject: i18n.msg('Ακύρωση κράτησης {ref}', { ref: updated.reference }),
       template: 'booking-cancelled',
       data: { booking: updated, refundedCents: refundedCents + refundPendingCents, refundDueCents: claim.refundDue, reason },
     });

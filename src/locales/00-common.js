@@ -35,6 +35,7 @@ module.exports = {
     'Σφάλμα': 'Error',
     'Παρουσιάστηκε απρόσμενο σφάλμα. Δοκιμάστε ξανά ή επικοινωνήστε μαζί μας.': 'An unexpected error occurred. Please try again or contact us.',
     'Μη έγκυρο αίτημα.': 'Invalid request.',
+    'Η φόρμα έληξε. Ανανεώστε τη σελίδα και δοκιμάστε ξανά.': 'This form has expired. Please refresh the page and try again.',
   },
   es: {
     'Ενοικίαση αυτοκινήτων με online κράτηση, διαφανείς τιμές και δωρεάν ακύρωση.': 'Alquiler de coches con reserva online, precios transparentes y cancelación gratuita.',
@@ -67,5 +68,6 @@ module.exports = {
     'Σφάλμα': 'Error',
     'Παρουσιάστηκε απρόσμενο σφάλμα. Δοκιμάστε ξανά ή επικοινωνήστε μαζί μας.': 'Se ha producido un error inesperado. Inténtelo de nuevo o contacte con nosotros.',
     'Μη έγκυρο αίτημα.': 'Solicitud no válida.',
+    'Η φόρμα έληξε. Ανανεώστε τη σελίδα και δοκιμάστε ξανά.': 'El formulario ha caducado. Actualice la página e inténtelo de nuevo.',
   },
 };

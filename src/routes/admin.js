@@ -16,6 +16,7 @@ const providers = require('../lib/providers');
 const mailer = require('../lib/mailer');
 const config = require('../config');
 const maintenance = require('../lib/maintenance');
+const demoPhotos = require('../lib/demo-photos');
 const QRCode = require('qrcode');
 const { transaction, normalizeText } = require('../db');
 const { BLOCKING_SQL, OVERLAP_SQL, EFFECTIVE_RETURN_SQL, blockingParams } = require('../lib/availability');
@@ -641,7 +642,7 @@ module.exports = function adminRoutes(db, { uploadDir }) {
     const cols = Object.keys(row);
     if (carId) {
       const old = db.prepare('SELECT image FROM cars WHERE id = ?').get(carId);
-      if (req.file) row.image = `/uploads/${req.file.filename}`;
+      if (req.file) Object.assign(row, { image: `/uploads/${req.file.filename}`, image_credit: null, image_source: null });
       else if (!old.image || old.image.startsWith('/img/cars/')) row.image = `/img/cars/${v.category}.svg`;
       db.prepare(`UPDATE cars SET ${Object.keys(row).map((c) => `${c} = :${c}`).join(', ')} WHERE id = :id`).run({ ...row, id: carId });
       if (req.file && old.image && old.image.startsWith('/uploads/')) {
@@ -654,6 +655,24 @@ module.exports = function adminRoutes(db, { uploadDir }) {
     const res = db.prepare(`INSERT INTO cars (${cols.join(', ')}) VALUES (${cols.map((c) => `:${c}`).join(', ')})`).run(row);
     return { id: Number(res.lastInsertRowid) };
   }
+
+  // Ενδεικτικές φωτογραφίες (Wikimedia Commons) για όσα αυτοκίνητα δεν έχουν δική σας φωτογραφία.
+  router.post('/cars/demo-photos', async (req, res, next) => {
+    try {
+      const result = await demoPhotos.addDemoPhotos(db, uploadDir);
+      if (!result.considered) {
+        req.flash('success', 'Όλα τα αυτοκίνητα έχουν ήδη φωτογραφία.');
+      } else {
+        if (result.added.length) req.flash('success', `Προστέθηκαν φωτογραφίες σε ${result.added.length} από ${result.considered} αυτοκίνητα.`);
+        if (result.failed.length) {
+          req.flash('error', `Χωρίς φωτογραφία: ${result.failed.map((f) => `${f.car} (${f.reason})`).join(', ')}.`);
+        }
+      }
+      res.redirect(303, '/admin/cars');
+    } catch (err) {
+      next(err);
+    }
+  });
 
   router.get('/cars/new', (req, res) => {
     carForm(res, {
@@ -954,6 +973,16 @@ module.exports = function adminRoutes(db, { uploadDir }) {
   }
 
   router.get('/system', (req, res) => renderSystem(req, res));
+
+  // Προεπισκόπηση ενός από τα τελευταία emails, ακριβώς όπως θα το δει ο παραλήπτης (μόνο σε δοκιμές).
+  router.get('/system/emails/:id', (req, res, next) => {
+    const item = mailer.recent.find((m) => m.id === intOrNull(req.params.id));
+    if (!item || !item.html) return next();
+    // Το email προβάλλεται απομονωμένο: χωρίς scripts, μόνο με τα δικά του στυλ και εικόνες.
+    res.set('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data: https:; sandbox allow-popups allow-popups-to-escape-sandbox");
+    res.set('Cache-Control', 'no-store');
+    res.type('html').send(item.html);
+  });
 
   router.post('/system/test-email', async (req, res) => {
     const to = str(req.body.to, 254) || req.user.email;

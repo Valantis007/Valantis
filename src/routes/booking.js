@@ -7,6 +7,7 @@ const providers = require('../lib/providers');
 const deposits = require('../lib/deposits');
 const bookings = require('../lib/bookings');
 const format = require('../lib/format');
+const { msg, languageLinks } = require('../lib/i18n');
 const { parseSearch, searchQuery } = require('../lib/search');
 const { isCarAvailable } = require('../lib/availability');
 const { intOrNull, str } = require('../lib/validation');
@@ -48,6 +49,8 @@ module.exports = function bookingRoutes(db) {
     const quote = bookings.quoteFor(db, { car, search, extras: selectedExtras });
     const selected = Object.fromEntries(selectedExtras.map((s) => [s.extra.id, s.qty]));
     const query = searchQuery(search.values);
+    // Μετά την υποβολή (POST /booking) η επιλογή γλώσσας οδηγεί πίσω στη φόρμα.
+    if (req.method !== 'GET') res.locals.languages = languageLinks(req.locale, `/booking/new?car_id=${car.id}&${query}`);
     res.status(status).render('booking/new', {
       title: 'Ολοκλήρωση κράτησης',
       car,
@@ -63,14 +66,15 @@ module.exports = function bookingRoutes(db) {
     });
   }
 
-  function driverDefaults(user) {
+  function driverDefaults(req) {
+    let { user } = req;
     if (user && user.role === 'admin') user = null;
     return {
       first_name: user ? user.first_name : '',
       last_name: user ? user.last_name : '',
       email: user ? user.email : '',
       phone: user ? user.phone || '' : '',
-      license_country: 'Ελλάδα',
+      license_country: req.t('Ελλάδα'),
       payment_method: providers.onlineEnabled() ? 'card' : 'pay_at_pickup',
     };
   }
@@ -91,7 +95,7 @@ module.exports = function bookingRoutes(db) {
       req.flash('error', 'Το αυτοκίνητο δεν είναι διαθέσιμο για αυτές τις ημερομηνίες.');
       return res.redirect(`/cars?${searchQuery(search.values)}`);
     }
-    renderForm(req, res, { car, search, driver: driverDefaults(req.user) });
+    renderForm(req, res, { car, search, driver: driverDefaults(req) });
   });
 
   router.post('/', limits.booking, async (req, res) => {
@@ -131,7 +135,7 @@ module.exports = function bookingRoutes(db) {
       booking = bookings.createBooking(db, { car, search, extras: selectedExtras, driver, userId, locale: req.locale });
     } catch (err) {
       if (err instanceof bookings.BookingError) {
-        return renderForm(req, res, { status: 409, car, search, driver, formError: err.message, selectedExtras });
+        return renderForm(req, res, { status: 409, car, search, driver, formError: err.i18n || err.message, selectedExtras });
       }
       throw err;
     }
@@ -178,7 +182,7 @@ module.exports = function bookingRoutes(db) {
     const charges = deposits.chargesForBooking(db, booking.id).filter((c) => c.status !== 'withdrawn');
     const outstanding = deposits.outstandingCents(db, booking.id);
     res.render('booking/show', {
-      title: `Κράτηση ${booking.reference}`,
+      title: msg('Κράτηση {ref}', { ref: booking.reference }),
       booking,
       extras: bookings.getExtras(db, booking.id),
       cancellation: bookings.customerCancellation(booking, undefined, { pendingRefundCents: payments.pendingRefundCents(db, booking.id) }),
@@ -198,30 +202,39 @@ module.exports = function bookingRoutes(db) {
       req.flash('error', check.reason);
       return res.redirect(303, `/booking/${booking.reference}`);
     }
+    // Ποσά στη γλώσσα της σελίδας· η αιτία ακύρωσης (για το email) στη γλώσσα της κράτησης.
+    const money = format.forLocale(req.locale).money;
     if (check.late && check.feeCents > 0 && req.body.accept_fee !== '1') {
-      req.flash('error', `Επιβεβαιώστε ότι αποδέχεστε τη χρέωση ακύρωσης ${format.money(check.feeCents)}.`);
+      req.flash('error', msg('Επιβεβαιώστε ότι αποδέχεστε τη χρέωση ακύρωσης {amount}.', { amount: money(check.feeCents) }));
       return res.redirect(303, `/booking/${booking.reference}`);
     }
     try {
       const result = await payments.cancelBooking(db, booking.id, {
         actor: actorOf(req),
-        reason: check.feeCents ? `Ακύρωση από τον πελάτη (χρέωση ακύρωσης ${format.money(check.feeCents)})` : 'Ακύρωση από τον πελάτη',
+        reason: check.feeCents
+          ? msg('Ακύρωση από τον πελάτη (χρέωση ακύρωσης {amount})', { amount: format.forLocale(booking.locale).money(check.feeCents) })
+          : 'Ακύρωση από τον πελάτη',
         retainCents: check.feeCents,
       });
-      let msg = 'Η κράτηση ακυρώθηκε.';
+      // Ένα μήνυμα από πολλές προτάσεις: μεταφράζεται εδώ, πρόταση προς πρόταση.
+      const parts = [req.t('Η κράτηση ακυρώθηκε.')];
       if (result.refundedCents) {
-        msg += ` Η επιστροφή ${format.money(result.refundedCents)} στην κάρτα σας ξεκίνησε και θα εμφανιστεί σε 5-10 εργάσιμες ημέρες.`;
+        parts.push(req.t('Η επιστροφή {amount} στην κάρτα σας ξεκίνησε και θα εμφανιστεί σε 5-10 εργάσιμες ημέρες.', { amount: money(result.refundedCents) }));
       }
       if (result.refundPendingCents) {
-        msg += ` Η επιστροφή ${format.money(result.refundPendingCents)} καθυστερεί λόγω προσωρινού προβλήματος του παρόχου πληρωμών· θα ολοκληρωθεί αυτόματα μόλις αποκατασταθεί.`;
+        parts.push(
+          req.t('Η επιστροφή {amount} καθυστερεί λόγω προσωρινού προβλήματος του παρόχου πληρωμών· θα ολοκληρωθεί αυτόματα μόλις αποκατασταθεί.', {
+            amount: money(result.refundPendingCents),
+          }),
+        );
       }
       if (result.refundDueCents) {
-        msg += ` Θα επικοινωνήσουμε μαζί σας για την επιστροφή ${format.money(result.refundDueCents)}.`;
+        parts.push(req.t('Θα επικοινωνήσουμε μαζί σας για την επιστροφή {amount}.', { amount: money(result.refundDueCents) }));
       }
-      req.flash('success', msg);
+      req.flash('success', parts.join(' '));
     } catch (err) {
       console.error('[cancel]', err);
-      req.flash('error', err instanceof bookings.BookingError ? err.message : 'Δεν ήταν δυνατή η ακύρωση. Επικοινωνήστε μαζί μας.');
+      req.flash('error', err instanceof bookings.BookingError ? err.i18n || err.message : 'Δεν ήταν δυνατή η ακύρωση. Επικοινωνήστε μαζί μας.');
     }
     res.redirect(303, `/booking/${booking.reference}`);
   });
@@ -237,7 +250,7 @@ module.exports = function bookingRoutes(db) {
       return res.redirect(303, await payments.startRentalPayment(db, booking.id));
     } catch (err) {
       console.error('[payments]', err.message);
-      req.flash('error', err instanceof bookings.BookingError ? err.message : 'Δεν ήταν δυνατή η σύνδεση με την υπηρεσία πληρωμών. Δοκιμάστε ξανά σε λίγο.');
+      req.flash('error', err instanceof bookings.BookingError ? err.i18n || err.message : 'Δεν ήταν δυνατή η σύνδεση με την υπηρεσία πληρωμών. Δοκιμάστε ξανά σε λίγο.');
       return res.redirect(303, `/booking/${booking.reference}`);
     }
   });
@@ -302,7 +315,7 @@ module.exports = function bookingRoutes(db) {
       req.flash('success', decision === 'accept' ? 'Ευχαριστούμε. Η αποδοχή σας καταχωρήθηκε.' : 'Η αμφισβήτησή σας καταχωρήθηκε. Θα επικοινωνήσουμε μαζί σας.');
     } catch (err) {
       if (!(err instanceof bookings.BookingError)) throw err;
-      req.flash('error', err.message);
+      req.flash('error', err.i18n || err.message);
     }
     res.redirect(303, `/booking/${req.booking.reference}`);
   });
@@ -313,7 +326,7 @@ module.exports = function bookingRoutes(db) {
       return res.redirect(303, await payments.startChargesPayment(db, req.booking.id));
     } catch (err) {
       if (!(err instanceof bookings.BookingError)) console.error('[charges]', err);
-      req.flash('error', err instanceof bookings.BookingError ? err.message : 'Δεν ήταν δυνατή η σύνδεση με την υπηρεσία πληρωμών.');
+      req.flash('error', err instanceof bookings.BookingError ? err.i18n || err.message : 'Δεν ήταν δυνατή η σύνδεση με την υπηρεσία πληρωμών.');
       return res.redirect(303, `/booking/${req.booking.reference}`);
     }
   });
@@ -321,7 +334,7 @@ module.exports = function bookingRoutes(db) {
   // Εκτυπώσιμο αντίγραφο / voucher.
   router.get('/:ref/print', (req, res) => {
     res.render('booking/print', {
-      title: `Κράτηση ${req.booking.reference}`,
+      title: msg('Κράτηση {ref}', { ref: req.booking.reference }),
       booking: req.booking,
       extras: bookings.getExtras(db, req.booking.id),
       rules: config.rules,

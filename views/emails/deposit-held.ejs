@@ -1,6 +1,6 @@
 <%- include('_top') %>
-<p>Αγαπητέ/ή <%= booking.first_name %>,</p>
-<p>Επιβεβαιώνουμε τη <strong>δέσμευση</strong> (όχι χρέωση) <strong><%= format.money(deposit.amount_cents) %></strong><% if (deposit.card_last4) { %> στην κάρτα •••• <%= deposit.card_last4 %><% } %> ως εγγύηση για την κράτηση <strong><%= booking.reference %></strong>.</p>
-<p>Το ποσό θα αποδεσμευτεί μετά την επιστροφή του αυτοκινήτου. Αν προκύψουν χρεώσεις που προβλέπονται στους όρους (π.χ. καύσιμο, καθυστέρηση), θα λάβετε αναλυτική ενημέρωση. Για ζημιά απαιτείται η συναίνεσή σας.</p>
+<p><%= t('Αγαπητέ/ή {name},', { name: booking.first_name }) %></p>
+<% if (deposit.card_last4) { %><p><%- th('Επιβεβαιώνουμε τη <strong>δέσμευση</strong> (όχι χρέωση) <strong>{amount}</strong> στην κάρτα •••• {last4} ως εγγύηση για την κράτηση <strong>{ref}</strong>.', { amount: format.money(deposit.amount_cents), last4: deposit.card_last4, ref: booking.reference }) %></p><% } else { %><p><%- th('Επιβεβαιώνουμε τη <strong>δέσμευση</strong> (όχι χρέωση) <strong>{amount}</strong> ως εγγύηση για την κράτηση <strong>{ref}</strong>.', { amount: format.money(deposit.amount_cents), ref: booking.reference }) %></p><% } %>
+<p><%= t('Το ποσό θα αποδεσμευτεί μετά την επιστροφή του αυτοκινήτου. Αν προκύψουν χρεώσεις που προβλέπονται στους όρους (π.χ. καύσιμο, καθυστέρηση), θα λάβετε αναλυτική ενημέρωση. Για ζημιά απαιτείται η συναίνεσή σας.') %></p>
 <p><%= company.name %></p>
 <%- include('_bottom') %>

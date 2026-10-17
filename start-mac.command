@@ -13,6 +13,11 @@ if [ ! -d node_modules ]; then
   npm install || { read -r -n 1 -p "Σφάλμα. Πατήστε ένα πλήκτρο..."; exit 1; }
 fi
 
+if [ ! -f .env ]; then
+  cp .env.local.example .env
+  echo "Δημιουργήθηκε το αρχείο ρυθμίσεων .env (για δοκιμαστικές πληρωμές βάλτε εκεί το κλειδί του Stripe)."
+fi
+
 if [ ! -f data/app.db ]; then
   echo "Δημιουργία βάσης με ενδεικτικά αυτοκίνητα..."
   npm run seed

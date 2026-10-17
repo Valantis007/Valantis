@@ -1,47 +1,48 @@
-<%# Παράμετροι: locations, values, errors, compact (προαιρετικό), action (προαιρετικό) %>
+<%# Παράμετροι: locations, values, errors, compact (προαιρετικό), action (προαιρετικό), buttonLabel (προαιρετικό, ελληνικό κείμενο) %>
 <% const v = values || {}; const e = errors || {}; const slots = time.timeSlots(); %>
-<form class="search-form <%= locals.stacked ? 'stacked' : '' %>" method="get" action="<%= locals.action || '/cars' %>" data-search-form>
+<% const calendarTexts = { pickup: t('Παραλαβή'), return: t('Επιστροφή'), choosePickup: t('Επιλέξτε ημερομηνία παραλαβής'), chooseReturn: t('Επιλέξτε ημερομηνία επιστροφής'), prev: t('Προηγούμενος μήνας'), next: t('Επόμενος μήνας'), done: t('Εντάξει'), calendar: t('Ημερολόγιο'), days: t('{n} ημέρες ενοικίασης'), oneDay: t('1 ημέρα ενοικίασης') }; %>
+<form class="search-form <%= locals.stacked ? 'stacked' : '' %>" method="get" action="<%= u(locals.action || '/cars') %>" data-search-form data-calendar="<%= JSON.stringify(calendarTexts) %>" data-max-advance-days="<%= config.rules.maxAdvanceDays %>">
   <div class="field">
-    <label for="pickup_location">Σημείο παραλαβής</label>
+    <label for="pickup_location"><%= t('Σημείο παραλαβής') %></label>
     <select id="pickup_location" name="pickup_location" required>
-      <option value="">Επιλέξτε...</option>
+      <option value=""><%= t('Επιλέξτε...') %></option>
       <% locations.forEach(function (l) { %>
-        <option value="<%= l.id %>" <%= String(v.pickup_location) === String(l.id) ? 'selected' : '' %>><%= l.name %><%= l.fee_cents ? ` (+${format.money(l.fee_cents)})` : '' %></option>
+        <option value="<%= l.id %>" <%= String(v.pickup_location) === String(l.id) ? 'selected' : '' %>><%= tf(l, 'name') %><%= l.fee_cents ? ` (+${format.money(l.fee_cents)})` : '' %></option>
       <% }) %>
     </select>
-    <% if (e.pickup_location) { %><span class="error"><%= e.pickup_location %></span><% } %>
+    <% if (e.pickup_location) { %><span class="error"><%= t(e.pickup_location) %></span><% } %>
   </div>
   <div class="field">
-    <label for="return_location">Σημείο επιστροφής</label>
+    <label for="return_location"><%= t('Σημείο επιστροφής') %></label>
     <select id="return_location" name="return_location">
-      <option value="">Ίδιο με παραλαβή</option>
+      <option value=""><%= t('Ίδιο με παραλαβή') %></option>
       <% locations.forEach(function (l) { %>
-        <option value="<%= l.id %>" <%= v.return_location && String(v.return_location) === String(l.id) ? 'selected' : '' %>><%= l.name %></option>
+        <option value="<%= l.id %>" <%= v.return_location && String(v.return_location) === String(l.id) ? 'selected' : '' %>><%= tf(l, 'name') %></option>
       <% }) %>
     </select>
-    <% if (e.return_location) { %><span class="error"><%= e.return_location %></span><% } %>
+    <% if (e.return_location) { %><span class="error"><%= t(e.return_location) %></span><% } %>
   </div>
   <div class="field date-time">
-    <label for="pickup_date">Παραλαβή</label>
+    <label for="pickup_date"><%= t('Παραλαβή') %></label>
     <div class="row-inline">
       <input type="date" id="pickup_date" name="pickup_date" value="<%= v.pickup_date %>" required>
-      <select name="pickup_time" aria-label="Ώρα παραλαβής">
+      <select name="pickup_time" aria-label="<%= t('Ώρα παραλαβής') %>">
         <% slots.forEach(function (s) { %><option <%= v.pickup_time === s ? 'selected' : '' %>><%= s %></option><% }) %>
       </select>
     </div>
-    <% if (e.pickup_date || e.pickup_time) { %><span class="error"><%= e.pickup_date || e.pickup_time %></span><% } %>
+    <% if (e.pickup_date || e.pickup_time) { %><span class="error"><%= t(e.pickup_date || e.pickup_time) %></span><% } %>
   </div>
   <div class="field date-time">
-    <label for="return_date">Επιστροφή</label>
+    <label for="return_date"><%= t('Επιστροφή') %></label>
     <div class="row-inline">
       <input type="date" id="return_date" name="return_date" value="<%= v.return_date %>" required>
-      <select name="return_time" aria-label="Ώρα επιστροφής">
+      <select name="return_time" aria-label="<%= t('Ώρα επιστροφής') %>">
         <% slots.forEach(function (s) { %><option <%= v.return_time === s ? 'selected' : '' %>><%= s %></option><% }) %>
       </select>
     </div>
-    <% if (e.return_date || e.return_time) { %><span class="error"><%= e.return_date || e.return_time %></span><% } %>
+    <% if (e.return_date || e.return_time) { %><span class="error"><%= t(e.return_date || e.return_time) %></span><% } %>
   </div>
   <div class="field submit">
-    <button type="submit" class="btn btn-primary"><%= locals.buttonLabel || 'Αναζήτηση' %></button>
+    <button type="submit" class="btn btn-primary"><%= t(locals.buttonLabel || 'Αναζήτηση') %></button>
   </div>
 </form>

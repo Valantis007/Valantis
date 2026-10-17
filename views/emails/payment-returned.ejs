@@ -1,7 +1,7 @@
 <%- include('_top') %>
-<p>Αγαπητέ/ή <%= booking.first_name %>,</p>
-<p>Λάβαμε πληρωμή <strong><%= format.money(amountCents) %></strong> για την κράτηση <strong><%= booking.reference %></strong>, την οποία δεν μπορέσαμε να αντιστοιχίσουμε:</p>
-<p><em><%= reason %></em></p>
-<p>Το ποσό <strong>επιστρέφεται αυτόματα</strong> στην κάρτα σας και θα εμφανιστεί σε 5-10 εργάσιμες ημέρες. Δεν χρειάζεται καμία ενέργεια από εσάς. Για απορίες επικοινωνήστε μαζί μας.</p>
+<p><%= t('Αγαπητέ/ή {name},', { name: booking.first_name }) %></p>
+<p><%- th('Λάβαμε πληρωμή <strong>{amount}</strong> για την κράτηση <strong>{ref}</strong>, την οποία δεν μπορέσαμε να αντιστοιχίσουμε:', { amount: format.money(amountCents), ref: booking.reference }) %></p>
+<p><em><%= t(reason) %></em></p>
+<p><%- th('Το ποσό <strong>επιστρέφεται αυτόματα</strong> στην κάρτα σας και θα εμφανιστεί σε 5-10 εργάσιμες ημέρες. Δεν χρειάζεται καμία ενέργεια από εσάς. Για απορίες επικοινωνήστε μαζί μας.') %></p>
 <p><%= company.name %></p>
 <%- include('_bottom') %>

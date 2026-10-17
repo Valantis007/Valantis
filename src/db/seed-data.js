@@ -6,7 +6,7 @@
 const { transaction } = require('./index');
 
 const locations = [
-  { name: 'Γραφείο - Κέντρο πόλης', name_en: 'Office - City centre', name_es: 'Oficina - Centro de la ciudad', address: 'Οδός 1, Κέντρο', address_en: null, address_es: null, fee_cents: 0, sort_order: 1 },
+  { name: 'Γραφείο - Κέντρο πόλης', name_en: 'Office - City centre', name_es: 'Oficina - Centro de la ciudad', address: 'Οδός 1, Κέντρο', address_en: 'Street 1, City centre', address_es: 'Calle 1, Centro', fee_cents: 0, sort_order: 1 },
   { name: 'Αεροδρόμιο', name_en: 'Airport', name_es: 'Aeropuerto', address: 'Αίθουσα αφίξεων', address_en: 'Arrivals hall', address_es: 'Sala de llegadas', fee_cents: 2000, sort_order: 2 },
   { name: 'Λιμάνι', name_en: 'Port', name_es: 'Puerto', address: 'Επιβατικός σταθμός', address_en: 'Passenger terminal', address_es: 'Terminal de pasajeros', fee_cents: 1000, sort_order: 3 },
   {

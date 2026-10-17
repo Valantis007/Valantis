@@ -5,6 +5,7 @@
 const config = require('../config');
 const time = require('./time');
 const { intOrNull } = require('./validation');
+const { msg } = require('./i18n');
 
 function getActiveLocation(db, id) {
   if (id === null) return null;
@@ -41,22 +42,24 @@ function parseSearch(db, input, now = time.nowLocal()) {
 
   if (pickupAt && returnAt) {
     const { rules } = config;
+    // Μηνύματα με μεταβλητές: msg(), ώστε να μεταφράζονται εκεί όπου εμφανίζονται (t(errors.x)).
+    const hours = { from: `${rules.openingHour}:00`, to: `${rules.closingHour}:00` };
     if (!time.isWithinOpeningHours(pickupAt)) {
-      errors.pickup_time = `Οι παραλαβές γίνονται ${rules.openingHour}:00 - ${rules.closingHour}:00.`;
+      errors.pickup_time = msg('Οι παραλαβές γίνονται {from} - {to}.', hours);
     }
     if (!time.isWithinOpeningHours(returnAt)) {
-      errors.return_time = `Οι επιστροφές γίνονται ${rules.openingHour}:00 - ${rules.closingHour}:00.`;
+      errors.return_time = msg('Οι επιστροφές γίνονται {from} - {to}.', hours);
     }
     if (time.minutesBetween(now, pickupAt) < rules.minLeadMinutes) {
-      errors.pickup_date = `Η παραλαβή πρέπει να είναι τουλάχιστον ${Math.ceil(rules.minLeadMinutes / 60)} ώρες από τώρα.`;
+      errors.pickup_date = msg('Η παραλαβή πρέπει να είναι τουλάχιστον {hours} ώρες από τώρα.', { hours: Math.ceil(rules.minLeadMinutes / 60) });
     } else if (time.minutesBetween(now, pickupAt) > rules.maxAdvanceDays * 24 * 60) {
-      errors.pickup_date = `Δεχόμαστε κρατήσεις έως ${rules.maxAdvanceDays} ημέρες μπροστά.`;
+      errors.pickup_date = msg('Δεχόμαστε κρατήσεις έως {days} ημέρες μπροστά.', { days: rules.maxAdvanceDays });
     }
     const minutes = time.minutesBetween(pickupAt, returnAt);
     if (minutes < 60) {
       errors.return_date = 'Η επιστροφή πρέπει να είναι μετά την παραλαβή.';
     } else if (time.rentalDays(pickupAt, returnAt) > rules.maxRentalDays) {
-      errors.return_date = `Η μέγιστη διάρκεια ενοικίασης είναι ${rules.maxRentalDays} ημέρες.`;
+      errors.return_date = msg('Η μέγιστη διάρκεια ενοικίασης είναι {days} ημέρες.', { days: rules.maxRentalDays });
     }
   }
 
