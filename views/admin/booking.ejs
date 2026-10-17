@@ -35,6 +35,7 @@
           <% if (b.pickup_km !== null) { %><dt>Χλμ. παράδοσης</dt><dd><%= b.pickup_km %></dd><% } %>
           <% if (b.return_km !== null) { %><dt>Χλμ. επιστροφής</dt><dd><%= b.return_km %> (<%= b.return_km - (b.pickup_km || 0) %> km)</dd><% } %>
           <% if (b.notes) { %><dt>Σημειώσεις πελάτη</dt><dd><%= b.notes %></dd><% } %>
+          <dt>Γλώσσα πελάτη</dt><dd><%= { el: 'Ελληνικά', en: 'Αγγλικά (English)', es: 'Ισπανικά (Español)' }[b.locale] || 'Ελληνικά' %><% if (b.locale && b.locale !== 'el') { %> <span class="small muted">— τα emails του στέλνονται σε αυτή τη γλώσσα</span><% } %></dd>
           <dt>Δημιουργήθηκε</dt><dd><%= format.utcTimestamp(b.created_at, config.rules.timezone) %></dd>
           <% if (b.payment_provider) { %><dt>Πάροχος πληρωμής</dt><dd><%= b.payment_provider %><% if (b.payment_ref) { %> · <span class="small"><%= b.payment_ref %></span><% } %></dd><% } %>
         </dl>
