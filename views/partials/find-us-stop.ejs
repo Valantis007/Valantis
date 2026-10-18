@@ -14,7 +14,7 @@
     <% } else { %><strong><%= tf(st, 'name') %></strong><% } %>
   </p>
   <% if (withName && st.customer_address) { %>
-    <p><%= st.kind === 'return' ? t('Θα παραλάβουμε το αυτοκίνητο από: {address}', { address: st.customer_address }) : t('Διεύθυνση παράδοσης: {address}', { address: st.customer_address }) %></p>
+    <p><%= st.kind === 'return' ? t('Θα παραλάβουμε το αυτοκίνητο από: {address}', { address: places.shownAddress(st.customer_address, t) }) : t('Διεύθυνση παράδοσης: {address}', { address: places.shownAddress(st.customer_address, t) }) %></p>
   <% } else if (withName && address) { %>
     <p class="muted"><%= address %></p>
   <% } %>

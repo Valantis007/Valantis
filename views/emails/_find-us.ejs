@@ -13,7 +13,7 @@
   <% items.forEach(function (i) { const st = i.stop; const text = tf(st, 'text'); const address = st.needs_address ? '' : tf(st, 'address'); %>
   <tr><td style="padding:8px 16px;font-size:14px;line-height:1.5;">
     <strong><%= i.title %></strong><% if (i.showPlace) { %> · <%= tf(st, 'name') %><% } %><br>
-    <% if (i.showPlace && st.customer_address) { %><%= st.kind === 'return' ? t('Θα παραλάβουμε το αυτοκίνητο από: {address}', { address: st.customer_address }) : t('Διεύθυνση παράδοσης: {address}', { address: st.customer_address }) %><br>
+    <% if (i.showPlace && st.customer_address) { %><%= st.kind === 'return' ? t('Θα παραλάβουμε το αυτοκίνητο από: {address}', { address: places.shownAddress(st.customer_address, t) }) : t('Διεύθυνση παράδοσης: {address}', { address: places.shownAddress(st.customer_address, t) }) %><br>
     <% } else if (i.showPlace && address) { %><span style="color:#6b7280;"><%= address %></span><br><% } %>
     <% if (text) { %><span style="white-space:pre-line;"><%= text %></span><br><% } %>
     <% if (i.showPlace && st.url) { %><a href="<%= st.url %>" style="display:inline-block;margin-top:6px;padding:6px 12px;background:#1d5bd8;color:#ffffff;text-decoration:none;border-radius:6px;font-size:13px;font-weight:bold;"><%= t('Οδηγίες πορείας') %></a><% } %>

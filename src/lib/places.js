@@ -80,10 +80,17 @@ function forSearch(pickupLocation, returnLocation) {
   };
 }
 
+// Διεύθυνση του πελάτη για εμφάνιση: η ένδειξη «[αφαιρέθηκε]» (αριθμός κάρτας που αφαιρέθηκε από
+// το bookings.maskCardNumbers) στη γλώσσα της σελίδας ή του email. `t`: η μετάφραση του template.
+const REMOVED = '[αφαιρέθηκε]';
+function shownAddress(value, t) {
+  return String(value || '').split(REMOVED).join(typeof t === 'function' ? t(REMOVED) : REMOVED);
+}
+
 // Έχει κάτι να πει η στάση στον πελάτη; (οδηγίες, διεύθυνση του πελάτη ή κουμπί χάρτη)
 function hasDetails(stop) {
   if (!stop) return false;
   return Boolean(String(stop.text || '').trim() || stop.customer_address || stop.url);
 }
 
-module.exports = { isMapUrl, googleDirections, directionsUrl, fromLocation, fromBooking, forBooking, forSearch, hasDetails };
+module.exports = { isMapUrl, googleDirections, directionsUrl, fromLocation, fromBooking, forBooking, forSearch, hasDetails, shownAddress };

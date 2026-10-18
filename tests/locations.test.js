@@ -292,6 +292,21 @@ test('διαχείριση σημείων: οδηγίες με υποχρεωτ�
   assert.match((await aa.get('/admin/locations')).text, /id="location-2"[\s\S]{0,400}⚠ Λείπει μετάφραση: Οδηγίες επιστροφής/);
 });
 
+test('έλεγχος συστήματος: υπενθύμιση για σημεία με την ενδεικτική διεύθυνση της εγκατάστασης', async () => {
+  const { db, app } = h.setup();
+  const aa = await adminAgent(db, app);
+  const before = await aa.get('/admin/system');
+  assert.match(before.text, /Σημεία με ενδεικτική διεύθυνση: Γραφείο - Κέντρο πόλης, Αεροδρόμιο, Λιμάνι/);
+  assert.match(before.text, /<a class="small" href="\/admin\/locations">Διαχείριση → Σημεία →<\/a>/);
+  db.prepare(`UPDATE locations SET address = 'Τσιμισκή 12, Θεσσαλονίκη' WHERE id = ?`).run(OFFICE);
+  db.prepare('UPDATE locations SET active = 0 WHERE id = ?').run(PORT);
+  assert.match((await aa.get('/admin/system')).text, /Σημεία με ενδεικτική διεύθυνση: Αεροδρόμιο</);
+  db.prepare(`UPDATE locations SET address = 'Αερολιμένας Μακεδονία, Αίθουσα αφίξεων' WHERE id = ?`).run(AIRPORT);
+  const after = await aa.get('/admin/system');
+  assert.doesNotMatch(after.text, /ενδεικτική διεύθυνση:/);
+  assert.match(after.text, /Σημεία παραλαβής: χωρίς ενδεικτικές διευθύνσεις/);
+});
+
 test('διατήρηση δεδομένων: η διεύθυνση παράδοσης/παραλαβής διαγράφεται μαζί με τα άλλα στοιχεία· στη λήψη δεδομένων και στη διαγραφή λογαριασμού', async () => {
   const { db, app } = h.setup();
   const params = h.searchParams({ pickupLocation: HOTEL, returnLocation: HOTEL });

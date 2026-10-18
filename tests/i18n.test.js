@@ -48,12 +48,17 @@ for (const locale of ['en', 'es']) {
   test(`[${locale}] δημόσιες σελίδες χωρίς ελληνικό κείμενο`, async () => {
     const { db, app } = h.setup();
     const search = new URLSearchParams(h.searchParams()).toString();
+    // Παράδοση σε ξενοδοχείο (πεδία διεύθυνσης) και αεροδρόμιο → λιμάνι («Πώς θα μας βρείτε»).
+    const hotel = new URLSearchParams(h.searchParams({ pickupLocation: 4, returnLocation: 4 })).toString();
+    const airportPort = new URLSearchParams(h.searchParams({ pickupLocation: 2, returnLocation: 3 })).toString();
     const pages = [
       '/',
       '/cars',
       `/cars?${search}`,
       '/cars/1',
       `/booking/new?${search}`,
+      `/booking/new?${hotel}`,
+      `/booking/new?${airportPort}`,
       '/manage',
       '/faq',
       '/contact',
@@ -122,6 +127,24 @@ for (const locale of ['en', 'es']) {
     assert.equal(account.status, 200);
     assert.ok(account.text.includes(h.bookingRef(mine)), 'η κράτηση εμφανίζεται στον λογαριασμό');
     assertNoGreek(account.text, p('/account'));
+    // Παράδοση σε ξενοδοχείο: σφάλμα διεύθυνσης, και κράτηση με διεύθυνση παράδοσης/παραλαβής.
+    const hotel = h.searchParams({ car: 3, pickupLocation: 4, returnLocation: 4 });
+    const hotelForm = p(`/booking/new?${new URLSearchParams(hotel)}`);
+    const noAddress = await h.post(agent, p('/booking'), { ...hotel, ...h.driver(LATIN_DRIVER) }, hotelForm);
+    assert.equal(noAddress.status, 422);
+    assertNoGreek(noAddress.text, `${p('/booking')} (χωρίς διεύθυνση παράδοσης)`);
+    const delivered = await h.post(
+      agent,
+      p('/booking'),
+      { ...hotel, ...h.driver(LATIN_DRIVER), pickup_address: 'Hotel Electra Palace, Aristotelous Sq. 9', return_address: 'Hotel Capsis, Monastiriou 18' },
+      hotelForm,
+    );
+    assert.equal(delivered.status, 303);
+    for (const path of [`/booking/${h.bookingRef(delivered)}`, `/booking/${h.bookingRef(delivered)}/print`]) {
+      const res = await agent.get(p(path));
+      assert.match(res.text, /Hotel Electra Palace/);
+      assertNoGreek(res.text, `${p(path)} (ξενοδοχείο)`);
+    }
   });
 
   test(`[${locale}] emails προς τον πελάτη χωρίς ελληνικό κείμενο`, async () => {
@@ -173,6 +196,21 @@ for (const locale of ['en', 'es']) {
     for (const template of templates) {
       const html = await mailer.render(template, data, locale);
       assertNoGreek(html, `email ${template}`);
+    }
+    // Επιβεβαίωση για παράδοση σε ξενοδοχείο και για αεροδρόμιο → λιμάνι: διευθύνσεις και «Πώς θα μας βρείτε».
+    for (const [pickupLocation, returnLocation, car] of [[4, 4, 2], [2, 3, 3]]) {
+      const params = h.searchParams({ car, pickupLocation, returnLocation });
+      const res = await h.post(
+        agent,
+        p('/booking'),
+        { ...params, ...h.driver({ ...LATIN_DRIVER, email: `john${car}@example.com` }), pickup_address: 'Hotel Electra Palace', return_address: 'Hotel Capsis' },
+        p(`/booking/new?${new URLSearchParams(params)}`),
+      );
+      assert.equal(res.status, 303, `${pickupLocation} → ${returnLocation}`);
+      const b = bookingsLib.getByReference(db, h.bookingRef(res));
+      const html = await mailer.render('booking-confirmed', { ...data, booking: b, extras: [] }, locale);
+      assert.match(html, locale === 'en' ? /How to find us/ : /Cómo encontrarnos/);
+      assertNoGreek(html, `email booking-confirmed (${pickupLocation} → ${returnLocation})`);
     }
     // Χρέωση ζημιάς με γραπτή συναίνεση: η συναίνεση αποθηκεύεται στα ελληνικά, εμφανίζεται μεταφρασμένη.
     const consented = { ...charge, status: 'accepted', consent: 'Γραπτή συναίνεση πελάτη: damage report 12, signed' };

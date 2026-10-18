@@ -86,4 +86,8 @@ function seedLocations(rules = { openingHour: 8, closingHour: 22 }) {
   ];
 }
 
-module.exports = { seedLocations, HOTEL_ADDRESS };
+// Οι ενδεικτικές διευθύνσεις των σημείων όπου έρχεται ο πελάτης: ο «Έλεγχος συστήματος» υπενθυμίζει
+// να γραφτούν οι πραγματικές (τις βλέπει ο πελάτης και τις ψάχνει το κουμπί «Οδηγίες πορείας»).
+const PLACEHOLDER_ADDRESSES = seedLocations().filter((l) => !l.needs_address).map((l) => l.address);
+
+module.exports = { seedLocations, HOTEL_ADDRESS, PLACEHOLDER_ADDRESSES };

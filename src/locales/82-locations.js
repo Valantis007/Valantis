@@ -18,7 +18,7 @@ module.exports = {
     'Διεύθυνση παράδοσης: {address}': 'Delivery address: {address}',
     'Θα παραλάβουμε το αυτοκίνητο από: {address}': 'We will collect the car from: {address}',
     'Η κράτησή σας είναι επιβεβαιωμένη. Θα σας φέρουμε το αυτοκίνητο στις <strong>{date}</strong> στη διεύθυνση «{address}».':
-      'Your booking is confirmed. We will bring the car to you on <strong>{date}</strong> at ‘{address}’.',
+      'Your booking is confirmed. We will bring the car to you on <strong>{date}</strong> at the address ‘{address}’.',
     // «Πώς θα μας βρείτε»
     'Πώς θα μας βρείτε': 'How to find us',
     'Οδηγίες πορείας': 'Directions',

@@ -61,6 +61,32 @@ for (const locale of ['en', 'es']) {
     assert.doesNotMatch(notes, GREEK);
   });
 
+  test(`[${locale}] διεύθυνση παράδοσης με αριθμό κάρτας: η ένδειξη αφαιρεμένου αριθμού στη γλώσσα της σελίδας και του email`, async () => {
+    const { db, app } = h.setup();
+    const agent = h.agent(app);
+    const params = h.searchParams({ pickupLocation: 4, returnLocation: 4 });
+    const res = await h.post(
+      agent,
+      p('/booking'),
+      { ...params, ...h.driver(LATIN_DRIVER), pickup_address: 'Hotel X, card 4242 4242 4242 4242', return_address: 'Hotel Y, 5555 5555 5555 4444' },
+      p(`/booking/new?${new URLSearchParams(params)}`),
+    );
+    assert.equal(res.status, 303);
+    const ref = h.bookingRef(res);
+    const removed = locale === 'en' ? '[removed]' : '[eliminado]';
+    for (const page of [`/booking/${ref}`, `/booking/${ref}/print`]) {
+      const html = (await agent.get(p(page))).text;
+      assert.ok(html.includes(`Hotel X, card ${removed}`) && html.includes(`Hotel Y, ${removed}`), p(page));
+      assert.doesNotMatch(html, /αφαιρέθηκε|4242 4242/, p(page));
+    }
+    const booking = bookingsLib.getByReference(db, ref);
+    const html = await mailer.render('booking-confirmed', { booking, extras: [] }, locale);
+    assert.ok(html.includes(`Hotel X, card ${removed}`), 'email');
+    assert.doesNotMatch(html, /αφαιρέθηκε/, 'email');
+    // Η διαχείριση μένει ελληνική.
+    assert.match(await mailer.render('admin-new-booking', { booking, extras: [] }, 'el'), /Hotel X, card \[αφαιρέθηκε\]/);
+  });
+
   test(`[${locale}] χρέωση ζημιάς πέραν της απαλλαγής: τεκμηρίωση στη σελίδα και στο email χωρίς ελληνικά`, async () => {
     const { db, app } = h.setup();
     const agent = h.agent(app);

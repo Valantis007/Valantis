@@ -22,6 +22,7 @@ const translationsCheck = require('../lib/translations-check');
 const companyLib = require('../lib/company');
 const presets = require('../lib/presets');
 const places = require('../lib/places');
+const { PLACEHOLDER_ADDRESSES } = require('../db/seed-locations');
 const QRCode = require('qrcode');
 const { transaction, normalizeText } = require('../db');
 const { BLOCKING_SQL, OVERLAP_SQL, EFFECTIVE_RETURN_SQL, blockingParams } = require('../lib/availability');
@@ -1107,6 +1108,20 @@ module.exports = function adminRoutes(db, { uploadDir, settings = {} }) {
     if (st.lastError) add('bad', `Σφάλμα περιοδικών εργασιών: ${st.lastError.message}`);
     const sessionOk = config.sessionSecret && config.sessionSecret !== 'dev-only-insecure-secret' && config.sessionSecret.length >= 32;
     add(sessionOk ? 'ok' : 'bad', sessionOk ? 'SESSION_SECRET ισχυρό' : 'SESSION_SECRET λείπει ή είναι μικρό (τουλάχιστον 32 χαρακτήρες)');
+    // Σημεία με την ενδεικτική διεύθυνση της εγκατάστασης: ο πελάτης τη βλέπει στο «Πώς θα μας βρείτε»
+    // και το κουμπί «Οδηγίες πορείας» την ψάχνει στο Google Maps (χωρίς σύνδεσμο χάρτη).
+    const placeholder = db
+      .prepare(`SELECT name FROM locations WHERE active = 1 AND needs_address = 0 AND address IN (${PLACEHOLDER_ADDRESSES.map(() => '?').join(', ')}) ORDER BY sort_order, id`)
+      .all(...PLACEHOLDER_ADDRESSES)
+      .map((l) => l.name);
+    add(
+      placeholder.length ? 'warn' : 'ok',
+      placeholder.length ? `Σημεία με ενδεικτική διεύθυνση: ${placeholder.join(', ')}` : 'Σημεία παραλαβής: χωρίς ενδεικτικές διευθύνσεις',
+      placeholder.length
+        ? 'Ο πελάτης βλέπει αυτή τη διεύθυνση στο «Πώς θα μας βρείτε» και το κουμπί «Οδηγίες πορείας» την ψάχνει στο Google Maps. Γράψτε την πραγματική διεύθυνση (και στα αγγλικά/ισπανικά) και, καλύτερα, τον σύνδεσμο χάρτη του σημείου.'
+        : null,
+      placeholder.length ? { href: '/admin/locations', text: 'Διαχείριση → Σημεία' } : null,
+    );
     const missingCount = translationsCheck.missingTranslations(db).length;
     add(
       missingCount ? 'bad' : 'ok',

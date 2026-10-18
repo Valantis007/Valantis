@@ -509,6 +509,7 @@ figure.car-hero { margin: 0; }
 
 /* ===== «Πώς θα μας βρείτε» (views/partials/find-us.ejs) και διεύθυνση παράδοσης ===== */
 .find-us h2 { margin: 0 0 8px; }
+.find-us.card { margin: 16px 0; }
 .find-us-stop p { margin: 0 0 6px; }
 .find-us-stop + .find-us-stop { border-top: 1px solid var(--border); margin-top: 12px; padding-top: 12px; }
 .find-us-text { white-space: pre-line; overflow-wrap: anywhere; }
