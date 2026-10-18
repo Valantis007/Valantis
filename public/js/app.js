@@ -125,13 +125,29 @@
   var boxes = document.querySelectorAll('details[data-mobile-collapsed]');
   function layout() {
     boxes.forEach(function (box) {
-      // Σε μεγάλη οθόνη πάντα ανοιχτά (π.χ. tablet που γύρισε οριζόντια)· στο κινητό κλειστά,
-      // εκτός αν η αναζήτηση έχει σφάλμα που πρέπει να διορθωθεί.
-      box.open = !mobile.matches || Boolean(box.querySelector('.error'));
+      // Σε μεγάλη οθόνη πάντα ανοιχτά (π.χ. tablet που γύρισε οριζόντια). Στο κινητό: όπως τα άφησε ο χρήστης,
+      // αρχικά κλειστά, εκτός αν η αναζήτηση έχει σφάλμα που πρέπει να διορθωθεί.
+      var open = !mobile.matches || box.getAttribute('data-user-open') === '1' || Boolean(box.querySelector('.error'));
+      var summary = box.querySelector('summary');
+      // Η εστίαση δεν «χάνεται» σε πεδίο που κρύβεται: πηγαίνει στον τίτλο που το ξανανοίγει.
+      if (!open && box.open && box.contains(document.activeElement) && summary) summary.focus();
+      box.open = open;
+      // Σε μεγάλη οθόνη ο τίτλος δεν είναι κουμπί (δεν κλείνει τα φίλτρα).
+      if (summary) summary.tabIndex = mobile.matches ? 0 : -1;
     });
   }
+  boxes.forEach(function (box) {
+    box.addEventListener('toggle', function () {
+      if (mobile.matches) box.setAttribute('data-user-open', box.open ? '1' : '0');
+    });
+    var summary = box.querySelector('summary');
+    if (summary) {
+      summary.addEventListener('click', function (event) { if (!mobile.matches) event.preventDefault(); });
+    }
+  });
   layout();
   if (mobile.addEventListener) mobile.addEventListener('change', layout);
+  else if (mobile.addListener) mobile.addListener(layout);
 
   document.querySelectorAll('form[data-autosubmit]').forEach(function (form) {
     form.querySelectorAll('select').forEach(function (select) {

@@ -1,10 +1,12 @@
 <%- include('../partials/header') %>
 <section class="search-bar">
   <div class="container">
-    <% if (search.ok) { const pickupPlace = locations.find(function (l) { return String(l.id) === String(search.values.pickup_location); }); %>
+    <% if (search.ok) {
+         const pickupPlace = locations.find(function (l) { return String(l.id) === String(search.values.pickup_location); });
+         const returnPlace = locations.find(function (l) { return String(l.id) === String(search.values.return_location); }); %>
       <details class="search-toggle" open data-mobile-collapsed>
         <summary>
-          <span><% if (pickupPlace) { %><strong><%= tf(pickupPlace, 'name') %></strong><br><% } %><%= format.dateTime(search.pickupAt) %> → <%= format.dateTime(search.returnAt) %></span>
+          <span><% if (pickupPlace) { %><strong><%= tf(pickupPlace, 'name') %><% if (returnPlace && returnPlace.id !== pickupPlace.id) { %> → <%= tf(returnPlace, 'name') %><% } %></strong><br><% } %><%= format.dateTime(search.pickupAt) %> → <%= format.dateTime(search.returnAt) %></span>
           <span class="search-toggle-edit"><%= t('Αλλαγή') %></span>
         </summary>
         <%- include('../partials/search-form', { locations, values: searchValues, errors, compact: true, buttonLabel: 'Ενημέρωση' }) %>
@@ -18,7 +20,7 @@
   <aside class="filters card">
     <details open data-mobile-collapsed>
     <summary class="h4"><%= t('Φίλτρα') %><% const activeFilters = ['category', 'transmission', 'seats'].filter(function (k) { return filters[k]; }).length; %><% if (activeFilters) { %> <span class="count-badge"><%= activeFilters %></span><% } %></summary>
-    <form method="get" action="<%= u('/cars') %>" data-autosubmit>
+    <form method="get" action="<%= u('/cars') %>" data-autosubmit autocomplete="off">
       <% ['pickup_location','return_location','pickup_date','pickup_time','return_date','return_time'].forEach(function (k) { if (search.values[k] && search.provided) { %>
         <input type="hidden" name="<%= k %>" value="<%= search.values[k] %>">
       <% } }) %>

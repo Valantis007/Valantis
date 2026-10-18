@@ -403,6 +403,7 @@ details p { margin: 10px 0 0; }
 .cal-day.start.end { border-radius: 6px; }
 .cal-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); color: var(--muted); }
 input.dmy { letter-spacing: 0.02em; }
+.dmy-error { display: block; }
 
 /* Φωτογραφίες αυτοκινήτων (ανεβασμένες ή ενδεικτικές): γεμίζουν το πλαίσιο, χωρίς περιθώριο. */
 .car-image img[src^="/uploads/"], .summary-img[src^="/uploads/"], .thumb[src^="/uploads/"] { object-fit: cover; padding: 0; }

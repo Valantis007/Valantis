@@ -68,6 +68,8 @@
     }
     function rentalDays() {
       var minutes = daysBetween(state.start, state.end) * 1440 + minutesOf('return_time') - minutesOf('pickup_time');
+      // Κάτω από μία ώρα ο server την απορρίπτει (π.χ. ίδια ημέρα με ίδια ώρα): όχι «1 ημέρα».
+      if (minutes < 60) return null;
       return Math.max(1, Math.ceil((minutes - grace) / 1440));
     }
 
@@ -193,7 +195,7 @@
       var summary = document.createElement('span');
       if (state.start && state.end) {
         var n = rentalDays();
-        summary.textContent = n === 1 ? texts.oneDay || '' : fill(texts.days, n);
+        summary.textContent = n === null ? texts.tooShort || '' : n === 1 ? texts.oneDay || '' : fill(texts.days, n);
       }
       var close = document.createElement('button');
       close.type = 'button';
@@ -206,9 +208,11 @@
     }
 
     function focusNav(dir) {
+      // Αν το κουμπί απενεργοποιήθηκε (π.χ. πρώτος μήνας), η εστίαση πάει στο άλλο κουμπί μήνα —
+      // ποτέ σε τυχαία ημέρα, ώστε ένα ακόμη Enter να μην αλλάξει ημερομηνία.
       var btn = pop.querySelector('.cal-nav[data-dir="' + dir + '"]');
+      if (!btn || btn.disabled) btn = pop.querySelector('.cal-nav[data-dir="' + (dir === 'prev' ? 'next' : 'prev') + '"]');
       if (btn && !btn.disabled) btn.focus();
-      else { var day = pop.querySelector('.cal-day:not([disabled])'); if (day) day.focus(); }
     }
     // Ορατή ημέρα (στο κινητό και στη στενή φόρμα φαίνεται μόνο ο πρώτος μήνας).
     function dayButton(date) {
@@ -223,12 +227,15 @@
     function openPop(which) {
       state.picking = which;
       var ref = (which === 'end' ? state.end || state.start : state.start) || today;
+      // Επιστροφή εκτός ορίων (π.χ. μετά από σφάλμα «μέγιστη διάρκεια»): ανοίγει στον μήνα της παραλαβής.
+      if (!selectable(ref)) ref = state.start && selectable(state.start) ? state.start : today;
       state.view = new Date(ref.getFullYear(), ref.getMonth(), 1);
       renderPop();
       pop.classList.remove('hidden');
       startBtn.setAttribute('aria-expanded', 'true');
       endBtn.setAttribute('aria-expanded', 'true');
-      var focus = pop.querySelector('.cal-day.' + (which === 'end' ? 'end' : 'start')) || pop.querySelector('.cal-day:not([disabled])');
+      var focus = pop.querySelector('.cal-day.' + (which === 'end' ? 'end' : 'start') + ':not([disabled])') ||
+        pop.querySelector('.cal-day.start:not([disabled])') || pop.querySelector('.cal-day:not([disabled])');
       if (focus) focus.focus();
     }
 
@@ -247,9 +254,9 @@
       if (!day || day.disabled) return;
       var date = parseIso(day.getAttribute('data-date'));
       if (state.picking === 'start' || !state.start || date < state.start) {
-        var length = state.start && state.end ? Math.max(daysBetween(state.start, state.end), 1) : 3;
+        var length = state.start && state.end ? Math.max(daysBetween(state.start, state.end), 0) : 3;
         state.start = date;
-        if (!state.end || state.end <= date) state.end = addDays(date, length);
+        if (!state.end || state.end < date) state.end = addDays(date, length);
         if (state.end > lastReturn(date)) state.end = lastReturn(date);
         state.picking = 'end';
         render();
@@ -316,18 +323,22 @@
     text.inputMode = 'numeric';
     text.autocomplete = input.getAttribute('autocomplete') || 'off';
     text.placeholder = input.getAttribute('data-dmy') || 'ΗΗ/ΜΜ/ΕΕΕΕ';
-    text.maxLength = 10;
+    text.maxLength = 12;
     text.className = 'dmy';
     if (input.required) text.required = true;
     if (input.id) { text.id = input.id; input.removeAttribute('id'); }
-    var d = parseIso(input.value);
-    // Μετά από σφάλμα ο server επιστρέφει ό,τι είχε γραφτεί· εμφανίζεται όπως ήταν.
-    text.value = d ? formatDmy(d) : input.value;
+    // Η αρχική τιμή από το HTML: ένα άκυρο κείμενο (μετά από σφάλμα) ο browser το σβήνει από το .value
+    // ενός πεδίου ημερομηνίας, γι' αυτό διαβάζεται το attribute.
+    var initial = input.getAttribute('value') || '';
+    var d = parseIso(initial);
+    text.value = d ? formatDmy(d) : initial;
+    input.value = initial;
     input.type = 'hidden';
     input.parentNode.insertBefore(text, input);
 
+    // Το μήνυμα παίρνει την κλάση «error» μόνο όταν φαίνεται (αλλιώς το πεδίο θα είχε πάντα κόκκινο περίγραμμα).
     var message = document.createElement('span');
-    message.className = 'error hidden';
+    message.className = 'dmy-error hidden';
     message.id = (text.id || input.name) + '-dmy-error';
     message.setAttribute('aria-live', 'polite');
     message.textContent = input.getAttribute('data-dmy-invalid') || '';
@@ -339,28 +350,42 @@
       input.value = date ? iso(date) : text.value.trim();
       return date;
     }
+    var field = text.closest('.field');
+    function hideServerError() {
+      if (!field) return;
+      field.querySelectorAll('.error').forEach(function (el) { if (el !== message) el.classList.add('hidden'); });
+    }
     function showError(show) {
       message.classList.toggle('hidden', !show);
+      message.classList.toggle('error', show);
+      if (show) hideServerError();
       if (show) { text.setAttribute('aria-invalid', 'true'); text.setAttribute('aria-describedby', message.id); }
       else { text.removeAttribute('aria-invalid'); text.removeAttribute('aria-describedby'); }
     }
 
     text.addEventListener('input', function (event) {
-      // Αυτόματη κάθετος μόνο όταν γράφουμε στο τέλος του πεδίου· διορθώσεις στη μέση μένουν όπως είναι.
+      // Μόνο όταν γράφουμε στο τέλος του πεδίου (διορθώσεις στη μέση μένουν όπως είναι): η τελεία, η παύλα
+      // και το κενό γίνονται κάθετος, και η κάθετος μπαίνει όταν έρθει το 3ο ή το 5ο ψηφίο — έτσι το
+      // Backspace σβήνει πάντα αυτό που γράψαμε.
       var atEnd = text.selectionStart === text.value.length;
       var typing = !event.inputType || event.inputType.indexOf('insert') === 0;
-      if (atEnd && typing) {
-        var v = text.value.replace(/\/{2,}/g, '/');
-        if (/^\d{2}$/.test(v) || /^\d{1,2}\/\d{2}$/.test(v)) v += '/';
+      if (atEnd && typing && !/^\s*\d{4}-/.test(text.value)) {
+        var v = text.value.replace(/[.\- ]/g, '/').replace(/\/{2,}/g, '/')
+          .replace(/^(\d{2})(\d)$/, '$1/$2')
+          .replace(/^(\d{1,2}\/\d{2})(\d)$/, '$1/$2');
         if (v !== text.value) text.value = v;
       }
-      if (sync()) showError(false);
+      if (sync()) { showError(false); hideServerError(); }
     });
-    text.addEventListener('blur', function () {
+    function finish() {
       var date = sync();
       if (date) text.value = formatDmy(date);
       showError(Boolean(text.value.trim()) && !date);
-    });
+    }
+    text.addEventListener('blur', finish);
+    text.addEventListener('change', finish);
+    // Τιμή που μπήκε χωρίς πληκτρολόγηση (π.χ. αυτόματη συμπλήρωση) συγχρονίζεται πριν την αποστολή.
+    if (text.form) text.form.addEventListener('submit', sync);
   }
 
   document.querySelectorAll('input[data-dmy]').forEach(initDmy);
