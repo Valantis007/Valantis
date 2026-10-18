@@ -1,6 +1,7 @@
 <table role="presentation" width="100%" cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-size:14px;margin:12px 0;">
   <tr><td style="color:#6b7280;width:40%;"><%= t('Κωδικός κράτησης') %></td><td><strong style="font-size:18px;letter-spacing:1px;"><%= booking.reference %></strong></td></tr>
   <tr><td style="color:#6b7280;"><%= t('Αυτοκίνητο') %></td><td><%= t('{car} ή παρόμοιο ({category})', { car: `${booking.make} ${booking.model}`, category: format.label('category', booking.category) }) %></td></tr>
+  <tr><td style="color:#6b7280;"><%= t('Χιλιόμετρα') %></td><td><%= format.mileage(booking) %></td></tr>
   <tr><td style="color:#6b7280;"><%= t('Παραλαβή') %></td><td><strong><%= format.dateTime(booking.pickup_at) %></strong><br><%= tf(booking, 'pickup_location_name') %><br><span style="color:#6b7280;"><%= tf(booking, 'pickup_location_address') %></span></td></tr>
   <tr><td style="color:#6b7280;"><%= t('Επιστροφή') %></td><td><strong><%= format.dateTime(booking.return_at) %></strong><br><%= tf(booking, 'return_location_name') %></td></tr>
   <tr><td style="color:#6b7280;"><%= t('Οδηγός') %></td><td><%= booking.first_name %> <%= booking.last_name %> · <%= booking.phone %></td></tr>

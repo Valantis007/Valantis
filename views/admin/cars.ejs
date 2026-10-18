@@ -12,7 +12,7 @@
       <% cars.forEach(function (c) { %>
         <tr class="<%= c.active ? '' : 'inactive' %>">
           <td><img src="<%= c.image || `/img/cars/${c.category}.svg` %>" alt="" class="thumb-sm"></td>
-          <td><a href="/admin/cars/<%= c.id %>"><%= c.make %> <%= c.model %></a> <span class="muted small"><%= c.year %></span></td>
+          <td><a href="/admin/cars/<%= c.id %>"><%= c.make %> <%= c.model %></a> <span class="muted small"><%= c.year %></span><% if (missing[c.id]) { %><br><a class="badge-warn" href="/admin/cars/<%= c.id %>">⚠ Λείπει μετάφραση: <%= missing[c.id].join(', ') %></a><% } %></td>
           <td><%= c.plate %></td>
           <td><%= format.label('category', c.category) %> · <%= format.label('transmission', c.transmission) %></td>
           <td><%= format.money(c.daily_rate_cents) %></td>

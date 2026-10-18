@@ -86,7 +86,7 @@
             <span class="badge"><%= format.label('category', car.category) %></span>
             <h2 class="h3"><a href="<%= u(`/cars/${car.id}`) %><%= search.ok ? `?${query}` : '' %>"><%= car.make %> <%= car.model %></a> <span class="muted small"><%= t('ή παρόμοιο') %></span></h2>
             <%- include('../partials/car-specs', { car }) %>
-            <p class="small muted"><%= t('Ελάχιστη ηλικία οδηγού {age}', { age: car.min_driver_age }) %> · <%= t(car.mileage_policy) %> · <%= t('Απαλλαγή {amount}', { amount: format.money(car.excess_cents ?? car.deposit_cents) }) %> · <%= t('Εγγύηση {amount} (πιστωτική κάρτα)', { amount: format.money(car.deposit_cents) }) %></p>
+            <p class="small muted"><%= t('Ελάχιστη ηλικία οδηγού {age}', { age: car.min_driver_age }) %> · <%= format.mileage(car) %> · <%= t('Απαλλαγή {amount}', { amount: format.money(car.excess_cents ?? car.deposit_cents) }) %> · <%= t('Εγγύηση {amount} (πιστωτική κάρτα)', { amount: format.money(car.deposit_cents) }) %></p>
           </div>
           <div class="car-price">
             <% if (car.quote) { %>

@@ -54,6 +54,31 @@
     </div>
   </div>
 
+  <div class="card pad" id="translations">
+    <h2 class="h4">Μεταφράσεις που λείπουν</h2>
+    <p class="small muted">Ό,τι γράφετε στη διαχείριση στα ελληνικά (περιγραφές αυτοκινήτων, πρόσθετα, σημεία παραλαβής) το βλέπουν και οι πελάτες στα αγγλικά και στα ισπανικά. Χωρίς μετάφραση θα έβλεπαν ελληνικά. Μεταφράστε π.χ. με DeepL ή Google Translate.</p>
+    <% if (!missingTranslations.length) { %>
+      <p class="small success">✓ Όλα τα ενεργά αυτοκίνητα, πρόσθετα και σημεία έχουν μετάφραση στα αγγλικά και στα ισπανικά.</p>
+    <% } else { %>
+      <ul class="plain small missing-list">
+        <% missingTranslations.forEach(function (m) { %>
+          <li><span class="badge-warn"><%= { car: 'Αυτοκίνητο', extra: 'Πρόσθετο', location: 'Σημείο' }[m.type] %></span>
+            <strong><%= m.title %></strong> — <%= m.field %>: «<%= m.text.length > 80 ? `${m.text.slice(0, 80)}…` : m.text %>»
+            <br><span class="muted">Λείπει στα <%= m.langNames.join(' και στα ') %>.</span> <a href="<%= m.href %>">Συμπλήρωση →</a></li>
+        <% }) %>
+      </ul>
+    <% } %>
+    <% if (companyTransliterated.length) { %>
+      <h3 class="h4">Στοιχεία επιχείρησης (από το .env)</h3>
+      <p class="small muted">Στις σελίδες και στα emails στα αγγλικά/ισπανικά εμφανίζονται με λατινικούς χαρακτήρες (αυτόματη μεταγραφή, όπως στα διαβατήρια). Αν θέλετε δική σας μετάφραση, προσθέστε στο αρχείο .env τη μεταβλητή που φαίνεται και επανεκκινήστε.</p>
+      <ul class="plain small missing-list">
+        <% companyTransliterated.forEach(function (c) { %>
+          <li><strong><%= c.label %></strong> (<%= c.locale === 'en' ? 'English' : 'Español' %>): «<%= c.original %>» → <em><%= c.text %></em> · <code><%= c.env %>=</code></li>
+        <% }) %>
+      </ul>
+    <% } %>
+  </div>
+
   <div class="card pad">
     <h2 class="h4">Τελευταία emails</h2>
     <p class="small muted">Κάντε μια δοκιμαστική κράτηση από την ιστοσελίδα και πατήστε «Προβολή» για να δείτε το email επιβεβαίωσης όπως θα το λάβει ο πελάτης (στη γλώσσα του), ακόμα κι αν δεν έχει ρυθμιστεί αποστολή email.</p>

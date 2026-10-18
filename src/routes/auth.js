@@ -6,6 +6,7 @@ const bcrypt = require('bcryptjs');
 const config = require('../config');
 const mailer = require('../lib/mailer');
 const i18n = require('../lib/i18n');
+const company = require('../lib/company');
 const { str, isEmail, isPhone, passwordProblems } = require('../lib/validation');
 const { limits } = require('../middleware/security');
 const { safeReturnTo } = require('../middleware/auth');
@@ -97,7 +98,7 @@ module.exports = function authRoutes(db) {
       .run(values.email, hash, values.first_name, values.last_name, values.phone || null, req.locale);
     await mailer.send({
       to: values.email,
-      subject: i18n.msg('Καλώς ήρθατε στην {company}', { company: config.company.name }),
+      subject: i18n.msg('Καλώς ήρθατε στην {company}', { company: company.forLocale(req.locale).name }),
       template: 'welcome',
       locale: req.locale,
       data: { user: values },

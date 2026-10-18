@@ -9,6 +9,7 @@ require('dotenv').config({ quiet: true });
 
 const env = process.env;
 const PLACEHOLDER_LEGAL_NAME = 'Επωνυμία Επιχείρησης';
+const DEFAULT_AUTHORITY = 'Περιφερειακή Υπηρεσία Τουρισμού Κεντρικής Μακεδονίας - Υπουργείο Τουρισμού';
 const root = path.resolve(__dirname, '..');
 
 function int(name, fallback) {
@@ -42,6 +43,20 @@ function parseDurationDiscounts(raw) {
     .sort((a, b) => a.minDays - b.minDays);
 }
 
+// COMPANY_<ΠΕΔΙΟ>_EN / _ES: μετάφραση ενός στοιχείου της επιχείρησης. Η έδρα, όταν δεν
+// ορίζεται χωριστά (= διεύθυνση γραφείου), παίρνει και τη μετάφραση της διεύθυνσης.
+function companyTranslations(lang) {
+  const get = (name) => (env[`COMPANY_${name}_${lang}`] || '').trim();
+  return {
+    name: get('NAME'),
+    legalName: get('LEGAL_NAME'),
+    seat: get('SEAT') || (env.COMPANY_SEAT ? '' : get('ADDRESS')),
+    address: get('ADDRESS'),
+    taxOffice: get('TAX_OFFICE'),
+    authority: get('AUTHORITY'),
+  };
+}
+
 const nodeEnv = env.NODE_ENV || 'development';
 const isProduction = nodeEnv === 'production';
 const isTest = nodeEnv === 'test';
@@ -67,7 +82,7 @@ const config = {
     taxOffice: env.COMPANY_TAX_OFFICE || '',
     gemi: env.COMPANY_GEMI || '',
     mhte: env.COMPANY_MHTE || '',
-    authority: env.COMPANY_AUTHORITY || 'Περιφερειακή Υπηρεσία Τουρισμού Κεντρικής Μακεδονίας - Υπουργείο Τουρισμού',
+    authority: env.COMPANY_AUTHORITY || DEFAULT_AUTHORITY,
     address: env.COMPANY_ADDRESS || '',
     phone: env.COMPANY_PHONE || '',
     email: env.COMPANY_EMAIL || '',
@@ -76,6 +91,10 @@ const config = {
     roadsideAssistance: env.ROADSIDE_ASSISTANCE === 'true',
     // Δέσμευση συμμετοχής σε εξωδικαστική επίλυση (Συνήγορος του Καταναλωτή).
     adrCommitment: env.ADR_COMMITMENT === 'true',
+    // Προαιρετικές μεταφράσεις για τις σελίδες/emails στα αγγλικά και στα ισπανικά
+    // (π.χ. COMPANY_ADDRESS_EN). Χωρίς αυτές: λεξικό για τις προεπιλογές, αλλιώς μεταγραφή
+    // με λατινικούς χαρακτήρες (src/lib/company.js).
+    translations: Object.fromEntries(['EN', 'ES'].map((lang) => [lang.toLowerCase(), companyTranslations(lang)])),
   },
 
   // Έκδοση των όρων ενοικίασης: αλλάξτε την κάθε φορά που αλλάζουν οι όροι.

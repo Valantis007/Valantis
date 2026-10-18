@@ -48,7 +48,7 @@
           <tbody>
             <% charges.forEach(function (c) { %>
               <tr>
-                <td><strong><%= format.label('chargeCategory', c.category) %></strong><br><%= c.description %>
+                <td><strong><%= format.label('chargeCategory', c.category) %></strong><br><%= t(c.description) %>
                   <% if (c.evidence) { %><br><span class="small muted"><%= t('Τεκμηρίωση') %>: <%= String(c.evidence || '').replace(/^Πέραν της απαλλαγής: (.*)$/m, function (m, note) { return t('Πέραν της απαλλαγής: {note}', { note: note }); }) %></span><% } %></td>
                 <td><%= format.money(c.amount_cents) %><% if (c.paid_cents && c.paid_cents < c.amount_cents) { %><br><span class="small muted"><%= t('εξοφλήθηκαν {amount}', { amount: format.money(c.paid_cents) }) %></span><% } %></td>
                 <td><%= format.label('chargeStatus', c.status) %></td>
@@ -60,7 +60,7 @@
                     <form method="post" action="<%= u(`/booking/${booking.reference}/charges/${c.id}/respond`) %>" class="stack grow" data-confirm="<%= t('Αποδέχεστε τη χρέωση {amount};', { amount: format.money(c.amount_cents) }) %>">
                       <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
                       <input type="hidden" name="decision" value="accept">
-                      <label class="check"><input type="checkbox" name="confirm" value="1" required><span><%= t('Αποδέχομαι τη χρέωση {amount} για «{description}».', { amount: format.money(c.amount_cents), description: c.description }) %></span></label>
+                      <label class="check"><input type="checkbox" name="confirm" value="1" required><span><%= t('Αποδέχομαι τη χρέωση {amount} για «{description}».', { amount: format.money(c.amount_cents), description: t(c.description) }) %></span></label>
                       <button class="btn btn-primary" type="submit"><%= t('Αποδοχή') %></button>
                     </form>
                     <form method="post" action="<%= u(`/booking/${booking.reference}/charges/${c.id}/respond`) %>" class="stack grow">

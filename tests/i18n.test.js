@@ -1,13 +1,12 @@
 'use strict';
 
 // Γλώσσες: κάθε σελίδα και κάθε email προς πελάτη στα αγγλικά και στα ισπανικά δεν πρέπει
-// να περιέχει ελληνικό κείμενο (εκτός από τα στοιχεία της επιχείρησης, που ορίζονται στο .env,
-// και το όνομα της γλώσσας στην επιλογή γλώσσας).
+// να περιέχει ελληνικό κείμενο — ούτε στα στοιχεία της επιχείρησης από το .env (μετάφραση ή
+// μεταγραφή με λατινικούς χαρακτήρες). Εξαίρεση: το όνομα της γλώσσας στην επιλογή γλώσσας.
 
 const h = require('./helpers');
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const config = require('../src/config');
 const i18n = require('../src/lib/i18n');
 const mailer = require('../src/lib/mailer');
 const bookingsLib = require('../src/lib/bookings');
@@ -16,10 +15,7 @@ const deposits = require('../src/lib/deposits');
 const GREEK = /[Ͱ-Ͽἀ-῿]+/;
 
 function allowed() {
-  const c = config.company;
-  return [c.name, c.legalName, c.seat, c.address, c.taxOffice, c.authority, 'Ελληνικά', 'ΕΛ']
-    .filter(Boolean)
-    .sort((a, b) => b.length - a.length);
+  return ['Ελληνικά', 'ΕΛ'];
 }
 
 // Επιστρέφει αποσπάσματα με ελληνικό κείμενο (ορατό κείμενο και τιμές attributes).

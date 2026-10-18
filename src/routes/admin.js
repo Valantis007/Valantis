@@ -17,6 +17,10 @@ const mailer = require('../lib/mailer');
 const config = require('../config');
 const maintenance = require('../lib/maintenance');
 const demoPhotos = require('../lib/demo-photos');
+const mileage = require('../lib/mileage');
+const translationsCheck = require('../lib/translations-check');
+const companyLib = require('../lib/company');
+const presets = require('../lib/presets');
 const QRCode = require('qrcode');
 const { transaction, normalizeText } = require('../db');
 const { BLOCKING_SQL, OVERLAP_SQL, EFFECTIVE_RETURN_SQL, blockingParams } = require('../lib/availability');
@@ -52,6 +56,23 @@ function translations(body, fields) {
     for (const locale of ['en', 'es']) out[`${name}_${locale}`] = str(body[`${name}_${locale}`], max) || null;
   }
   return out;
+}
+
+const MILEAGE_MODES = ['unlimited', 'limit', 'custom'];
+
+// Πεδία περιεχομένου που βλέπει ο πελάτης: αν συμπληρώθηκε το ελληνικό, χρειάζονται και τα
+// αγγλικά και τα ισπανικά (αλλιώς ο ξένος πελάτης θα έβλεπε ελληνικά).
+const LANGUAGE_NAMES = { en: 'αγγλικά', es: 'ισπανικά' };
+function translationErrors(values, fields) {
+  const errors = {};
+  for (const name of fields) {
+    if (!String(values[name] || '').trim()) continue;
+    const missingLangs = ['en', 'es'].filter((l) => !String(values[`${name}_${l}`] || '').trim());
+    for (const l of missingLangs) {
+      errors[`${name}_${l}`] = `Συμπληρώστε και τη μετάφραση στα ${LANGUAGE_NAMES[l]} — π.χ. με DeepL ή Google Translate.`;
+    }
+  }
+  return errors;
 }
 
 // Είδος πρόσθετου: damage_waiver μηδενίζει την απαλλαγή, child_seat ζητά στοιχεία παιδιού.
@@ -234,7 +255,19 @@ module.exports = function adminRoutes(db, { uploadDir, settings = {} }) {
       delete req.session.newDepositLink;
     }
     const allDeposits = deposits.listForBooking(db, b.id);
+    // Φόρμες που δεν καταχωρήθηκαν (σφάλμα): ξαναεμφανίζονται με ό,τι γράφτηκε.
+    const draft = (name) => {
+      const d = req.session[name];
+      if (!d || d.bookingId !== b.id) return null;
+      delete req.session[name];
+      return d;
+    };
     res.render('admin/booking', {
+      chargeDraft: draft('chargeDraft'),
+      cancelDraft: draft('cancelDraft'),
+      cancelReasons: presets.CANCEL_REASONS,
+      chargeDescriptions: presets.CHARGE_DESCRIPTIONS,
+      customerLanguageHint: presets.languageHint(b.locale),
       title: `Κράτηση ${b.reference}`,
       booking: bookings.getById(db, b.id),
       extras: bookings.getExtras(db, b.id),
@@ -350,9 +383,24 @@ module.exports = function adminRoutes(db, { uploadDir, settings = {} }) {
     '/bookings/:id/cancel',
     loadBooking,
     handle(async (req) => {
+      // Έτοιμη αιτία (μεταφράζεται στη γλώσσα του πελάτη) + προαιρετική σημείωση στη γλώσσα του.
+      // Παλιά φόρμα: μόνο ελεύθερο κείμενο `reason` (= «Άλλος λόγος» με αυτό ως σημείωση).
+      let preset = presets.cancelReason(str(req.body.reason_code, 30));
+      let note = str(req.body.reason_note, 300);
+      if (!preset && str(req.body.reason, 300)) {
+        preset = presets.cancelReason('other');
+        note = str(req.body.reason, 300);
+      }
+      preset = preset || presets.cancelReason('office');
+      req.session.cancelDraft = { bookingId: req.booking.id, reason_code: preset.code, reason_note: note };
+      if (!preset.text && !note) throw new bookings.BookingError('Για «Άλλος λόγος» γράψτε την αιτία στη σημείωση προς τον πελάτη.');
+      const problem = presets.foreignTextProblem(req.booking.locale, { 'Σημείωση προς τον πελάτη': note });
+      if (problem) throw new bookings.BookingError(problem);
+      delete req.session.cancelDraft;
       const result = await payments.cancelBooking(db, req.booking.id, {
         actor: actor(req),
-        reason: str(req.body.reason, 300) || 'Ακύρωση από το γραφείο',
+        reason: preset.text,
+        note: note || null,
         refund: checkbox(req.body.refund),
         refundCents: moneyField(req.body.refund_amount),
         allowExpiredPaid: true,
@@ -491,15 +539,25 @@ module.exports = function adminRoutes(db, { uploadDir, settings = {} }) {
     '/bookings/:id/charges',
     loadBooking,
     handle(async (req) => {
-      const charge = deposits.addCharge(db, req.booking.id, {
+      const input = {
         category: str(req.body.category, 20),
-        description: str(req.body.description, 300),
-        amountCents: moneyField(req.body.amount),
+        // Δική σας περιγραφή (στη γλώσσα του πελάτη) ή έτοιμη, που μεταφράζεται αυτόματα.
+        description: str(req.body.description, 300) || (presets.isChargeDescription(req.body.description_preset) ? req.body.description_preset : ''),
         evidence: str(req.body.evidence, 2000),
         customerConsent: str(req.body.customer_consent, 300),
         beyondExcess: str(req.body.beyond_excess, 300),
-        actor: actor(req),
+      };
+      // Αν δεν καταχωρηθεί, η φόρμα ξαναεμφανίζεται με ό,τι γράψατε.
+      req.session.chargeDraft = { bookingId: req.booking.id, ...input, amount: str(req.body.amount, 12), description_preset: str(req.body.description_preset, 300), description: str(req.body.description, 300) };
+      const problem = presets.foreignTextProblem(req.booking.locale, {
+        'Περιγραφή': presets.isChargeDescription(input.description) ? '' : input.description,
+        'Τεκμηρίωση': input.evidence,
+        'Συναίνεση του πελάτη': input.customerConsent,
+        'Εξαίρεση των όρων §7': input.beyondExcess,
       });
+      if (problem) throw new bookings.BookingError(problem);
+      const charge = deposits.addCharge(db, req.booking.id, { ...input, amountCents: moneyField(req.body.amount), actor: actor(req) });
+      delete req.session.chargeDraft;
       return charge.status === 'proposed'
         ? `Η χρέωση στάλθηκε στον πελάτη για αποδοχή (προθεσμία ${format.date(charge.respond_by)}).`
         : 'Η χρέωση καταχωρήθηκε και ο πελάτης ενημερώθηκε με email.';
@@ -529,7 +587,8 @@ module.exports = function adminRoutes(db, { uploadDir, settings = {} }) {
          FROM cars c ORDER BY c.active DESC, c.category, c.make, c.model`,
       )
       .all();
-    res.render('admin/cars', { title: 'Στόλος', cars });
+    const missing = translationsCheck.byRow(translationsCheck.missingTranslations(db), 'car');
+    res.render('admin/cars', { title: 'Στόλος', cars, missing });
   });
 
   function carForm(res, { car, values, errors = {}, status = 200 }) {
@@ -546,6 +605,7 @@ module.exports = function adminRoutes(db, { uploadDir, settings = {} }) {
     res.status(status).render('admin/car-form', {
       title: car ? `${car.make} ${car.model}` : 'Νέο αυτοκίνητο',
       car,
+      missingFields: car ? translationsCheck.byRow(translationsCheck.missingTranslations(db), 'car')[car.id] || null : null,
       values,
       errors,
       upcoming,
@@ -573,12 +633,25 @@ module.exports = function adminRoutes(db, { uploadDir, settings = {} }) {
       deposit: str(body.deposit, 10),
       excess: str(body.excess, 10),
       min_driver_age: str(body.min_driver_age, 2),
-      mileage_policy: str(body.mileage_policy, 120),
+      // Χιλιόμετρα: «unlimited» ή «limit» (όριο ανά ημέρα)· «custom» = παλιό κείμενο που δεν
+      // αναγνωρίστηκε (μένει μέχρι να επιλεγεί μία από τις δύο). Χωρίς mileage_mode (παλιά φόρμα):
+      // αναγνώριση του κειμένου mileage_policy.
+      ...mileageValues(body),
       description: str(body.description, 2000),
       description_en: str(body.description_en, 2000),
       description_es: str(body.description_es, 2000),
       active: checkbox(body.active),
     };
+  }
+
+  function mileageValues(body) {
+    if (MILEAGE_MODES.includes(body.mileage_mode)) {
+      return { mileage_mode: body.mileage_mode, mileage_limit_km: str(body.mileage_limit_km, 6), mileage_policy: str(body.mileage_policy, 120) };
+    }
+    const parsed = mileage.parse(str(body.mileage_policy, 120));
+    if (parsed.limitKm) return { mileage_mode: 'limit', mileage_limit_km: String(parsed.limitKm), mileage_policy: '' };
+    if (parsed.custom) return { mileage_mode: 'custom', mileage_limit_km: '', mileage_policy: parsed.custom };
+    return { mileage_mode: 'unlimited', mileage_limit_km: '', mileage_policy: '' };
   }
 
   function validateCar(v, carId = null) {
@@ -610,6 +683,21 @@ module.exports = function adminRoutes(db, { uploadDir, settings = {} }) {
     if (v.excess !== '' && out.excess_cents === null) e.excess = 'Μη έγκυρο ποσό.';
     out.min_driver_age = intOrNull(v.min_driver_age);
     if (!(out.min_driver_age >= 18 && out.min_driver_age <= 30)) e.min_driver_age = '18 έως 30.';
+    if (v.mileage_mode === 'limit') {
+      out.mileage_limit_km = intOrNull(v.mileage_limit_km);
+      if (!(out.mileage_limit_km >= 1 && out.mileage_limit_km <= mileage.MAX_LIMIT_KM)) {
+        e.mileage_limit_km = `Συμπληρώστε το όριο σε χιλιόμετρα ανά ημέρα (1 έως ${mileage.MAX_LIMIT_KM}, π.χ. 200).`;
+      }
+      out.mileage_policy = mileage.policyText({ limitKm: out.mileage_limit_km });
+    } else if (v.mileage_mode === 'custom' && v.mileage_policy) {
+      out.mileage_limit_km = null;
+      out.mileage_policy = v.mileage_policy;
+    } else {
+      out.mileage_limit_km = null;
+      out.mileage_policy = mileage.UNLIMITED;
+    }
+    // Ό,τι γράφεται στα ελληνικά εμφανίζεται και στους ξένους πελάτες: χρειάζεται μετάφραση.
+    Object.assign(e, translationErrors(v, ['description']));
     return { errors: e, parsed: out };
   }
 
@@ -633,7 +721,8 @@ module.exports = function adminRoutes(db, { uploadDir, settings = {} }) {
       deposit_cents: parsed.deposit_cents,
       excess_cents: parsed.excess_cents,
       min_driver_age: parsed.min_driver_age,
-      mileage_policy: v.mileage_policy || 'Απεριόριστα χιλιόμετρα',
+      mileage_policy: parsed.mileage_policy,
+      mileage_limit_km: parsed.mileage_limit_km,
       description: v.description,
       description_en: v.description_en || null,
       description_es: v.description_es || null,
@@ -703,6 +792,13 @@ module.exports = function adminRoutes(db, { uploadDir, settings = {} }) {
     next();
   }
 
+  function carMileage(car) {
+    const m = mileage.of(car);
+    if (m.limitKm) return { mileage_mode: 'limit', mileage_limit_km: String(m.limitKm), mileage_policy: '' };
+    if (m.custom) return { mileage_mode: 'custom', mileage_limit_km: '', mileage_policy: m.custom };
+    return { mileage_mode: 'unlimited', mileage_limit_km: '', mileage_policy: '' };
+  }
+
   function carToValues(car) {
     return {
       ...car,
@@ -714,6 +810,7 @@ module.exports = function adminRoutes(db, { uploadDir, settings = {} }) {
       deposit: format.centsToInput(car.deposit_cents),
       excess: car.excess_cents === null || car.excess_cents === undefined ? '' : format.centsToInput(car.excess_cents),
       min_driver_age: String(car.min_driver_age),
+      ...carMileage(car),
       air_conditioning: Boolean(car.air_conditioning),
       active: Boolean(car.active),
     };
@@ -760,16 +857,32 @@ module.exports = function adminRoutes(db, { uploadDir, settings = {} }) {
   });
 
   // ---------------- Απλές λίστες ρυθμίσεων (σημεία, πρόσθετα, εποχές) ----------------
-  function simpleCrud({ name, table, title, view, parse, order }) {
-    router.get(`/${name}`, (req, res) => {
-      res.render(view, { title, rows: db.prepare(`SELECT * FROM ${table} ORDER BY ${order}`).all(), errors: {}, values: {} });
-    });
+  // `rerender`: με σφάλμα η σελίδα ξαναεμφανίζεται με ό,τι γράψατε και το σφάλμα δίπλα σε κάθε πεδίο
+  // (αλλιώς μήνυμα και επιστροφή στη λίστα). `missingType`: ένδειξη «Λείπει μετάφραση» ανά γραμμή.
+  function simpleCrud({ name, table, title, view, parse, order, rerender = false, missingType = null }) {
+    const page = (req, res, extra = {}) =>
+      res.render(view, {
+        title,
+        rows: db.prepare(`SELECT * FROM ${table} ORDER BY ${order}`).all(),
+        errors: {},
+        values: {},
+        editing: null,
+        missing: missingType ? translationsCheck.byRow(translationsCheck.missingTranslations(db), missingType) : {},
+        ...extra,
+      });
+    router.get(`/${name}`, (req, res) => page(req, res));
 
     function persist(req, res, id) {
       const { values, errors, row } = parse(req.body);
       if (Object.keys(errors).length) {
-        req.flash('error', Object.values(errors).join(' '));
-        return res.redirect(303, `/admin/${name}`);
+        const messages = [...new Set(Object.values(errors))].join(' ');
+        if (!rerender) {
+          req.flash('error', messages);
+          return res.redirect(303, `/admin/${name}`);
+        }
+        req.flash('error', `Δεν αποθηκεύτηκε${values.name ? ` «${values.name}»` : ''}: ${messages}`);
+        res.status(422);
+        return page(req, res, { errors, values: req.body, editing: id || 'new' });
       }
       const cols = Object.keys(row);
       if (id) {
@@ -794,10 +907,13 @@ module.exports = function adminRoutes(db, { uploadDir, settings = {} }) {
     title: 'Σημεία παραλαβής/επιστροφής',
     view: 'admin/locations',
     order: 'sort_order, name',
+    rerender: true,
+    missingType: 'location',
     parse(body) {
       const values = { name: str(body.name, 100), address: str(body.address, 200), fee: str(body.fee, 10), sort_order: str(body.sort_order, 4) };
       const errors = {};
       if (!values.name) errors.name = 'Το όνομα είναι υποχρεωτικό.';
+      Object.assign(errors, translationErrors({ ...values, ...translations(body, { name: 100, address: 200 }) }, ['name', 'address']));
       const fee = values.fee === '' ? 0 : format.parseMoneyToCents(values.fee);
       if (fee === null) errors.fee = 'Μη έγκυρη χρέωση.';
       return {
@@ -821,10 +937,13 @@ module.exports = function adminRoutes(db, { uploadDir, settings = {} }) {
     title: 'Πρόσθετα',
     view: 'admin/extras',
     order: 'sort_order, name',
+    rerender: true,
+    missingType: 'extra',
     parse(body) {
       const values = { name: str(body.name, 100), description: str(body.description, 300), price: str(body.price, 10) };
       const errors = {};
       if (!values.name) errors.name = 'Το όνομα είναι υποχρεωτικό.';
+      Object.assign(errors, translationErrors({ ...values, ...translations(body, { name: 100, description: 300 }) }, ['name', 'description']));
       const price = format.parseMoneyToCents(values.price);
       if (price === null) errors.price = 'Μη έγκυρη τιμή.';
       const pricing = ['per_day', 'per_rental'].includes(body.pricing) ? body.pricing : null;
@@ -969,6 +1088,13 @@ module.exports = function adminRoutes(db, { uploadDir, settings = {} }) {
     if (st.lastError) add('bad', `Σφάλμα περιοδικών εργασιών: ${st.lastError.message}`);
     const sessionOk = config.sessionSecret && config.sessionSecret !== 'dev-only-insecure-secret' && config.sessionSecret.length >= 32;
     add(sessionOk ? 'ok' : 'bad', sessionOk ? 'SESSION_SECRET ισχυρό' : 'SESSION_SECRET λείπει ή είναι μικρό (τουλάχιστον 32 χαρακτήρες)');
+    const missingCount = translationsCheck.missingTranslations(db).length;
+    add(
+      missingCount ? 'bad' : 'ok',
+      missingCount ? `Μεταφράσεις: λείπουν ${missingCount} — οι ξένοι πελάτες βλέπουν εκεί ελληνικά` : 'Μεταφράσεις στα αγγλικά και στα ισπανικά: πλήρεις',
+      null,
+      missingCount ? { href: '#translations', text: 'Δείτε ποιες λείπουν' } : null,
+    );
     return checks;
   }
 
@@ -993,6 +1119,8 @@ module.exports = function adminRoutes(db, { uploadDir, settings = {} }) {
         users: db.prepare('SELECT COUNT(*) n FROM users').get().n,
       },
       testEmailTo: req.user.email,
+      missingTranslations: translationsCheck.missingTranslations(db),
+      companyTransliterated: companyLib.transliterated(),
       results: null,
       ...extra,
     });

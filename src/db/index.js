@@ -445,6 +445,30 @@ const MIGRATIONS = [
   ALTER TABLE cars ADD COLUMN image_credit TEXT;
   ALTER TABLE cars ADD COLUMN image_source TEXT;
   `,
+
+  // 10: Χιλιόμετρα με δομή («Απεριόριστα» ή όριο ανά ημέρα), ώστε να εμφανίζονται μεταφρασμένα.
+  //     Οι παλιές τιμές «N χλμ/km (ανά ημέρα)» γίνονται όριο· άλλο κείμενο μένει ως έχει και
+  //     εμφανίζεται στις «Μεταφράσεις που λείπουν». Η κράτηση κρατά ό,τι γνωστοποιήθηκε στον πελάτη.
+  //     (Μετάβαση με κώδικα: η αναγνώριση του κειμένου γίνεται από το src/lib/mileage.js.)
+  (db) => {
+    db.exec(`
+      ALTER TABLE cars ADD COLUMN mileage_limit_km INTEGER;
+      ALTER TABLE bookings ADD COLUMN mileage_policy TEXT;
+      ALTER TABLE bookings ADD COLUMN mileage_limit_km INTEGER;
+    `);
+    const mileage = require('../lib/mileage');
+    const update = db.prepare('UPDATE cars SET mileage_policy = ?, mileage_limit_km = ? WHERE id = ?');
+    for (const car of db.prepare('SELECT id, mileage_policy FROM cars').all()) {
+      const parsed = mileage.parse(car.mileage_policy);
+      if (parsed.custom) continue;
+      update.run(mileage.policyText(parsed), parsed.limitKm || null, car.id);
+    }
+    db.exec(`
+      UPDATE bookings SET
+        mileage_policy = (SELECT c.mileage_policy FROM cars c WHERE c.id = bookings.car_id),
+        mileage_limit_km = (SELECT c.mileage_limit_km FROM cars c WHERE c.id = bookings.car_id);
+    `);
+  },
 ];
 
 function migrate(db) {
@@ -456,7 +480,9 @@ function migrate(db) {
   try {
     for (let v = current; v < MIGRATIONS.length; v += 1) {
       transaction(db, () => {
-        db.exec(MIGRATIONS[v]);
+        // Μετάβαση με SQL (κείμενο) ή με κώδικα (συνάρτηση που δέχεται τη βάση).
+        if (typeof MIGRATIONS[v] === 'function') MIGRATIONS[v](db);
+        else db.exec(MIGRATIONS[v]);
         const broken = db.prepare('PRAGMA foreign_key_check').all();
         if (broken.length) throw new Error(`Η μετάβαση ${v + 1} άφησε σπασμένες αναφορές: ${JSON.stringify(broken[0])}`);
         db.exec(`PRAGMA user_version = ${v + 1}`);
@@ -516,4 +542,4 @@ function transaction(db, fn) {
   }
 }
 
-module.exports = { openDb, transaction, normalizeText };
+module.exports = { openDb, transaction, normalizeText, migrate, MIGRATIONS };

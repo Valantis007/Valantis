@@ -481,7 +481,9 @@ function recordManualRefund(db, bookingId, amountCents, { actor, note }) {
  */
 // `retainCents`: ποσό που παρακρατείται (π.χ. χρέωση ακύρωσης). Υπολογίζεται μέσα στη συναλλαγή,
 // μετά την αφαίρεση των επιστροφών που εκκρεμούν, ώστε να μην επιστραφεί ποτέ.
-async function cancelBooking(db, bookingId, { actor, reason = null, refund = true, refundCents = null, retainCents = 0, notify = true, allowExpiredPaid = false }) {
+// `reason`: σταθερό ελληνικό κείμενο ή Msg (μεταφράζεται στο email)· `note`: σημείωση του γραφείου,
+// γραμμένη ήδη στη γλώσσα του πελάτη (εμφανίζεται όπως είναι).
+async function cancelBooking(db, bookingId, { actor, reason = null, note = null, refund = true, refundCents = null, retainCents = 0, notify = true, allowExpiredPaid = false }) {
   const claim = transaction(db, () => {
     const b = bookings.getById(db, bookingId);
     const allowed = ['pending_payment', 'confirmed'];
@@ -507,7 +509,8 @@ async function cancelBooking(db, bookingId, { actor, reason = null, refund = tru
       }
     }
     // Το `reason` μπορεί να είναι Msg (μεταφράζεται στο email)· στο ιστορικό γράφεται στα ελληνικά.
-    bookings.logEvent(db, b.id, actor, 'cancelled', reason instanceof i18n.Msg ? String(reason) : reason);
+    const logged = [reason instanceof i18n.Msg ? String(reason) : reason, note].filter(Boolean).join(' — ');
+    bookings.logEvent(db, b.id, actor, 'cancelled', logged || null);
     return { refundId, amount, refundDue };
   });
 
@@ -533,7 +536,7 @@ async function cancelBooking(db, bookingId, { actor, reason = null, refund = tru
       to: updated.email,
       subject: i18n.msg('Ακύρωση κράτησης {ref}', { ref: updated.reference }),
       template: 'booking-cancelled',
-      data: { booking: updated, refundedCents: refundedCents + refundPendingCents, refundDueCents: claim.refundDue, reason },
+      data: { booking: updated, refundedCents: refundedCents + refundPendingCents, refundDueCents: claim.refundDue, reason, note },
     });
   }
   if (claim.refundDue > 0) {

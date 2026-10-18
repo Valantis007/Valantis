@@ -9,6 +9,7 @@ const helmet = require('helmet');
 const config = require('./config');
 const format = require('./lib/format');
 const i18n = require('./lib/i18n');
+const company = require('./lib/company');
 const time = require('./lib/time');
 const providers = require('./lib/providers');
 const SqliteStore = require('./lib/sessionStore');
@@ -104,7 +105,8 @@ function createApp({ db, uploadDir = config.uploadDir, settingsEnvPath = null, o
 
   app.use((req, res, next) => {
     res.locals.config = config;
-    res.locals.company = config.company;
+    // Στοιχεία επιχείρησης στη γλώσσα της σελίδας (στα αγγλικά/ισπανικά χωρίς ελληνικά γράμματα).
+    res.locals.company = company.forLocale(req.locale);
     res.locals.format = format.forLocale(req.locale);
     res.locals.time = time;
     res.locals.currentPath = req.path;
@@ -147,7 +149,7 @@ function createApp({ db, uploadDir = config.uploadDir, settingsEnvPath = null, o
     const locale = req.locale || 'el';
     Object.assign(res.locals, {
       config,
-      company: config.company,
+      company: company.forLocale(locale),
       format: format.forLocale(locale),
       time,
       locale,

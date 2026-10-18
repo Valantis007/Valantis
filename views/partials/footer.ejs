@@ -29,7 +29,7 @@
         <p class="small"><%= t('Καθημερινά {from} - {to}', { from: `${String(config.rules.openingHour).padStart(2, '0')}:00`, to: `${config.rules.closingHour}:00` }) %></p>
       </div>
     </div>
-    <div class="container footer-bottom small muted">© <%= new Date().getFullYear() %> <%= company.legalName %>. <%= t('Όλες οι τιμές περιλαμβάνουν ΦΠΑ {vat}%.', { vat: config.rules.vatPercent }) %></div>
+    <div class="container footer-bottom small muted">© <%= new Date().getFullYear() %> <%= String(company.legalName).replace(/\.$/, '') %>. <%= t('Όλες οι τιμές περιλαμβάνουν ΦΠΑ {vat}%.', { vat: config.rules.vatPercent }) %></div>
   </footer>
 </body>
 </html>

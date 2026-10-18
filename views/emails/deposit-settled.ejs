@@ -4,7 +4,7 @@
 <p><%- th('Η εγγύηση για την κράτηση <strong>{ref}</strong> εκκαθαρίστηκε:', { ref: booking.reference }) %></p>
 <table role="presentation" width="100%" cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-size:14px;margin:12px 0;">
   <% charges.forEach(function (c) { if (!c.paid_cents) return; %>
-    <tr><td><%= format.label('chargeCategory', c.category) %>: <%= c.description %></td><td align="right"><%= format.money(c.paid_cents) %></td></tr>
+    <tr><td><%= format.label('chargeCategory', c.category) %>: <%= t(c.description) %></td><td align="right"><%= format.money(c.paid_cents) %></td></tr>
   <% }) %>
   <tr><td><strong><%= t('Παρακράτηση από την εγγύηση') %></strong></td><td align="right"><strong><%= format.money(capturedCents) %></strong></td></tr>
   <tr><td><%= t('Αποδεσμεύτηκαν') %></td><td align="right"><%= format.money(releasedCents) %></td></tr>

@@ -1,5 +1,7 @@
 'use strict';
 
+const mileage = require('./mileage');
+
 const moneyFmts = {};
 function moneyFormatter(intl) {
   if (!moneyFmts[intl]) moneyFmts[intl] = new Intl.NumberFormat(intl, { style: 'currency', currency: 'EUR' });
@@ -163,6 +165,10 @@ function forLocale(locale = 'el') {
     utcTimestamp: (value, timezone) => utcTimestamp(value, timezone, intl),
     msDateTime: (ms, timezone) => msDateTime(ms, timezone, intl),
     label: (group, key) => i18n.t(locale, label(group, key)),
+    // Χιλιόμετρα αυτοκινήτου ή κράτησης: «Απεριόριστα χιλιόμετρα» / «Όριο: 200 χλμ. ανά ημέρα».
+    mileage: (row) => mileage.label(row, (v, p) => i18n.t(locale, v, p), intl),
+    // Μέσα σε πρόταση: «απεριόριστα χιλιόμετρα» / «έως 200 χλμ. ανά ημέρα».
+    mileageInline: (row) => mileage.inline(row, (v, p) => i18n.t(locale, v, p), intl),
   };
   return localized[locale];
 }

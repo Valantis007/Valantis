@@ -107,22 +107,27 @@
         </div>
         <p class="small">Εκκρεμεί προς είσπραξη: <strong><%= format.money(outstandingCents) %></strong></p>
         <% } %>
-        <% if (['active', 'completed'].includes(b.status)) { %>
-          <details>
+        <% if (['active', 'completed'].includes(b.status)) { const cd = chargeDraft || {}; %>
+          <details <%= chargeDraft ? 'open' : '' %>>
             <summary>+ Νέα χρέωση</summary>
             <form method="post" action="/admin/bookings/<%= b.id %>/charges" class="stack">
               <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
               <div class="grid-2">
                 <div class="field"><label for="ch_category">Κατηγορία</label>
                   <select id="ch_category" name="category" required>
-                    <% chargeCategories.forEach(function (k) { %><option value="<%= k %>"><%= format.label('chargeCategory', k) %></option><% }) %>
+                    <% chargeCategories.forEach(function (k) { %><option value="<%= k %>" <%= cd.category === k ? 'selected' : '' %>><%= format.label('chargeCategory', k) %></option><% }) %>
                   </select></div>
-                <div class="field"><label for="ch_amount">Ποσό (€)</label><input id="ch_amount" name="amount" inputmode="decimal" required></div>
+                <div class="field"><label for="ch_amount">Ποσό (€)</label><input id="ch_amount" name="amount" inputmode="decimal" value="<%= cd.amount || '' %>" required></div>
               </div>
-              <div class="field"><label for="ch_description">Περιγραφή (θα τη δει ο πελάτης)</label><input id="ch_description" name="description" maxlength="300" required></div>
-              <div class="field"><label for="ch_evidence">Τεκμηρίωση (υποχρεωτική για ζημιά: πρακτικό, φωτογραφίες, εκτίμηση/τιμολόγιο συνεργείου)</label><textarea id="ch_evidence" name="evidence" rows="2"></textarea></div>
-              <div class="field"><label for="ch_consent">Μόνο για ζημιά / άλλη χρέωση: ο πελάτης συναίνεσε ήδη γραπτώς; (αλλιώς θα του σταλεί για αποδοχή)</label><input id="ch_consent" name="customer_consent" placeholder="π.χ. υπέγραψε πρακτικό ζημιάς Νο 12 στην επιστροφή"></div>
-              <div class="field"><label for="ch_beyond">Μόνο για ζημιά πέραν της απαλλαγής (<%= format.money(b.excess_cents ?? b.deposit_cents) %>): εξαίρεση των όρων §7</label><input id="ch_beyond" name="beyond_excess" maxlength="300" placeholder="π.χ. ζημιά ελαστικών από οδήγηση εκτός ασφάλτου (§7)"></div>
+              <div class="field"><label for="ch_preset">Έτοιμη περιγραφή (μεταφράζεται αυτόματα στη γλώσσα του πελάτη)</label>
+                <select id="ch_preset" name="description_preset">
+                  <option value="">— Καμία: γράφω δική μου περιγραφή παρακάτω —</option>
+                  <% Object.keys(chargeDescriptions).forEach(function (k) { %><optgroup label="<%= format.label('chargeCategory', k) %>"><% chargeDescriptions[k].forEach(function (d) { %><option value="<%= d %>" <%= cd.description_preset === d ? 'selected' : '' %>><%= d %></option><% }) %></optgroup><% }) %>
+                </select></div>
+              <div class="field"><label for="ch_description">ή δική σας περιγραφή (θα τη δει ο πελάτης)</label><input id="ch_description" name="description" maxlength="300" value="<%= cd.description || '' %>"><span class="hint lang-hint"><%= customerLanguageHint %></span></div>
+              <div class="field"><label for="ch_evidence">Τεκμηρίωση (υποχρεωτική για ζημιά: πρακτικό, φωτογραφίες, εκτίμηση/τιμολόγιο συνεργείου)</label><textarea id="ch_evidence" name="evidence" rows="2"><%= cd.evidence || '' %></textarea><span class="hint lang-hint"><%= customerLanguageHint %></span></div>
+              <div class="field"><label for="ch_consent">Μόνο για ζημιά / άλλη χρέωση: ο πελάτης συναίνεσε ήδη γραπτώς; (αλλιώς θα του σταλεί για αποδοχή)</label><input id="ch_consent" name="customer_consent" value="<%= cd.customerConsent || '' %>" <% if (b.locale === 'el') { %>placeholder="π.χ. υπέγραψε πρακτικό ζημιάς Νο 12 στην επιστροφή"<% } %>><span class="hint lang-hint"><%= customerLanguageHint %></span></div>
+              <div class="field"><label for="ch_beyond">Μόνο για ζημιά πέραν της απαλλαγής (<%= format.money(b.excess_cents ?? b.deposit_cents) %>): εξαίρεση των όρων §7</label><input id="ch_beyond" name="beyond_excess" maxlength="300" value="<%= cd.beyondExcess || '' %>" <% if (b.locale === 'el') { %>placeholder="π.χ. ζημιά ελαστικών από οδήγηση εκτός ασφάλτου (§7)"<% } %>><span class="hint lang-hint"><%= customerLanguageHint %></span></div>
               <p class="small muted">Καθαρισμός έως <%= format.money(config.tariff.cleaningFeeCents) %>, διαχείριση προστίμου έως <%= format.money(config.tariff.finesAdminFeeCents) %> ανά πρόστιμο (τιμοκατάλογος όρων). Ο πελάτης λαμβάνει email για κάθε χρέωση.</p>
               <button class="btn" type="submit">Καταχώρηση</button>
             </form>
@@ -319,7 +324,12 @@
         <form method="post" action="/admin/bookings/<%= b.id %>/cancel" class="card pad stack" data-confirm="Ακύρωση της κράτησης; Ο πελάτης θα ενημερωθεί με email.">
           <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
           <h2 class="h4">Ακύρωση</h2>
-          <div class="field"><label for="reason">Αιτία (θα σταλεί στον πελάτη)</label><input id="reason" name="reason" maxlength="300"></div>
+          <% const kd = cancelDraft || {}; %>
+          <div class="field"><label for="reason_code">Αιτία (θα σταλεί στον πελάτη, μεταφρασμένη στη γλώσσα του)</label>
+            <select id="reason_code" name="reason_code">
+              <% cancelReasons.forEach(function (r) { %><option value="<%= r.code %>" <%= (kd.reason_code || 'office') === r.code ? 'selected' : '' %>><%= r.label || r.text %></option><% }) %>
+            </select></div>
+          <div class="field"><label for="reason_note">Σημείωση προς τον πελάτη (προαιρετική· υποχρεωτική για «Άλλος λόγος»)</label><textarea id="reason_note" name="reason_note" rows="2" maxlength="300"><%= kd.reason_note || '' %></textarea><span class="hint lang-hint"><%= customerLanguageHint %></span></div>
           <% if (refundable > 0) { %>
             <label class="check"><input type="checkbox" name="refund" value="1" checked><span><%= isOnline ? 'Επιστροφή χρημάτων στην κάρτα' : 'Οφείλεται επιστροφή (εκτός συστήματος — θα καταγραφεί ως εκκρεμότητα)' %></span></label>
             <div class="field"><label for="refund_amount">Ποσό επιστροφής (κενό = ολόκληρο <%= format.money(refundable) %>)</label><input id="refund_amount" name="refund_amount" inputmode="decimal" placeholder="π.χ. 50.00"></div>

@@ -6,6 +6,7 @@ const nodemailer = require('nodemailer');
 const config = require('../config');
 const format = require('./format');
 const i18n = require('./i18n');
+const company = require('./company');
 
 const templatesDir = path.join(__dirname, '..', '..', 'views', 'emails');
 const smtpConfigured = Boolean(config.mail.host);
@@ -58,7 +59,8 @@ async function render(template, data = {}, locale = null) {
     ...data,
     config,
     format: format.forLocale(lang),
-    company: config.company,
+    // Στοιχεία επιχείρησης στη γλώσσα του email (στα αγγλικά/ισπανικά χωρίς ελληνικά γράμματα).
+    company: company.forLocale(lang),
     locale: lang,
     t: (value, params) => i18n.t(lang, value, params),
     th: (value, params) => i18n.th(lang, value, params),
@@ -84,7 +86,8 @@ async function send({ to, subject, template, data = {}, replyTo, attachments, lo
   subject = i18n.t(lang, subject);
   try {
     const html = await render(template, { ...data, subject }, lang);
-    const message = { from: config.mail.from, to, subject, html, replyTo, attachments };
+    // Το όνομα του αποστολέα (αν είναι ελληνικό) στη γλώσσα του παραλήπτη.
+    const message = { from: company.mailFrom(config.mail.from, lang), to, subject, html, replyTo, attachments };
     if (config.isTest) {
       outbox.push(message);
       remember({ to, subject, locale: lang, status: 'sent' }, message);

@@ -164,6 +164,7 @@ function logEvent(db, bookingId, actor, action, note = null) {
 const BOOKING_SELECT = `
   SELECT b.*,
     c.make, c.model, c.year AS car_year, c.plate, c.category, c.transmission, c.fuel, c.seats, c.image,
+    c.mileage_policy AS car_mileage_policy, c.mileage_limit_km AS car_mileage_limit_km,
     pl.name AS pickup_location_name, pl.address AS pickup_location_address,
     pl.name_en AS pickup_location_name_en, pl.name_es AS pickup_location_name_es,
     pl.address_en AS pickup_location_address_en, pl.address_es AS pickup_location_address_es,
@@ -224,14 +225,16 @@ function createBooking(db, { car, search, extras, driver, userId = null, locale 
           flight_number, notes, base_cents, discount_cents, extras_cents, fees_cents, total_cents, vat_cents,
           deposit_cents, status, payment_method, payment_status, hold_expires_at, terms_accepted_at,
           terms_version, excess_cents, late_cancel_fee_cents, child_info,
-          invoice_requested, invoice_vat, invoice_name, invoice_address, invoice_tax_office, invoice_activity, locale
+          invoice_requested, invoice_vat, invoice_name, invoice_address, invoice_tax_office, invoice_activity, locale,
+          mileage_policy, mileage_limit_km
         ) VALUES (
           :reference, :user_id, :car_id, :pickup_location_id, :return_location_id, :pickup_at, :return_at, :days,
           :first_name, :last_name, :email, :phone, :birth_date, :license_number, :license_country, :license_issued,
           :flight_number, :notes, :base_cents, :discount_cents, :extras_cents, :fees_cents, :total_cents, :vat_cents,
           :deposit_cents, :status, :payment_method, 'unpaid', :hold_expires_at, datetime('now'),
           :terms_version, :excess_cents, :late_cancel_fee_cents, :child_info,
-          :invoice_requested, :invoice_vat, :invoice_name, :invoice_address, :invoice_tax_office, :invoice_activity, :locale
+          :invoice_requested, :invoice_vat, :invoice_name, :invoice_address, :invoice_tax_office, :invoice_activity, :locale,
+          :mileage_policy, :mileage_limit_km
         )`,
       )
       .run({
@@ -274,6 +277,9 @@ function createBooking(db, { car, search, extras, driver, userId = null, locale 
         invoice_tax_office: driver.invoice ? driver.invoice_tax_office : null,
         invoice_activity: driver.invoice ? driver.invoice_activity : null,
         locale: ['el', 'en', 'es'].includes(locale) ? locale : 'el',
+        // Τα χιλιόμετρα που γνωστοποιήθηκαν στην κράτηση (όπως η απαλλαγή και η έκδοση των όρων).
+        mileage_policy: freshCar.mileage_policy,
+        mileage_limit_km: freshCar.mileage_limit_km ?? null,
       });
     const bookingId = Number(result.lastInsertRowid);
     const insertExtra = db.prepare(

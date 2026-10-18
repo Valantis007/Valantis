@@ -108,6 +108,7 @@ test('ενδεικτικές φωτογραφίες: λήψη με ελεύθε�
     .field('seats', String(car.seats)).field('doors', String(car.doors)).field('luggage', String(car.luggage))
     .field('daily_rate', '25.00').field('deposit', '250.00').field('excess', '').field('min_driver_age', '21')
     .field('mileage_policy', car.mileage_policy).field('description', car.description || '').field('active', '1')
+    .field('description_en', car.description_en || '').field('description_es', car.description_es || '')
     .attach('image', Buffer.from([0xff, 0xd8, 0xff, 0xd9]), { filename: 'own.jpg', contentType: 'image/jpeg' });
   assert.equal(upload.status, 303);
   const after = db.prepare('SELECT image, image_credit, image_source FROM cars WHERE id = 1').get();

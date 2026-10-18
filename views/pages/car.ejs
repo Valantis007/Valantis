@@ -13,7 +13,7 @@
         <% if (car.description) { %><p><%= tf(car, 'description') %></p><% } %>
         <h2 class="h4"><%= t('Περιλαμβάνονται στην τιμή') %></h2>
         <ul class="checklist">
-          <li><%= t(car.mileage_policy) %></li>
+          <li><%= format.mileage(car) %></li>
           <li><%= t('Υποχρεωτική ασφάλιση αστικής ευθύνης (έναντι τρίτων)') %></li>
           <li><%= t('Βασική κάλυψη ζημιών (CDW) — απαλλαγή {amount} (0 € με την Πλήρη Απαλλαγή FDW)', { amount: format.money(car.excess_cents ?? car.deposit_cents) }) %></li>
           <% if (company.roadsideAssistance) { %><li><%= t('Οδική βοήθεια 24/7') %></li><% } %>

@@ -5,6 +5,7 @@ const config = require('../config');
 const time = require('../lib/time');
 const format = require('../lib/format');
 const mailer = require('../lib/mailer');
+const mileage = require('../lib/mileage');
 const { parseSearch, searchQuery } = require('../lib/search');
 const { availableCarIds } = require('../lib/availability');
 const bookings = require('../lib/bookings');
@@ -57,7 +58,7 @@ module.exports = function publicRoutes(db) {
       categories: [...byCategory.values()],
       featured,
       carCount: cars.length,
-      allUnlimited: cars.length > 0 && cars.every((c) => c.mileage_policy === 'Απεριόριστα χιλιόμετρα'),
+      allUnlimited: cars.length > 0 && cars.every((c) => mileage.isUnlimited(c)),
     });
   });
 

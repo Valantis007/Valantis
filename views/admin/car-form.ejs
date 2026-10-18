@@ -6,6 +6,7 @@
   <p><a href="/admin/cars">← Στόλος</a></p>
   <h1><%= car ? `${car.make} ${car.model} (${car.plate})` : 'Νέο αυτοκίνητο' %></h1>
   <% if (Object.keys(e).length) { %><div class="alert alert-error">Ελέγξτε τα πεδία με σφάλμα.</div><% } %>
+  <% if (locals.missingFields && !Object.keys(e).length) { %><div class="alert alert-warning">⚠ Λείπει μετάφραση: <%= missingFields.join(', ') %>. Οι ξένοι πελάτες βλέπουν εκεί ελληνικά — συμπληρώστε τα αγγλικά και τα ισπανικά (π.χ. με DeepL ή Google Translate).</div><% } %>
   <div class="layout-sidebar reverse">
     <form method="post" action="<%= car ? `/admin/cars/${car.id}` : '/admin/cars' %>" enctype="multipart/form-data" class="card pad stack">
       <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
@@ -24,13 +25,28 @@
         <div class="field"><label for="deposit">Εγγύηση (€)</label><input id="deposit" name="deposit" inputmode="decimal" value="<%= v.deposit || '' %>"><% if (e.deposit) { %><span class="error"><%= e.deposit %></span><% } %></div>
         <div class="field"><label for="excess">Απαλλαγή ζημιών (€)</label><input id="excess" name="excess" inputmode="decimal" value="<%= v.excess || '' %>"><span class="hint">Μέγιστη συμμετοχή του πελάτη σε ζημιές· κενό = ίση με την εγγύηση. Να συμφωνεί με το ασφαλιστήριο.</span><% if (e.excess) { %><span class="error"><%= e.excess %></span><% } %></div>
         <div class="field"><label for="min_driver_age">Ελάχ. ηλικία οδηγού</label><input id="min_driver_age" name="min_driver_age" type="number" min="18" max="30" value="<%= v.min_driver_age || '' %>"><% if (e.min_driver_age) { %><span class="error"><%= e.min_driver_age %></span><% } %></div>
-        <div class="field"><label for="mileage_policy">Χιλιόμετρα</label><input id="mileage_policy" name="mileage_policy" value="<%= v.mileage_policy || 'Απεριόριστα χιλιόμετρα' %>"></div>
       </div>
+      <%# Χιλιόμετρα με δομή: εμφανίζονται μεταφρασμένα σε όλες τις γλώσσες. %>
+      <fieldset class="field mileage-field" id="mileage">
+        <legend>Χιλιόμετρα</legend>
+        <% const mode = v.mileage_mode || 'unlimited'; %>
+        <label class="check"><input type="radio" name="mileage_mode" value="unlimited" <%= mode === 'unlimited' ? 'checked' : '' %>><span>Απεριόριστα χιλιόμετρα</span></label>
+        <label class="check mileage-limit"><input type="radio" name="mileage_mode" value="limit" <%= mode === 'limit' ? 'checked' : '' %>><span>Όριο:</span>
+          <input name="mileage_limit_km" type="number" min="1" max="10000" inputmode="numeric" value="<%= v.mileage_limit_km || '' %>" aria-label="Όριο χιλιομέτρων ανά ημέρα" class="km-input"><span>χλμ. ανά ημέρα</span></label>
+        <% if (v.mileage_policy) { %>
+          <label class="check"><input type="radio" name="mileage_mode" value="custom" <%= mode === 'custom' ? 'checked' : '' %>><span>Παλιό κείμενο: «<%= v.mileage_policy %>» <span class="badge-warn">δεν μεταφράζεται</span></span></label>
+          <input type="hidden" name="mileage_policy" value="<%= v.mileage_policy %>">
+          <span class="hint">Επιλέξτε «Απεριόριστα» ή «Όριο», ώστε οι ξένοι πελάτες να το βλέπουν στη γλώσσα τους.</span>
+        <% } %>
+        <span class="hint">Οι πελάτες το βλέπουν στη γλώσσα τους (π.χ. «Limit: 200 km per day»). Αλλαγές ισχύουν για νέες κρατήσεις.</span>
+        <% if (e.mileage_limit_km) { %><span class="error"><%= e.mileage_limit_km %></span><% } %>
+      </fieldset>
       <div class="field"><label for="description">Περιγραφή</label><textarea id="description" name="description" rows="3"><%= v.description || '' %></textarea></div>
       <div class="grid-2">
-        <div class="field"><label for="description_en">Περιγραφή (English)</label><textarea id="description_en" name="description_en" rows="2"><%= v.description_en || '' %></textarea></div>
-        <div class="field"><label for="description_es">Περιγραφή (Español)</label><textarea id="description_es" name="description_es" rows="2"><%= v.description_es || '' %></textarea></div>
+        <div class="field"><label for="description_en">Περιγραφή (English)</label><textarea id="description_en" name="description_en" rows="2"><%= v.description_en || '' %></textarea><% if (e.description_en) { %><span class="error"><%= e.description_en %></span><% } %></div>
+        <div class="field"><label for="description_es">Περιγραφή (Español)</label><textarea id="description_es" name="description_es" rows="2"><%= v.description_es || '' %></textarea><% if (e.description_es) { %><span class="error"><%= e.description_es %></span><% } %></div>
       </div>
+      <p class="small muted">Αν γράψετε περιγραφή στα ελληνικά, συμπληρώστε υποχρεωτικά και τα αγγλικά και τα ισπανικά (π.χ. με DeepL ή Google Translate) — αλλιώς οι ξένοι πελάτες θα έβλεπαν ελληνικά.</p>
       <div class="field"><label for="image">Φωτογραφία (JPG/PNG/WEBP, έως 5MB)</label><input id="image" name="image" type="file" accept="image/jpeg,image/png,image/webp">
         <% if (car && car.image) { %><img src="<%= car.image %>" alt="" class="thumb"><% } %><% if (car && car.image_credit) { %><span class="small muted">Ενδεικτική φωτογραφία: <%= car.image_credit %></span><% } %></div>
       <label class="check"><input type="checkbox" name="air_conditioning" value="1" <%= v.air_conditioning ? 'checked' : '' %>><span>Κλιματισμός</span></label>
