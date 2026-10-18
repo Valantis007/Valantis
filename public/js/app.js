@@ -178,3 +178,97 @@
     });
   });
 })();
+
+// Διαχείριση → Ρυθμίσεις δοκιμών. Η «Δοκιμή σύνδεσης» γίνεται χωρίς να ξαναφορτωθεί η σελίδα, ώστε να
+// μη χαθούν ο κωδικός ή το κλειδί που μόλις γράφτηκαν (χωρίς JavaScript η φόρμα υποβάλλεται κανονικά).
+// Τα κείμενα έρχονται από τη σελίδα (data-*).
+(function () {
+  'use strict';
+  if (!window.fetch || !window.URLSearchParams) return;
+
+  document.querySelectorAll('[data-settings-test]').forEach(function (button) {
+    var form = button.form;
+    var box = form && form.querySelector('[data-test-result]');
+    if (!box) return;
+
+    function show(data) {
+      box.textContent = '';
+      var alert = document.createElement('div');
+      if (!data || !data.lines) {
+        alert.className = 'alert alert-error';
+        alert.setAttribute('role', 'alert');
+        alert.textContent = button.getAttribute('data-fail-text');
+      } else {
+        alert.className = 'alert ' + (data.ok ? 'alert-success' : 'alert-error');
+        alert.setAttribute('role', data.ok ? 'status' : 'alert');
+        var title = document.createElement('strong');
+        title.textContent = data.title + ': ' + button.getAttribute(data.ok ? 'data-ok-text' : 'data-bad-text');
+        alert.appendChild(title);
+        var list = document.createElement('ul');
+        list.className = 'plain small';
+        data.lines.forEach(function (line) {
+          var li = document.createElement('li');
+          li.textContent = line;
+          list.appendChild(li);
+        });
+        alert.appendChild(list);
+      }
+      box.appendChild(alert);
+    }
+
+    button.addEventListener('click', function (event) {
+      event.preventDefault();
+      var body = new URLSearchParams();
+      new FormData(form).forEach(function (value, key) {
+        if (typeof value === 'string') body.append(key, value);
+      });
+      button.disabled = true;
+      box.textContent = '';
+      var waiting = document.createElement('p');
+      waiting.className = 'small muted';
+      waiting.textContent = button.getAttribute('data-pending-text');
+      box.appendChild(waiting);
+      fetch(button.getAttribute('formaction'), {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body.toString()
+      })
+        .then(function (r) {
+          if (!r.ok) throw new Error(String(r.status));
+          return r.json();
+        })
+        .then(show, function () { show(null); })
+        .then(function () { button.disabled = false; });
+    });
+  });
+
+  // Σελίδα «Επανεκκίνηση»: ανοίγει ξανά τις ρυθμίσεις μόλις απαντήσει η ΝΕΑ εκκίνηση της ιστοσελίδας.
+  var wait = document.querySelector('[data-restart-wait]');
+  if (!wait) return;
+  var oldBoot = wait.getAttribute('data-boot');
+  var target = wait.getAttribute('data-target');
+  var slow = wait.querySelector('[data-restart-slow]');
+  var started = Date.now();
+
+  function later() {
+    if (slow && Date.now() - started > 30000) slow.classList.remove('hidden');
+    if (Date.now() - started < 10 * 60 * 1000) setTimeout(poll, 1000);
+  }
+
+  function poll() {
+    fetch('/admin/settings/ping', { credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } })
+      .then(function (r) {
+        // Ανακατεύθυνση στη σύνδεση: η ιστοσελίδα απαντά ξανά (θα ζητηθεί σύνδεση).
+        if (r.redirected) return { boot: 'login' };
+        return r.ok ? r.json() : null;
+      })
+      .then(function (data) {
+        if (data && data.boot && data.boot !== oldBoot) window.location.href = target;
+        else later();
+      })
+      .catch(later);
+  }
+
+  setTimeout(poll, 1500);
+})();

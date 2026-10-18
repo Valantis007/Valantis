@@ -57,7 +57,7 @@ function translations(body, fields) {
 // Είδος πρόσθετου: damage_waiver μηδενίζει την απαλλαγή, child_seat ζητά στοιχεία παιδιού.
 const EXTRA_KINDS = ['damage_waiver', 'prepaid_fuel', 'child_seat', 'driver', 'other'];
 
-module.exports = function adminRoutes(db, { uploadDir }) {
+module.exports = function adminRoutes(db, { uploadDir, settings = {} }) {
   const router = express.Router();
   router.use(requireAdmin);
 
@@ -912,12 +912,18 @@ module.exports = function adminRoutes(db, { uploadDir }) {
     res.redirect(303, '/admin/messages');
   });
 
+  // ---------------- Ρυθμίσεις δοκιμών (email, Stripe test) ----------------
+  router.use('/settings', require('./admin-settings')(settings));
+
   // ---------------- Έλεγχος συστήματος ----------------
   // Μια σελίδα που δείχνει αν όλα είναι ρυθμισμένα σωστά, με δοκιμαστικό email και έλεγχο
   // σύνδεσης με τον πάροχο πληρωμών. Δεν εμφανίζει ποτέ κωδικούς ή κλειδιά.
+  // Σύνδεσμος προς τις «Ρυθμίσεις δοκιμών» (σε παραγωγή η σελίδα δείχνει μόνο τι ορίζεται στον server).
+  const settingsLink = (text) => ({ href: '/admin/settings', text: config.isProduction ? 'Ποιες ρυθμίσεις χρειάζονται στον server' : text });
+
   function systemChecks(req) {
     const checks = [];
-    const add = (state, text, hint = null) => checks.push({ state, text, hint });
+    const add = (state, text, hint = null, link = null) => checks.push({ state, text, hint, link });
     const https = config.baseUrl.startsWith('https://');
     add(config.isProduction ? 'ok' : 'warn', `Λειτουργία: ${config.env}`, config.isProduction ? null : 'Σε κανονική λειτουργία ορίστε NODE_ENV=production.');
     add(https ? 'ok' : 'bad', `Διεύθυνση (BASE_URL): ${config.baseUrl}`, https ? null : 'Πρέπει να είναι η τελική διεύθυνση με https:// (π.χ. https://www.to-domain-sas.gr).');
@@ -932,16 +938,30 @@ module.exports = function adminRoutes(db, { uploadDir }) {
       .filter(([, v]) => !v)
       .map(([k]) => k);
     add(missing.length ? 'bad' : 'ok', missing.length ? `Λείπουν στοιχεία επιχείρησης: ${missing.join(', ')}` : 'Στοιχεία επιχείρησης συμπληρωμένα');
-    add(mailer.smtpConfigured ? 'ok' : 'bad', mailer.smtpConfigured ? `Email: μέσω ${config.mail.host}, αποστολέας ${config.mail.from}` : 'Email: δεν έχει ρυθμιστεί SMTP — οι πελάτες ΔΕΝ λαμβάνουν emails');
-    add(config.mail.adminNotify ? 'ok' : 'bad', config.mail.adminNotify ? `Ειδοποιήσεις γραφείου στο ${config.mail.adminNotify}` : 'Δεν έχει οριστεί ADMIN_NOTIFY_EMAIL');
+    add(
+      mailer.smtpConfigured ? 'ok' : 'bad',
+      mailer.smtpConfigured ? `Email: μέσω ${config.mail.host}, αποστολέας ${config.mail.from}` : 'Email: δεν έχει ρυθμιστεί SMTP — οι πελάτες ΔΕΝ λαμβάνουν emails',
+      null,
+      mailer.smtpConfigured ? null : settingsLink('Ρύθμιση αποστολής email (Gmail ή άλλος πάροχος)'),
+    );
+    add(
+      config.mail.adminNotify ? 'ok' : 'bad',
+      config.mail.adminNotify ? `Ειδοποιήσεις γραφείου στο ${config.mail.adminNotify}` : 'Δεν έχει οριστεί ADMIN_NOTIFY_EMAIL',
+      null,
+      config.mail.adminNotify ? null : settingsLink('Ορισμός email για τις ειδοποιήσεις του γραφείου'),
+    );
     const active = providers.active();
     if (!active) {
-      add('warn', 'Online πληρωμές: απενεργοποιημένες (μόνο πληρωμή στην παραλαβή, εγγύηση μόνο με POS)');
+      add('warn', 'Online πληρωμές: απενεργοποιημένες (μόνο πληρωμή στην παραλαβή, εγγύηση μόνο με POS)', null, settingsLink('Ρύθμιση δοκιμαστικών πληρωμών με κάρτα (Stripe)'));
     } else {
       const m = active.mode ? active.mode() : 'unknown';
       add(m === 'live' ? 'ok' : 'warn', `Online πληρωμές: ${active.label} — ${m === 'live' ? 'ΠΡΑΓΜΑΤΙΚΕΣ πληρωμές' : 'ΔΟΚΙΜΑΣΤΙΚΗ λειτουργία'}`, m === 'live' ? null : 'Για το άνοιγμα βάλτε τα live κλειδιά.');
       const secret = active.name === 'stripe' ? config.stripe.webhookSecret : config.revolut.webhookSecret;
-      add(secret ? 'ok' : 'bad', secret ? 'Webhook secret ορισμένο' : 'Λείπει το webhook secret του παρόχου');
+      // Στον υπολογιστή (localhost) οι ειδοποιήσεις του Stripe δεν φτάνουν: οι πληρωμές συγχρονίζονται περιοδικά.
+      const localStripe = active.name === 'stripe' && providers.PROVIDERS.stripe.isLocalUrl(config.baseUrl);
+      if (secret) add('ok', 'Webhook secret ορισμένο');
+      else if (localStripe) add('warn', 'Χωρίς webhook secret', 'Στον υπολογιστή σας δεν χρειάζεται: οι πληρωμές συγχρονίζονται αυτόματα κάθε 5 λεπτά. Online (στο domain) είναι υποχρεωτικό.');
+      else add('bad', 'Λείπει το webhook secret του παρόχου');
     }
     const st = maintenance.status;
     const recentRun = st.lastRun && Date.now() - Date.parse(st.lastRun) < 5 * 60 * 1000;
@@ -962,6 +982,7 @@ module.exports = function adminRoutes(db, { uploadDir }) {
     res.render('admin/system', {
       title: 'Έλεγχος συστήματος',
       checks: systemChecks(req),
+      smtpConfigured: mailer.smtpConfigured,
       recentEmails: mailer.recent.slice(0, 20),
       provider: providers.active(),
       dbPath: config.dbPath,
@@ -998,8 +1019,11 @@ module.exports = function adminRoutes(db, { uploadDir }) {
     const sent = await mailer.send({ to, subject: `Δοκιμαστικό email - ${config.company.name}`, template: 'test-email', data: { sentBy: req.user.email } });
     const lines = [smtp.message];
     if (sent && mailer.smtpConfigured) lines.push(`Το email στάλθηκε στο ${to}. Ελέγξτε τα εισερχόμενα (και τα ανεπιθύμητα/spam).`);
-    else if (!mailer.smtpConfigured) lines.push('Το email καταγράφηκε μόνο στο log του server (δεν υπάρχει SMTP).');
-    else lines.push('Η αποστολή απέτυχε — δείτε το μήνυμα παραπάνω και τα στοιχεία SMTP στο .env.');
+    else if (!mailer.smtpConfigured) {
+      lines.push(`Το email καταγράφηκε μόνο στο log του server (δεν υπάρχει SMTP).${config.isProduction ? '' : ' Ρυθμίστε την αποστολή στη σελίδα «Ρυθμίσεις δοκιμών».'}`);
+    } else {
+      lines.push(`Η αποστολή απέτυχε — δείτε το μήνυμα παραπάνω και ελέγξτε τα στοιχεία SMTP ${config.isProduction ? 'στις ρυθμίσεις του server' : 'στη σελίδα «Ρυθμίσεις δοκιμών»'}.`);
+    }
     renderSystem(req, res, { results: { title: 'Δοκιμαστικό email', ok: Boolean(sent && smtp.ok), lines }, testEmailTo: to });
   });
 
@@ -1012,7 +1036,11 @@ module.exports = function adminRoutes(db, { uploadDir }) {
       try {
         results = { title: `Έλεγχος ${active.label}`, ...(await active.checkConnection()) };
       } catch (err) {
-        results = { title: `Έλεγχος ${active.label}`, ok: false, lines: [`Ο πάροχος απέρριψε τη σύνδεση: ${err.message}`, 'Ελέγξτε ότι το κλειδί στο .env είναι σωστό και ενεργό.'] };
+        results = {
+          title: `Έλεγχος ${active.label}`,
+          ok: false,
+          lines: [`Ο πάροχος απέρριψε τη σύνδεση: ${err.message}`, `Ελέγξτε ότι το κλειδί ${config.isProduction ? 'στις ρυθμίσεις του server' : 'στη σελίδα «Ρυθμίσεις δοκιμών» (ή στο .env)'} είναι σωστό και ενεργό.`],
+        };
       }
     }
     renderSystem(req, res, { results });

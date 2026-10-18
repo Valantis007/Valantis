@@ -290,6 +290,25 @@ input:focus, select:focus, textarea:focus { border-color: var(--brand); outline:
 .admin-nav { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
 .admin-nav a { padding: 6px 12px; border-radius: 6px; text-decoration: none; color: var(--text); font-weight: 600; font-size: 0.92rem; }
 .admin-nav a.active, .admin-nav a:hover { background: var(--brand); color: #fff; }
+
+/* Διαχείριση → Ρυθμίσεις δοκιμών */
+.settings-section { margin-bottom: 18px; }
+.settings-page code { overflow-wrap: anywhere; }
+.fieldset-plain { border: 0; padding: 0; margin: 0; min-width: 0; }
+.fieldset-plain legend { padding: 0; margin-bottom: 8px; font-weight: 600; font-size: 0.9rem; }
+.preset-choice { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 0; }
+/* Φαίνονται μόνο τα πεδία του επιλεγμένου παρόχου (χωρίς :has φαίνονται όλα· ο server κρατά μόνο τα σωστά). */
+.mail-form:has(input[name="preset"][value="gmail"]:checked) .preset-other,
+.mail-form:has(input[name="preset"][value="other"]:checked) .preset-gmail { display: none; }
+.field label.check { font-weight: 400; }
+.form-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.restart-box { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+.restart-box form { margin: 0; }
+.howto { margin-bottom: 0; }
+.howto ol { margin: 10px 0 0; padding-left: 1.3em; }
+.howto li + li { margin-top: 6px; }
+[data-test-result]:empty { display: none; }
+[data-test-result] .alert { margin-bottom: 0; }
 .stats { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); margin-bottom: 28px; }
 .stat { padding: 16px; display: flex; flex-direction: column; text-decoration: none; color: inherit; }
 .stat-value { font-size: 1.6rem; font-weight: 700; color: var(--brand); }

@@ -15,7 +15,12 @@ const SqliteStore = require('./lib/sessionStore');
 const { csrfProtection } = require('./middleware/security');
 const { loadUser } = require('./middleware/auth');
 
-function createApp({ db, uploadDir = config.uploadDir }) {
+/**
+ * @param {object} o
+ * @param {string} [o.settingsEnvPath]  Αρχείο που γράφουν οι «Ρυθμίσεις δοκιμών» (αλλιώς το .env· στα tests προσωρινό)
+ * @param {Function} [o.onRestart]      Τι κάνει το κουμπί «Επανεκκίνηση» (ο server.js: ομαλός τερματισμός με κωδικό 75)
+ */
+function createApp({ db, uploadDir = config.uploadDir, settingsEnvPath = null, onRestart = null }) {
   const app = express();
   const store = new SqliteStore(db);
   fs.mkdirSync(uploadDir, { recursive: true });
@@ -121,7 +126,7 @@ function createApp({ db, uploadDir = config.uploadDir }) {
   app.use(require('./routes/auth')(db));
   app.use('/account', require('./routes/account')(db));
   app.use('/booking', require('./routes/booking')(db));
-  app.use('/admin', require('./routes/admin')(db, { uploadDir }));
+  app.use('/admin', require('./routes/admin')(db, { uploadDir, settings: { envPath: settingsEnvPath, onRestart } }));
 
   app.use((req, res) => {
     res.status(404).render('pages/error', {

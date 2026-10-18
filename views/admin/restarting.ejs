@@ -1,0 +1,10 @@
+<%- include('../partials/header') %>
+<div class="container section narrow">
+  <div class="card pad stack" data-restart-wait data-boot="<%= bootId %>" data-target="<%= target %>">
+    <h1 class="h3">Επανεκκίνηση…</h1>
+    <p>Η ιστοσελίδα κλείνει και ξεκινά ξανά με τις νέες ρυθμίσεις. Η σελίδα θα ανανεωθεί αυτόματα σε λίγα δευτερόλεπτα.</p>
+    <p class="small muted">Αν δεν ανανεωθεί μέσα σε 30 δευτερόλεπτα, κοιτάξτε το μαύρο παράθυρο της ιστοσελίδας. Αν έκλεισε ή γράφει κάποιο σφάλμα, ξεκινήστε τη ξανά με διπλό κλικ στο <code>start-windows.bat</code> (Mac: <code>start-mac.command</code>) και ανοίξτε ξανά τις <a href="<%= target %>">Ρυθμίσεις δοκιμών</a>.</p>
+    <p class="alert alert-warning small hidden" data-restart-slow role="alert">Η ιστοσελίδα δεν απαντά ακόμη. Ελέγξτε το μαύρο παράθυρο της ιστοσελίδας, όπως περιγράφεται παραπάνω.</p>
+  </div>
+</div>
+<%- include('../partials/footer') %>

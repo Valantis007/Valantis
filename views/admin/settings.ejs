@@ -1,0 +1,174 @@
+<%- include('../partials/header') %>
+<%
+  const f = mailForm;
+  const me = mailErrors;
+  const se = stripeErrors;
+  const cur = st.current;
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  const err = (e, name) => (e[name] ? `<span class="error">${esc(e[name])}</span>` : '');
+  // Ίδια εμφάνιση με το αποτέλεσμα που δείχνει το public/js/app.js χωρίς ανανέωση της σελίδας.
+  const result = (r) => (r ? `<div class="alert ${r.ok ? 'alert-success' : 'alert-error'}" role="${r.ok ? 'status' : 'alert'}"><strong>${esc(r.title)}: ${r.ok ? 'εντάξει' : 'δεν πέτυχε'}</strong><ul class="plain small">${r.lines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul></div>` : '');
+  const currentIsGmail = cur.SMTP_HOST === gmailHost;
+  const keyMode = (k) => (/^(sk|rk)_live_/.test(k) ? 'live' : /^(sk|rk)_test_/.test(k) ? 'test' : k ? 'unknown' : null);
+  const runningKeyMode = keyMode(st.running.STRIPE_SECRET_KEY);
+%>
+<div class="container section settings-page">
+  <%- include('_nav') %>
+  <h1>Ρυθμίσεις δοκιμών</h1>
+  <p class="muted">Εδώ ρυθμίζετε την αποστολή email και τις δοκιμαστικές πληρωμές με κάρτα στον υπολογιστή σας, χωρίς να ανοίξετε το αρχείο <code>.env</code>. Οι ρυθμίσεις γράφονται στο <code class="break"><%= envPath %></code> και ισχύουν μετά την «Επανεκκίνηση».</p>
+
+  <% if (restarted && !st.pending.length) { %>
+    <div class="alert alert-success" role="status">Η ιστοσελίδα ξεκίνησε ξανά: οι αποθηκευμένες ρυθμίσεις ισχύουν.</div>
+  <% } else if (restarted) { %>
+    <div class="alert alert-error" role="alert">Η ιστοσελίδα ξεκίνησε ξανά, αλλά οι αποθηκευμένες αλλαγές δεν ισχύουν ακόμη. Βεβαιωθείτε ότι την ξεκινάτε με διπλό κλικ στο <code>start-windows.bat</code> (Mac: <code>start-mac.command</code>) από τον φάκελό της.</div>
+  <% } %>
+  <% if (st.pending.length) { %>
+    <div class="alert alert-warning restart-box" role="status">
+      <div><strong>Υπάρχουν αποθηκευμένες αλλαγές που δεν ισχύουν ακόμη.</strong><br><span class="small">Πατήστε «Επανεκκίνηση» για να ισχύσουν.</span></div>
+      <form method="post" action="/admin/settings/restart">
+        <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+        <button class="btn btn-primary" type="submit">Επανεκκίνηση</button>
+      </form>
+    </div>
+  <% } %>
+  <% if (st.overridden.length) { %>
+    <% const many = st.overridden.length > 1; %>
+    <div class="alert alert-warning" role="status"><%= many ? 'Οι ρυθμίσεις' : 'Η ρύθμιση' %> <% st.overridden.forEach(function (k, i) { %><%= i ? ', ' : '' %><code><%= k %></code><% }) %> <%= many ? 'έχουν' : 'έχει' %> οριστεί και στις μεταβλητές συστήματος του υπολογιστή, που υπερισχύουν του αρχείου <code>.env</code>: η αλλαγή <%= many ? 'τους' : 'της' %> από εδώ δεν θα ισχύσει.</div>
+  <% } %>
+
+  <section class="card pad stack settings-section" id="mail" aria-labelledby="mail-title">
+    <div>
+      <h2 class="h4" id="mail-title">1. Αποστολή email</h2>
+      <p class="small">Τώρα:
+        <% if (st.running.SMTP_HOST) { %><span class="success">τα emails στέλνονται μέσω <strong><%= st.running.SMTP_HOST %></strong></span>.
+        <% } else { %><strong class="error">τα emails δεν στέλνονται</strong> — φαίνονται μόνο στον <a href="/admin/system">Έλεγχο συστήματος</a> ως «Δεν στάλθηκε (χωρίς SMTP)».<% } %>
+      </p>
+    </div>
+
+    <form method="post" action="/admin/settings/mail" class="stack mail-form">
+      <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+      <fieldset class="fieldset-plain">
+        <legend class="label">Πάροχος email</legend>
+        <div class="radio-cards preset-choice">
+          <label class="radio-card"><input type="radio" name="preset" value="gmail" <%= f.preset === 'gmail' ? 'checked' : '' %>>
+            <span><strong>Gmail</strong><span class="small muted">Για δοκιμές: τα emails φεύγουν από έναν λογαριασμό Gmail, με «κωδικό εφαρμογής».</span></span></label>
+          <label class="radio-card"><input type="radio" name="preset" value="other" <%= f.preset === 'other' ? 'checked' : '' %>>
+            <span><strong>Άλλος πάροχος</strong><span class="small muted">Στοιχεία SMTP από την υπηρεσία email σας (π.χ. Brevo, Google Workspace, Microsoft 365).</span></span></label>
+        </div>
+      </fieldset>
+
+      <div class="preset preset-gmail stack">
+        <details class="howto" <%= currentIsGmail && cur.SMTP_PASS ? '' : 'open' %>>
+          <summary>Πώς φτιάχνω κωδικό εφαρμογής της Google (μία φορά, 2 λεπτά)</summary>
+          <ol class="small">
+            <li>Ο λογαριασμός Google χρειάζεται <strong>Επαλήθευση σε 2 βήματα</strong> (2-Step Verification). Ανοίξτε το <a href="https://myaccount.google.com/security" target="_blank" rel="noopener">https://myaccount.google.com/security</a> → «Επαλήθευση σε 2 βήματα» και ενεργοποιήστε την, αν δεν είναι ήδη ενεργή.</li>
+            <li>Ανοίξτε τη σελίδα <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">https://myaccount.google.com/apppasswords</a> («Κωδικοί πρόσβασης εφαρμογών» / App passwords). Ίσως σας ζητήσει ξανά τον κωδικό του Gmail.</li>
+            <li>Γράψτε ένα όνομα, π.χ. «Ιστοσελίδα ενοικίασης», και πατήστε «Δημιουργία» (Create).</li>
+            <li>Εμφανίζεται ένας κωδικός 16 γραμμάτων σε 4 ομάδες (π.χ. <code>abcd efgh ijkl mnop</code>). Αντιγράψτε τον στο πεδίο «Κωδικός εφαρμογής» παρακάτω· τα κενά δεν πειράζουν. Η Google τον δείχνει μόνο μία φορά.</li>
+            <li>Πατήστε «Δοκιμή σύνδεσης». Αν είναι εντάξει, πατήστε «Αποθήκευση» και μετά «Επανεκκίνηση».</li>
+          </ol>
+          <p class="small muted">Αν η σελίδα της Google γράφει ότι η ρύθμιση δεν είναι διαθέσιμη για τον λογαριασμό σας, δεν έχει ενεργοποιηθεί η Επαλήθευση σε 2 βήματα (βήμα 1). Ο κανονικός κωδικός του Gmail δεν λειτουργεί εδώ. Αν αλλάξετε αργότερα τον κωδικό του λογαριασμού Google, οι κωδικοί εφαρμογής ακυρώνονται και χρειάζεται νέος. Το Gmail είναι μόνο για δοκιμές (όριο περίπου 500 emails την ημέρα)· για την κανονική λειτουργία δείτε τον οδηγό <code>docs/anoigma-kai-dokimes.md</code>, ενότητα 2.</p>
+        </details>
+        <div class="grid-2">
+          <div class="field"><label for="gmail_user">Διεύθυνση Gmail</label>
+            <input id="gmail_user" name="gmail_user" type="text" inputmode="email" autocomplete="off" spellcheck="false" placeholder="onoma@gmail.com" value="<%= f.gmail_user %>"><%- err(me, 'gmail_user') %></div>
+          <div class="field"><label for="gmail_pass">Κωδικός εφαρμογής (16 γράμματα)</label>
+            <input id="gmail_pass" name="gmail_pass" type="password" autocomplete="new-password" spellcheck="false" placeholder="abcd efgh ijkl mnop">
+            <span class="hint"><% if (currentIsGmail && cur.SMTP_PASS) { %>Έχει οριστεί <%= mask(cur.SMTP_PASS) %> — αφήστε το κενό για να μείνει ο ίδιος.<% } else { %>Δεν έχει οριστεί.<% } %></span><%- err(me, 'gmail_pass') %></div>
+        </div>
+      </div>
+
+      <div class="preset preset-other stack">
+        <div class="grid-2">
+          <div class="field"><label for="smtp_host">Server SMTP</label>
+            <input id="smtp_host" name="smtp_host" type="text" autocomplete="off" spellcheck="false" placeholder="smtp-relay.brevo.com" value="<%= f.smtp_host %>"><%- err(me, 'smtp_host') %></div>
+          <div class="field"><label for="smtp_port">Θύρα</label>
+            <input id="smtp_port" name="smtp_port" type="text" inputmode="numeric" autocomplete="off" value="<%= f.smtp_port %>"><span class="hint">Συνήθως 587 ή 465.</span><%- err(me, 'smtp_port') %></div>
+          <div class="field"><label for="smtp_secure">Κρυπτογράφηση</label>
+            <select id="smtp_secure" name="smtp_secure">
+              <option value="starttls" <%= f.smtp_secure === 'starttls' ? 'selected' : '' %>>STARTTLS (συνήθως θύρα 587)</option>
+              <option value="ssl" <%= f.smtp_secure === 'ssl' ? 'selected' : '' %>>SSL/TLS (συνήθως θύρα 465)</option>
+            </select></div>
+          <div class="field"><label for="smtp_user">Όνομα χρήστη</label>
+            <input id="smtp_user" name="smtp_user" type="text" autocomplete="off" spellcheck="false" value="<%= f.smtp_user %>"><%- err(me, 'smtp_user') %></div>
+          <div class="field"><label for="smtp_pass">Κωδικός</label>
+            <input id="smtp_pass" name="smtp_pass" type="password" autocomplete="new-password" spellcheck="false">
+            <span class="hint"><% if (!currentIsGmail && cur.SMTP_PASS) { %>Έχει οριστεί <%= mask(cur.SMTP_PASS) %> — αφήστε το κενό για να μείνει ο ίδιος.<% } else { %>Δεν έχει οριστεί.<% } %></span><%- err(me, 'smtp_pass') %></div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="field"><label for="mail_from">Αποστολέας</label>
+          <input id="mail_from" name="mail_from" type="text" autocomplete="off" spellcheck="false" placeholder="<%= company.name %> <onoma@gmail.com>" value="<%= f.mail_from %>">
+          <span class="hint">Όπως τον βλέπει ο πελάτης. Κενό = «<%= company.name %> &lt;η διεύθυνση email του λογαριασμού&gt;». Με το Gmail τα emails φεύγουν από τη διεύθυνση Gmail· εδώ αλλάζει μόνο το όνομα.</span><%- err(me, 'mail_from') %></div>
+        <div class="field"><label for="admin_notify">Ειδοποιήσεις γραφείου</label>
+          <input id="admin_notify" name="admin_notify" type="text" inputmode="email" autocomplete="off" spellcheck="false" value="<%= f.admin_notify %>">
+          <span class="hint">Πού έρχονται οι νέες κρατήσεις, τα μηνύματα πελατών κ.λπ. Για περισσότερες διευθύνσεις, χωρίστε τες με κόμμα. Κενό = <%= company.email ? `στο email της επιχείρησης (${company.email})` : 'το γραφείο δεν λαμβάνει ειδοποιήσεις' %>.</span><%- err(me, 'admin_notify') %></div>
+      </div>
+
+      <div data-test-result aria-live="polite"><%- result(mailResult) %><% if (retypeSecret) { %><p class="small muted">Για ασφάλεια ο κωδικός δεν εμφανίζεται ξανά: γράψτε τον ξανά πριν πατήσετε «Αποθήκευση».</p><% } %></div>
+      <div class="form-actions">
+        <button class="btn" type="submit" formaction="/admin/settings/mail/test" data-settings-test data-pending-text="Γίνεται δοκιμή σύνδεσης…" data-ok-text="εντάξει" data-bad-text="δεν πέτυχε" data-fail-text="Η δοκιμή δεν ολοκληρώθηκε. Ανανεώστε τη σελίδα και δοκιμάστε ξανά.">Δοκιμή σύνδεσης</button>
+        <button class="btn btn-primary" type="submit">Αποθήκευση</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="card pad stack settings-section" id="stripe" aria-labelledby="stripe-title">
+    <div>
+      <h2 class="h4" id="stripe-title">2. Πληρωμές με κάρτα για δοκιμές (Stripe)</h2>
+      <p class="small">Τώρα:
+        <% if (runningKeyMode === 'test') { %><span class="success">δοκιμαστικές πληρωμές με κάρτα ενεργές</span> (κλειδί <%= mask(st.running.STRIPE_SECRET_KEY) %>).
+        <% } else if (runningKeyMode === 'live') { %><strong class="error">ΠΡΑΓΜΑΤΙΚΕΣ πληρωμές (live κλειδί)</strong>.
+        <% } else { %><strong>δεν έχει ρυθμιστεί</strong> — στην κράτηση εμφανίζεται μόνο «Πληρωμή κατά την παραλαβή».<% } %>
+      </p>
+    </div>
+    <% if (keyMode(cur.STRIPE_SECRET_KEY) === 'live') { %>
+      <div class="alert alert-error" role="alert">Στο αρχείο <code>.env</code> υπάρχει ΠΡΑΓΜΑΤΙΚΟ κλειδί (live). Στον υπολογιστή σας χρησιμοποιήστε μόνο δοκιμαστικό κλειδί: επικολλήστε ένα <code>sk_test_…</code> και πατήστε «Αποθήκευση».</div>
+    <% } %>
+
+    <details class="howto" <%= cur.STRIPE_SECRET_KEY ? '' : 'open' %>>
+      <summary>Πού βρίσκω το κλειδί</summary>
+      <ol class="small">
+        <li>Συνδεθείτε στο <a href="https://dashboard.stripe.com" target="_blank" rel="noopener">https://dashboard.stripe.com</a>. Αν δεν έχετε λογαριασμό, φτιάξτε δωρεάν στο <a href="https://dashboard.stripe.com/register" target="_blank" rel="noopener">https://dashboard.stripe.com/register</a>· για δοκιμές δεν χρειάζονται στοιχεία επιχείρησης ή τράπεζας.</li>
+        <li>Πάνω δεξιά ενεργοποιήστε τη δοκιμαστική λειτουργία: <strong>Test mode</strong> (σε νεότερους λογαριασμούς λέγεται «Sandbox»).</li>
+        <li>Πηγαίνετε <strong>Developers → API keys</strong>. Στο «Secret key» πατήστε «Reveal test key» και αντιγράψτε το: ξεκινά με <code>sk_test_</code>. Όχι το «Publishable key», που ξεκινά με <code>pk_test_</code>.</li>
+        <li>Επικολλήστε το παρακάτω και πατήστε «Δοκιμή σύνδεσης». Αν είναι εντάξει, πατήστε «Αποθήκευση» και μετά «Επανεκκίνηση».</li>
+      </ol>
+      <p class="small muted">Μετά την επανεκκίνηση, σε κάθε σελίδα εμφανίζεται η ένδειξη «ΔΟΚΙΜΑΣΤΙΚΗ ΛΕΙΤΟΥΡΓΙΑ» και στην κράτηση η επιλογή «Κάρτα online». Δοκιμαστική κάρτα: 4242 4242 4242 4242, οποιαδήποτε μελλοντική ημερομηνία, CVC 123. Εδώ μπαίνουν μόνο δοκιμαστικά κλειδιά (<code>sk_test_</code>)· τα πραγματικά (<code>sk_live_</code>) μπαίνουν μόνο στον πραγματικό server, κατά το άνοιγμα.</p>
+    </details>
+
+    <form method="post" action="/admin/settings/stripe" class="stack">
+      <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+      <div class="grid-2">
+        <div class="field"><label for="stripe_key">Secret key (sk_test_…)</label>
+          <input id="stripe_key" name="stripe_key" type="password" autocomplete="new-password" spellcheck="false" placeholder="sk_test_…">
+          <span class="hint"><% if (cur.STRIPE_SECRET_KEY) { %>Έχει οριστεί <%= mask(cur.STRIPE_SECRET_KEY) %> — αφήστε το κενό για να μείνει το ίδιο.<% } else { %>Δεν έχει οριστεί.<% } %></span>
+          <% if (cur.STRIPE_SECRET_KEY) { %><label class="check small"><input type="checkbox" name="clear_stripe_key" value="1"><span>Αφαίρεση του κλειδιού (μόνο πληρωμή κατά την παραλαβή)</span></label><% } %>
+          <%- err(se, 'stripe_key') %></div>
+        <div class="field"><label for="stripe_webhook">Webhook secret (προαιρετικό, whsec_…)</label>
+          <input id="stripe_webhook" name="stripe_webhook" type="password" autocomplete="new-password" spellcheck="false" placeholder="whsec_…">
+          <span class="hint"><% if (cur.STRIPE_WEBHOOK_SECRET) { %>Έχει οριστεί <%= mask(cur.STRIPE_WEBHOOK_SECRET) %> — αφήστε το κενό για να μείνει το ίδιο. <% } %>Στον υπολογιστή σας δεν χρειάζεται: το Stripe δεν μπορεί να στείλει ειδοποιήσεις (webhooks) στο localhost και η ιστοσελίδα ελέγχει μόνη της τις πληρωμές κάθε 5 λεπτά. Μόνο αν χρησιμοποιείτε το Stripe CLI (<code>stripe listen --forward-to localhost:<%= config.port %>/webhooks/stripe</code>), βάλτε εδώ το <code>whsec_…</code> που εμφανίζει.</span>
+          <% if (cur.STRIPE_WEBHOOK_SECRET) { %><label class="check small"><input type="checkbox" name="clear_stripe_webhook" value="1"><span>Αφαίρεση</span></label><% } %>
+          <%- err(se, 'stripe_webhook') %></div>
+      </div>
+      <div data-test-result aria-live="polite"><%- result(stripeResult) %><% if (retypeKey) { %><p class="small muted">Για ασφάλεια το κλειδί δεν εμφανίζεται ξανά: επικολλήστε το ξανά πριν πατήσετε «Αποθήκευση».</p><% } %></div>
+      <div class="form-actions">
+        <button class="btn" type="submit" formaction="/admin/settings/stripe/test" data-settings-test data-pending-text="Γίνεται δοκιμή σύνδεσης…" data-ok-text="εντάξει" data-bad-text="δεν πέτυχε" data-fail-text="Η δοκιμή δεν ολοκληρώθηκε. Ανανεώστε τη σελίδα και δοκιμάστε ξανά.">Δοκιμή σύνδεσης</button>
+        <button class="btn btn-primary" type="submit">Αποθήκευση</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="card pad stack settings-section" id="restart" aria-labelledby="restart-title">
+    <h2 class="h4" id="restart-title">3. Επανεκκίνηση</h2>
+    <p class="small">Οι αποθηκευμένες ρυθμίσεις ισχύουν μετά την επανεκκίνηση της ιστοσελίδας (λίγα δευτερόλεπτα). Λειτουργεί όταν η ιστοσελίδα ξεκίνησε με διπλό κλικ στο <code>start-windows.bat</code> (Mac: <code>start-mac.command</code>). Αν την ξεκινήσατε με άλλο τρόπο, ξεκινήστε τη ξανά με τον ίδιο τρόπο.</p>
+    <form method="post" action="/admin/settings/restart">
+      <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+      <button class="btn <%= st.pending.length ? 'btn-primary' : '' %>" type="submit">Επανεκκίνηση</button>
+    </form>
+  </section>
+
+  <p class="small muted">Εναλλακτικά, οι ίδιες ρυθμίσεις αλλάζουν και με το χέρι, στο αρχείο <code>.env</code> με το Σημειωματάριο (βλ. <code>docs/anoigma-kai-dokimes.md</code>, ενότητα 0). Μετά την αλλαγή, η ιστοσελίδα πρέπει να ξεκινήσει ξανά.</p>
+</div>
+<%- include('../partials/footer') %>

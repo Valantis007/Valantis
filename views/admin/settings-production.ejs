@@ -1,0 +1,26 @@
+<%- include('../partials/header') %>
+<div class="container section settings-page">
+  <%- include('_nav') %>
+  <h1>Ρυθμίσεις δοκιμών</h1>
+  <div class="alert alert-info" role="status">Η ιστοσελίδα λειτουργεί κανονικά (production): οι ρυθμίσεις <strong>δεν</strong> αλλάζουν από εδώ. Ορίζονται στον server — στο αρχείο <code>.env</code> του server ή στις ρυθμίσεις της πλατφόρμας φιλοξενίας (π.χ. Render → Environment) — και ισχύουν μετά από επανεκκίνηση της υπηρεσίας.</div>
+
+  <section class="card pad stack" aria-labelledby="guide-title">
+    <h2 class="h4" id="guide-title">Ποιες ρυθμίσεις χρειάζονται στον server</h2>
+    <div class="table-wrap">
+      <table class="table small">
+        <thead><tr><th>Μεταβλητή</th><th>Τι βάζετε</th><th>Τώρα</th></tr></thead>
+        <tbody>
+          <% guide.forEach(function (g) { %>
+            <tr>
+              <td><code><%= g.key %></code></td>
+              <td><%= g.text %></td>
+              <td class="<%= g.set ? 'success' : 'error' %>"><%= g.set ? 'ορισμένη' : 'δεν έχει οριστεί' %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <p class="small muted">Για την κανονική λειτουργία χρησιμοποιήστε υπηρεσία email για το domain σας (όχι Gmail) και, κατά το άνοιγμα, τα πραγματικά κλειδιά του Stripe (<code>sk_live_</code>). Ο πλήρης οδηγός είναι στο <code>docs/anoigma-kai-dokimes.md</code> (ενότητες 2 και 6). Ελέγξτε το αποτέλεσμα στον <a href="/admin/system">Έλεγχο συστήματος</a>.</p>
+  </section>
+</div>
+<%- include('../partials/footer') %>

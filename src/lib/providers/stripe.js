@@ -4,11 +4,15 @@
 
 const config = require('../../config');
 
-let client = null;
-if (config.stripe.secretKey) {
+// Νέος πελάτης Stripe για ένα κλειδί (και για τη «Δοκιμή σύνδεσης» ενός κλειδιού πριν αποθηκευτεί).
+const defaultFactory = (key) => {
   const Stripe = require('stripe');
-  client = new Stripe(config.stripe.secretKey);
-}
+  return new Stripe(key);
+};
+let factory = defaultFactory;
+
+let client = null;
+if (config.stripe.secretKey) client = factory(config.stripe.secretKey);
 
 const name = 'stripe';
 const label = 'Stripe';
@@ -18,11 +22,21 @@ function enabled() {
 }
 
 // 'test' με κλειδιά sk_test_/rk_test_ (δοκιμαστικές κάρτες, καμία πραγματική χρέωση).
-function mode() {
-  const key = config.stripe.secretKey;
+function mode(key = config.stripe.secretKey) {
   if (/^(sk|rk)_test_/.test(key)) return 'test';
   if (/^(sk|rk)_live_/.test(key)) return 'live';
   return 'unknown';
+}
+
+// Τοπική διεύθυνση (π.χ. http://localhost:3000): το Stripe δεν μπορεί να στείλει webhooks εκεί.
+function isLocalUrl(url) {
+  let host;
+  try {
+    host = new URL(url).hostname.replace(/^\[|\]$/g, '');
+  } catch {
+    return false;
+  }
+  return host === 'localhost' || host === '::1' || host.endsWith('.local') || /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host);
 }
 
 // Γεγονότα που πρέπει να στέλνει το webhook του Stripe (βλ. README).
@@ -38,19 +52,27 @@ const WEBHOOK_EVENTS = [
 /**
  * Έλεγχος από τη σελίδα «Έλεγχος συστήματος»: ισχύει το κλειδί; υπάρχει webhook προς
  * τη διεύθυνσή μας με όλα τα γεγονότα;
+ * Η σελίδα «Ρυθμίσεις δοκιμών» ελέγχει με τον ίδιο τρόπο ένα κλειδί πριν αποθηκευτεί (`c`, `keyMode`, `webhookSecret`).
  */
-async function checkConnection() {
+async function checkConnection({ client: c = client, keyMode = mode(), webhookSecret = config.stripe.webhookSecret } = {}) {
   const lines = [];
   let ok = true;
-  const account = await client.accounts.retrieve().catch(() => null);
-  await client.balance.retrieve();
-  lines.push(`Το κλειδί ισχύει (${mode() === 'live' ? 'πραγματικές πληρωμές' : 'δοκιμαστική λειτουργία'})${account && account.business_profile && account.business_profile.name ? ` - λογαριασμός «${account.business_profile.name}»` : ''}.`);
-  if (account && account.charges_enabled === false) {
+  const account = await c.accounts.retrieve().catch(() => null);
+  await c.balance.retrieve();
+  lines.push(`Το κλειδί ισχύει (${keyMode === 'live' ? 'πραγματικές πληρωμές' : 'δοκιμαστική λειτουργία'})${account && account.business_profile && account.business_profile.name ? ` - λογαριασμός «${account.business_profile.name}»` : ''}.`);
+  // Το charges_enabled αφορά τις πραγματικές πληρωμές· οι δοκιμαστικές λειτουργούν και πριν την επαλήθευση.
+  if (account && account.charges_enabled === false && keyMode === 'live') {
     ok = false;
     lines.push('Ο λογαριασμός Stripe δεν μπορεί ακόμη να δεχτεί πληρωμές: ολοκληρώστε την επαλήθευση στο dashboard.');
   }
+  if (isLocalUrl(config.baseUrl)) {
+    // Στον υπολογιστή: χωρίς webhooks οι πληρωμές ολοκληρώνονται με τον περιοδικό συγχρονισμό.
+    lines.push(`Η διεύθυνση ${config.baseUrl} είναι τοπική: το Stripe δεν μπορεί να στείλει ειδοποιήσεις (webhooks) εδώ. Για δοκιμές δεν πειράζει — η ιστοσελίδα ελέγχει μόνη της τις πληρωμές κάθε 5 λεπτά.`);
+    if (webhookSecret) lines.push('Υπάρχει STRIPE_WEBHOOK_SECRET: αν τρέχει το Stripe CLI (stripe listen), οι ειδοποιήσεις φτάνουν αμέσως.');
+    return { ok, lines };
+  }
   const url = `${config.baseUrl}/webhooks/stripe`;
-  const endpoints = await client.webhookEndpoints.list({ limit: 100 });
+  const endpoints = await c.webhookEndpoints.list({ limit: 100 });
   const hook = (endpoints.data || []).find((e) => e.url === url);
   if (!hook) {
     ok = false;
@@ -68,7 +90,7 @@ async function checkConnection() {
       lines.push(`Webhook ${url}: ενεργό με όλα τα απαραίτητα γεγονότα.`);
     }
   }
-  if (!config.stripe.webhookSecret) {
+  if (!webhookSecret) {
     ok = false;
     lines.push('Λείπει το STRIPE_WEBHOOK_SECRET (Signing secret του webhook).');
   }
@@ -78,6 +100,15 @@ async function checkConnection() {
 // Για τα tests: αντικατάσταση του Stripe με ψεύτικο αντικείμενο.
 function setClient(fake) {
   client = fake;
+}
+
+function clientFor(key) {
+  return factory(key);
+}
+
+// Για τα tests: ψεύτικος πελάτης για τη «Δοκιμή σύνδεσης» (null = ο πραγματικός).
+function setClientFactory(fn) {
+  factory = fn || defaultFactory;
 }
 
 function cardInfo(pi) {
@@ -236,6 +267,9 @@ module.exports = {
   label,
   enabled,
   setClient,
+  clientFor,
+  setClientFactory,
+  isLocalUrl,
   createCheckout,
   getCheckout,
   expireCheckout,

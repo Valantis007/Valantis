@@ -11,6 +11,7 @@
   <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
   <script src="/js/app.js" defer></script>
   <script src="/js/dates.js" defer></script>
+  <% if (locals.refreshUrl) { %><noscript><meta http-equiv="refresh" content="8;url=<%= locals.refreshUrl %>"></noscript><% } %>
 </head>
 <body class="<%= locals.bodyClass || '' %>">
   <a class="skip-link" href="#main"><%= t('Μετάβαση στο περιεχόμενο') %></a>

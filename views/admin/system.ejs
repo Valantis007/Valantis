@@ -18,7 +18,7 @@
         <% checks.forEach(function (c) { %>
           <li>
             <span class="check-icon check-<%= c.state %>" aria-label="<%= { ok: 'εντάξει', warn: 'προσοχή', bad: 'πρόβλημα' }[c.state] %>"><%= { ok: '✓', warn: '!', bad: '✕' }[c.state] %></span>
-            <span><%= c.text %><% if (c.hint) { %><br><span class="small muted"><%= c.hint %></span><% } %></span>
+            <span><%= c.text %><% if (c.hint) { %><br><span class="small muted"><%= c.hint %></span><% } %><% if (c.link) { %><br><a class="small" href="<%= c.link.href %>"><%= c.link.text %> →</a><% } %></span>
           </li>
         <% }) %>
       </ul>
@@ -33,11 +33,12 @@
           <button class="btn" type="submit">Αποστολή δοκιμαστικού email</button>
         </form>
         <p class="small muted">Στείλτε σε Gmail και σε Outlook/Hotmail και ελέγξτε ότι δεν πάει στα ανεπιθύμητα.</p>
+        <% if (!smtpConfigured && !config.isProduction) { %><p class="small">Δεν έχει ρυθμιστεί αποστολή email: <a href="/admin/settings#mail">ρυθμίστε τη στις Ρυθμίσεις δοκιμών →</a></p><% } %>
       </div>
 
       <div class="card pad stack">
         <h2 class="h4">Πληρωμές</h2>
-        <p class="small"><%= provider ? `Πάροχος: ${provider.label}` : 'Δεν έχει ρυθμιστεί πάροχος online πληρωμών.' %></p>
+        <p class="small"><%= provider ? `Πάροχος: ${provider.label}` : 'Δεν έχει ρυθμιστεί πάροχος online πληρωμών.' %><% if (!provider && !config.isProduction) { %> <a href="/admin/settings#stripe">Ρύθμιση δοκιμαστικών πληρωμών με κάρτα →</a><% } %></p>
         <form method="post" action="/admin/system/check-payments">
           <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
           <button class="btn" type="submit" <%= provider ? '' : 'disabled' %>>Έλεγχος σύνδεσης &amp; webhook</button>
@@ -56,6 +57,9 @@
   <div class="card pad">
     <h2 class="h4">Τελευταία emails</h2>
     <p class="small muted">Κάντε μια δοκιμαστική κράτηση από την ιστοσελίδα και πατήστε «Προβολή» για να δείτε το email επιβεβαίωσης όπως θα το λάβει ο πελάτης (στη γλώσσα του), ακόμα κι αν δεν έχει ρυθμιστεί αποστολή email.</p>
+    <% if (recentEmails.some(function (m) { return m.status === 'not_configured'; }) && !config.isProduction) { %>
+      <p class="alert alert-warning small">Τα emails με «Δεν στάλθηκε (χωρίς SMTP)» δεν έφτασαν στους παραλήπτες, γιατί δεν έχει ρυθμιστεί αποστολή email. <a href="/admin/settings#mail">Ρύθμιση στις Ρυθμίσεις δοκιμών →</a></p>
+    <% } %>
     <% if (!recentEmails.length) { %><p class="small muted">Δεν έχουν σταλεί emails από την τελευταία επανεκκίνηση.</p><% } else { %>
       <div class="table-wrap">
         <table class="table small">

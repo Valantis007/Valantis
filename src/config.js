@@ -1,6 +1,10 @@
 'use strict';
 
 const path = require('node:path');
+
+// Μεταβλητές που ορίστηκαν στο περιβάλλον του υπολογιστή/server πριν διαβαστεί το .env: αυτές
+// υπερισχύουν του αρχείου (το dotenv δεν τις αλλάζει). Χρειάζεται στη σελίδα «Ρυθμίσεις δοκιμών».
+const systemEnvKeys = new Set(Object.keys(process.env));
 require('dotenv').config({ quiet: true });
 
 const env = process.env;
@@ -46,6 +50,7 @@ const config = {
   env: nodeEnv,
   isProduction,
   isTest,
+  systemEnvKeys,
   port: int('PORT', 3000),
   baseUrl: (env.BASE_URL || `http://localhost:${int('PORT', 3000)}`).replace(/\/+$/, ''),
   sessionSecret: env.SESSION_SECRET || '',
