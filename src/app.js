@@ -160,7 +160,16 @@ function createApp({ db, uploadDir = config.uploadDir }) {
     });
     res.status(status);
     if (req.path.startsWith('/api/')) return res.json({ error: i18n.t(locale, message) });
-    res.render('pages/error', { title: i18n.t(locale, 'Σφάλμα'), status, message });
+    // Σε δοκιμές στον υπολογιστή: τεχνική λεπτομέρεια, και οδηγία όταν τα αρχεία ενημερώθηκαν ενώ η
+    // ιστοσελίδα έτρεχε (η παλιά έκδοση δεν ταιριάζει με τις νέες σελίδες).
+    let devDetail = null;
+    if (status >= 500 && !config.isProduction) {
+      devDetail = {
+        message: String(err && err.message ? err.message : err).slice(0, 1500),
+        stale: err instanceof ReferenceError && /\.ejs/.test(String(err.message)),
+      };
+    }
+    res.render('pages/error', { title: i18n.t(locale, 'Σφάλμα'), status, message, devDetail });
   });
 
   return app;

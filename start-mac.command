@@ -8,9 +8,11 @@ if ! command -v node >/dev/null 2>&1; then
   exit 1
 fi
 
-if [ ! -d node_modules ]; then
-  echo "Πρώτη εκκίνηση: εγκατάσταση των απαραίτητων αρχείων (1-2 λεπτά)..."
+# Εγκατάσταση (ή ενημέρωση μετά από νέα έκδοση) των απαραίτητων αρχείων.
+if ! cmp -s package-lock.json node_modules/.installed-lock; then
+  echo "Εγκατάσταση των απαραίτητων αρχείων (1-2 λεπτά)..."
   npm install || { read -r -n 1 -p "Σφάλμα. Πατήστε ένα πλήκτρο..."; exit 1; }
+  cp package-lock.json node_modules/.installed-lock
 fi
 
 if [ ! -f .env ]; then
@@ -29,6 +31,19 @@ if [ ! -f data/app.db ]; then
   npm run create-admin -- "$ADMIN_E" "$ADMIN_P"
 fi
 
+# Αν τρέχει ήδη η ιστοσελίδα (π.χ. παλιά έκδοση σε άλλο παράθυρο), κλείνει πρώτα· αλλιώς η παλιά
+# έκδοση θα απαντούσε με τα νέα αρχεία και θα έβγαζε «Σφάλμα 500».
+OLDPID=$(lsof -ti tcp:3000 -sTCP:LISTEN 2>/dev/null | head -n 1)
+if [ -n "$OLDPID" ]; then
+  if ps -p "$OLDPID" -o comm= | grep -qi node; then
+    echo "Η ιστοσελίδα έτρεχε ήδη σε άλλο παράθυρο: κλείνει και ξεκινά η νέα."
+    kill "$OLDPID"; sleep 2
+  else
+    echo "Η θύρα 3000 χρησιμοποιείται από άλλο πρόγραμμα. Κλείστε το και ξαναδοκιμάστε."
+    read -r -n 1 -p "Πατήστε ένα πλήκτρο για έξοδο..."; exit 1
+  fi
+fi
+
 echo
 echo "============================================================"
 echo " Η ιστοσελίδα τρέχει στο:  http://localhost:3000"
@@ -40,4 +55,9 @@ echo " κάντε ξανά διπλό κλικ σε αυτό το αρχείο."
 echo "============================================================"
 echo
 (sleep 3 && open "http://localhost:3000") &
-npm start
+# Κωδικός 75: ζητήθηκε επανεκκίνηση από τη Διαχείριση (π.χ. μετά από αλλαγή ρυθμίσεων).
+while true; do
+  node --disable-warning=ExperimentalWarning src/server.js
+  [ $? -eq 75 ] || break
+  echo "Επανεκκίνηση με τις νέες ρυθμίσεις..."
+done

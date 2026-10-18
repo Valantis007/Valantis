@@ -474,3 +474,5 @@ figure.car-hero { margin: 0; }
 .hero .search-card :focus-visible, .search-bar .calendar-pop :focus-visible { outline-color: rgba(29, 91, 216, 0.6); }
 .credit-list { list-style: none; padding: 0; display: grid; gap: 12px; }
 .credit-list li { display: flex; gap: 14px; align-items: center; overflow-wrap: anywhere; }
+.left { text-align: left; }
+.alert pre { white-space: pre-wrap; overflow-wrap: anywhere; margin: 8px 0 0; }

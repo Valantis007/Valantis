@@ -11,10 +11,13 @@ if errorlevel 1 (
   exit /b 1
 )
 
-if not exist node_modules (
-  echo Πρώτη εκκίνηση: εγκατάσταση των απαραίτητων αρχείων ^(1-2 λεπτά^)...
+rem Εγκατάσταση (ή ενημέρωση μετά από νέα έκδοση) των απαραίτητων αρχείων.
+fc /b package-lock.json node_modules\.installed-lock >nul 2>nul
+if errorlevel 1 (
+  echo Εγκατάσταση των απαραίτητων αρχείων ^(1-2 λεπτά^)...
   call npm install
   if errorlevel 1 ( pause & exit /b 1 )
+  copy /y package-lock.json node_modules\.installed-lock >nul
 )
 
 if not exist .env (
@@ -33,6 +36,23 @@ call npm run create-admin -- "%ADMIN_E%" "%ADMIN_P%"
 
 :run
 
+rem Αν τρέχει ήδη η ιστοσελίδα (π.χ. παλιά έκδοση σε άλλο παράθυρο), κλείνει πρώτα· αλλιώς η παλιά
+rem έκδοση θα απαντούσε με τα νέα αρχεία και θα έβγαζε «Σφάλμα 500».
+set OLDPID=
+for /f "usebackq" %%p in (`powershell -NoProfile -Command "(Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1).OwningProcess"`) do set OLDPID=%%p
+if not defined OLDPID goto start
+tasklist /fi "PID eq %OLDPID%" | find /i "node.exe" >nul
+if errorlevel 1 (
+  echo.
+  echo Η θύρα 3000 χρησιμοποιείται από άλλο πρόγραμμα. Κλείστε το ή επανεκκινήστε τον υπολογιστή και ξαναδοκιμάστε.
+  pause
+  exit /b 1
+)
+echo Η ιστοσελίδα έτρεχε ήδη σε άλλο παράθυρο: κλείνει και ξεκινά η νέα.
+taskkill /pid %OLDPID% /f >nul
+timeout /t 2 >nul
+
+:start
 echo.
 echo ============================================================
 echo  Η ιστοσελίδα τρέχει στο:  http://localhost:3000
@@ -44,5 +64,13 @@ echo  κάντε ξανά διπλό κλικ σε αυτό το αρχείο.
 echo ============================================================
 echo.
 start "" cmd /c "timeout /t 3 >nul & start http://localhost:3000"
-call npm start
+
+:server
+node --disable-warning=ExperimentalWarning src\server.js
+rem Κωδικός 75: ζητήθηκε επανεκκίνηση από τη Διαχείριση (π.χ. μετά από αλλαγή ρυθμίσεων).
+if %errorlevel%==75 (
+  echo.
+  echo Επανεκκίνηση με τις νέες ρυθμίσεις...
+  goto server
+)
 pause

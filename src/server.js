@@ -33,6 +33,15 @@ const server = app.listen(config.port, () => {
   runMaintenance(db, { store: app.locals.sessionStore, force: true });
 });
 
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`\nΗ θύρα ${config.port} χρησιμοποιείται ήδη: πιθανότατα η ιστοσελίδα τρέχει ήδη σε άλλο παράθυρο.`);
+    console.error('Κλείστε εκείνο το παράθυρο (ή επανεκκινήστε τον υπολογιστή) και ξεκινήστε ξανά.\n');
+    process.exit(1);
+  }
+  throw err;
+});
+
 function shutdown() {
   server.close(async () => {
     await mailer.flush();

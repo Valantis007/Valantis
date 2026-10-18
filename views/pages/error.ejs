@@ -4,5 +4,12 @@
   <h1><%= t(title) %></h1>
   <p><%= t(message) %></p>
   <p><a class="btn" href="<%= u('/') %>"><%= t('Αρχική σελίδα') %></a></p>
+  <% if (locals.devDetail) { %>
+    <%# Μόνο εκτός παραγωγής (δοκιμές στον υπολογιστή σας)· οι πελάτες δεν το βλέπουν ποτέ. %>
+    <div class="alert alert-warning small left" lang="el">
+      <% if (devDetail.stale) { %><p><strong>Η ιστοσελίδα ενημερώθηκε όσο έτρεχε.</strong> Κλείστε το μαύρο παράθυρο της ιστοσελίδας και ξεκινήστε την ξανά (διπλό κλικ στο start-windows.bat ή start-mac.command).</p><% } %>
+      <details><summary>Τεχνική λεπτομέρεια (μόνο σε δοκιμές)</summary><pre class="small"><%= devDetail.message %></pre></details>
+    </div>
+  <% } %>
 </div>
 <%- include('../partials/footer') %>
