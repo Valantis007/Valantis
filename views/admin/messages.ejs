@@ -7,7 +7,7 @@
     <% rows.forEach(function (m) { %>
       <article class="card pad <%= m.handled ? 'inactive' : '' %>">
         <div class="section-head">
-          <div><% if (m.kind && m.kind !== 'question') { %><span class="status status-<%= m.kind === 'complaint' ? 'cancelled' : 'pending_payment' %>"><%= m.kind === 'complaint' ? 'Παράπονο' : 'Αμφισβήτηση χρέωσης' %></span> <% } %><strong><%= m.subject %></strong><% if (m.booking_reference) { %> · κράτηση <span class="ref"><%= m.booking_reference %></span><% } %><br><span class="small muted"><%= m.name %> · <a href="mailto:<%= m.email %>"><%= m.email %></a><% if (m.phone) { %> · <%= m.phone %><% } %> · <%= format.utcTimestamp(m.created_at, config.rules.timezone) %></span></div>
+          <div><% if (m.kind && m.kind !== 'question') { %><span class="status status-<%= { complaint: 'cancelled', charge_dispute: 'pending_payment', change_request: 'active' }[m.kind] || 'pending_payment' %>"><%= format.label('messageKind', m.kind) %></span> <% } %><strong><%= m.subject %></strong><% if (m.booking_reference) { %> · κράτηση <% if (m.booking_id) { %><a class="ref" href="/admin/bookings/<%= m.booking_id %>"><%= m.booking_reference %></a><% } else { %><span class="ref"><%= m.booking_reference %></span><% } %><% } %><br><span class="small muted"><%= m.name %> · <a href="mailto:<%= m.email %>"><%= m.email %></a><% if (m.phone) { %> · <%= m.phone %><% } %> · <%= format.utcTimestamp(m.created_at, config.rules.timezone) %></span></div>
           <form method="post" action="/admin/messages/<%= m.id %>/handled">
             <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
             <button class="btn btn-small" type="submit"><%= m.handled ? 'Σήμανση ως εκκρεμές' : 'Σήμανση ως απαντημένο' %></button>

@@ -381,3 +381,25 @@ test('χρεώσεις του γραφείου: έτοιμη περιγραφή 
   assert.match(view.text, /Fuel missing on return/);
   assert.deepEqual(greekIn(view.text).filter((x) => !/ΝΒΑ1002/.test(x)), []);
 });
+
+test('WhatsApp και αίτημα αλλαγής: κάθε σταθερό κείμενο του κώδικα έχει αγγλική και ισπανική μετάφραση', () => {
+  const whatsapp = require('../src/lib/whatsapp');
+  const format = require('../src/lib/format');
+  const i18n = require('../src/lib/i18n');
+  const keys = [
+    whatsapp.GENERAL_TEXT,
+    whatsapp.BOOKING_TEXT,
+    whatsapp.HOURS_TEXT,
+    ...whatsapp.CUSTOMER_TEMPLATES.map((tpl) => tpl.text),
+    ...Object.values(format.labels.messageKind),
+    'Αίτημα αλλαγής κράτησης {ref}',
+    'Συμπληρώστε τον κωδικό κράτησης.',
+    'Λάβαμε το αίτημα αλλαγής. Θα σας απαντήσουμε το συντομότερο· η αλλαγή ισχύει μόνο αφού σας την επιβεβαιώσουμε.',
+    'Ο σύνδεσμος της κράτησης δεν ισχύει πλέον. Συμπληρώστε τον κωδικό και το email της κράτησης.',
+  ];
+  for (const locale of ['en', 'es']) {
+    const missing = keys.filter((k) => !(k in i18n.dictionaries[locale]));
+    assert.deepEqual(missing, [], locale);
+    for (const k of keys) assert.doesNotMatch(i18n.dictionaries[locale][k], /[Α-Ωα-ωΆ-ώ]/, `${locale}: ${k}`);
+  }
+});

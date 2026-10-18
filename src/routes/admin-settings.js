@@ -45,6 +45,9 @@ module.exports = function settingsRoutes({ envPath = null, onRestart = null } = 
       mailResult: null,
       stripeErrors: {},
       stripeResult: null,
+      whatsappForm: { company_whatsapp: st.current.COMPANY_WHATSAPP },
+      whatsappErrors: {},
+      whatsappResult: null,
       restarted: req.query.restarted === '1',
       retypeSecret: false,
       retypeKey: false,
@@ -70,7 +73,7 @@ module.exports = function settingsRoutes({ envPath = null, onRestart = null } = 
             ? [err.message]
             : [`Δεν ήταν δυνατή η εγγραφή στο αρχείο ${file()} (${err.code || 'σφάλμα'}). Ελέγξτε ότι το αρχείο δεν είναι «μόνο για ανάγνωση».`],
       };
-      return render(req, res, section === 'mail' ? { mailResult: result } : { stripeResult: result }, 500);
+      return render(req, res, { [`${section}Result`]: result }, 500);
     }
     // Μόνο τα ονόματα των ρυθμίσεων, ποτέ οι τιμές.
     if (!config.isTest) console.log(`[ρυθμίσεις] Αποθηκεύτηκαν στο ${file()}: ${Object.keys(updates).join(', ')}`);
@@ -140,6 +143,16 @@ module.exports = function settingsRoutes({ envPath = null, onRestart = null } = 
       return render(req, res, { stripeErrors: errors, stripeResult: { ok: false, title: 'Αποθήκευση', lines: Object.values(errors) }, retypeKey: parsed.typedKey && !parsed.errors.stripe_key }, 400);
     }
     return save(req, res, 'stripe', parsed.updates);
+  });
+
+  // ---------------- WhatsApp ----------------
+  router.post('/whatsapp', refuseInProduction, (req, res) => {
+    const parsed = settings.parseWhatsapp(req.body);
+    if (Object.keys(parsed.errors).length) {
+      const result = { ok: false, title: 'Αποθήκευση', lines: Object.values(parsed.errors) };
+      return render(req, res, { whatsappForm: parsed.form, whatsappErrors: parsed.errors, whatsappResult: result }, 400);
+    }
+    return save(req, res, 'whatsapp', parsed.updates);
   });
 
   // ---------------- Επανεκκίνηση ----------------

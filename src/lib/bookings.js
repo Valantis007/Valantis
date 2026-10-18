@@ -330,7 +330,8 @@ function createBooking(db, { car, search, extras, driver, userId = null, locale 
 }
 
 // Email επιβεβαίωσης με τους όρους ενοικίασης συνημμένους (σταθερό μέσο, ν. 2251/1994).
-function sendConfirmation(booking, extras) {
+// Με τη βάση (`db`) το email έχει και το κουμπί «Η κράτησή μου» (σύνδεσμος πρόσβασης).
+function sendConfirmation(booking, extras, { db = null } = {}) {
   return mailer
     .termsAttachments(booking.locale)
     .catch((err) => {
@@ -344,13 +345,14 @@ function sendConfirmation(booking, extras) {
         template: 'booking-confirmed',
         data: { booking, extras, termsAttached: Boolean(terms) },
         attachments: terms || undefined,
+        db,
       }),
     );
 }
 
 function notifyConfirmed(db, booking) {
   const extras = getExtras(db, booking.id);
-  sendConfirmation(booking, extras);
+  sendConfirmation(booking, extras, { db });
   mailer.sendInBackground({
     to: config.mail.adminNotify,
     subject: `Νέα κράτηση ${booking.reference} - ${booking.make} ${booking.model}`,

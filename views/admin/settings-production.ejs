@@ -14,7 +14,7 @@
             <tr>
               <td><code><%= g.key %></code></td>
               <td><%= g.text %></td>
-              <td class="<%= g.set ? 'success' : 'error' %>"><%= g.set ? 'ορισμένη' : 'δεν έχει οριστεί' %></td>
+              <td class="<%= g.set ? 'success' : g.optional ? 'muted' : 'error' %>"><%= g.set ? 'ορισμένη' : g.optional ? 'δεν έχει οριστεί (προαιρετική)' : 'δεν έχει οριστεί' %></td>
             </tr>
           <% }) %>
         </tbody>

@@ -103,6 +103,7 @@
         <li><%- th('Τον κωδικό κράτησης <strong>{ref}</strong>', { ref: booking.reference }) %></li>
       </ul>
     </div>
+    <% if (booking.status === 'confirmed') { %><%- include('_change', { booking }) %><% } %>
     <div class="card pad">
       <h2 class="h4"><%= t('Ακύρωση') %></h2>
       <% if (cancellation.allowed) { %>
@@ -124,6 +125,8 @@
         <p class="muted"><%= t(cancellation.reason) %></p>
       <% } %>
     </div>
+  <% } else if (booking.status === 'active') { %>
+    <%- include('_change', { booking }) %>
   <% } %>
 </div>
 <%- include('../partials/footer') %>

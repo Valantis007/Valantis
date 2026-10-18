@@ -15,7 +15,7 @@
 <div class="container section settings-page">
   <%- include('_nav') %>
   <h1>Ρυθμίσεις δοκιμών</h1>
-  <p class="muted">Εδώ ρυθμίζετε την αποστολή email και τις δοκιμαστικές πληρωμές με κάρτα στον υπολογιστή σας, χωρίς να ανοίξετε το αρχείο <code>.env</code>. Οι ρυθμίσεις γράφονται στο <code class="break"><%= envPath %></code> και ισχύουν μετά την «Επανεκκίνηση».</p>
+  <p class="muted">Εδώ ρυθμίζετε την αποστολή email, τις δοκιμαστικές πληρωμές με κάρτα και το WhatsApp στον υπολογιστή σας, χωρίς να ανοίξετε το αρχείο <code>.env</code>. Οι ρυθμίσεις γράφονται στο <code class="break"><%= envPath %></code> και ισχύουν μετά την «Επανεκκίνηση».</p>
 
   <% if (restarted && !st.pending.length) { %>
     <div class="alert alert-success" role="status">Η ιστοσελίδα ξεκίνησε ξανά: οι αποθηκευμένες ρυθμίσεις ισχύουν.</div>
@@ -160,8 +160,30 @@
     </form>
   </section>
 
+  <section class="card pad stack settings-section" id="whatsapp" aria-labelledby="whatsapp-title">
+    <div>
+      <h2 class="h4" id="whatsapp-title">3. WhatsApp (προαιρετικό)</h2>
+      <p class="small">Τώρα:
+        <% if (config.company.whatsapp) { %><span class="success">οι πελάτες βλέπουν WhatsApp</span> (<strong>+<%= config.company.whatsapp %></strong>).
+        <% } else { %><strong>χωρίς WhatsApp</strong>.<% } %>
+      </p>
+    </div>
+    <p class="small">Με αριθμό WhatsApp, ο πελάτης βλέπει «WhatsApp» δίπλα στο τηλέφωνο (κάτω μέρος κάθε σελίδας, «Επικοινωνία», σελίδα κράτησης, εκτύπωση, emails) και, στο κινητό, ένα στρογγυλό πράσινο κουμπί κάτω δεξιά. Το WhatsApp ανοίγει με έτοιμο μήνυμα στη γλώσσα του (στη σελίδα κράτησης με τον κωδικό της)· τίποτα δεν στέλνεται πριν πατήσει «Αποστολή». Δίπλα γράφεται «Απαντάμε <%= String(config.rules.openingHour).padStart(2, '0') %>:00–<%= String(config.rules.closingHour).padStart(2, '0') %>:00» (το ωράριό σας). Στη Διαχείριση → κράτηση εμφανίζεται «WhatsApp στον πελάτη», και η πολιτική απορρήτου αναφέρει το WhatsApp ως προαιρετικό τρόπο επικοινωνίας.</p>
+    <form method="post" action="/admin/settings/whatsapp" class="stack">
+      <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+      <div class="field"><label for="company_whatsapp">Αριθμός WhatsApp της επιχείρησης</label>
+        <input id="company_whatsapp" name="company_whatsapp" type="text" inputmode="tel" autocomplete="off" spellcheck="false" placeholder="306941234567" value="<%= whatsappForm.company_whatsapp %>">
+        <span class="hint">Με τον κωδικό χώρας (30 για την Ελλάδα), μόνο ψηφία: π.χ. 306941234567 για το 694 123 4567. Αν γράψετε «694 123 4567» ή «+30 694 123 4567», αποθηκεύεται αυτόματα έτσι. Κενό = χωρίς WhatsApp.</span>
+        <%- err(whatsappErrors, 'company_whatsapp') %></div>
+      <div aria-live="polite"><%- result(whatsappResult) %></div>
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit">Αποθήκευση</button>
+      </div>
+    </form>
+  </section>
+
   <section class="card pad stack settings-section" id="restart" aria-labelledby="restart-title">
-    <h2 class="h4" id="restart-title">3. Επανεκκίνηση</h2>
+    <h2 class="h4" id="restart-title">4. Επανεκκίνηση</h2>
     <p class="small">Οι αποθηκευμένες ρυθμίσεις ισχύουν μετά την επανεκκίνηση της ιστοσελίδας (λίγα δευτερόλεπτα). Λειτουργεί όταν η ιστοσελίδα ξεκίνησε με διπλό κλικ στο <code>start-windows.bat</code> (Mac: <code>start-mac.command</code>). Αν την ξεκινήσατε με άλλο τρόπο, ξεκινήστε τη ξανά με τον ίδιο τρόπο.</p>
     <form method="post" action="/admin/settings/restart">
       <input type="hidden" name="_csrf" value="<%= csrfToken() %>">

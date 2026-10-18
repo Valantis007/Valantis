@@ -1,4 +1,7 @@
   </main>
+  <%# WhatsApp (COMPANY_WHATSAPP): στις σελίδες μιας κράτησης το έτοιμο μήνυμα έχει τον κωδικό της. Όχι στη διαχείριση. %>
+  <% const waShown = Boolean(locals.whatsapp) && !currentPath.startsWith('/admin');
+     const waRef = waShown && locals.booking && locals.booking.reference ? locals.booking.reference : null; %>
   <footer class="site-footer">
     <div class="container footer-grid">
       <div>
@@ -10,6 +13,7 @@
         <p class="small">
           <% if (company.address) { %><%= company.address %><br><% } %>
           <% if (company.phone) { %><a href="tel:<%= company.phone.replace(/\s/g, '') %>"><%= company.phone %></a><br><% } %>
+          <% if (waShown) { %><a class="wa-link" href="<%= whatsapp.url(waRef) %>" target="_blank" rel="noopener"><%- include('wa-icon', { size: 16 }) %>WhatsApp</a> <span class="muted">· <%= whatsapp.hours %></span><br><% } %>
           <% if (company.email) { %><a href="mailto:<%= company.email %>"><%= company.email %></a><% } %>
         </p>
       </div>
@@ -31,5 +35,9 @@
     </div>
     <div class="container footer-bottom small muted">© <%= new Date().getFullYear() %> <%= String(company.legalName).replace(/\.$/, '') %>. <%= t('Όλες οι τιμές περιλαμβάνουν ΦΠΑ {vat}%.', { vat: config.rules.vatPercent }) %></div>
   </footer>
+  <% if (waShown) { %>
+    <%# Στρογγυλό κουμπί κάτω δεξιά, μόνο στο κινητό (CSS)· πάνω από την κάτω μπάρα, ποτέ πάνω της. %>
+    <a class="wa-float" data-wa-float href="<%= whatsapp.url(waRef) %>" target="_blank" rel="noopener" aria-label="WhatsApp · <%= whatsapp.hours %>" title="WhatsApp · <%= whatsapp.hours %>"><%- include('wa-icon', { size: 28 }) %></a>
+  <% } %>
 </body>
 </html>

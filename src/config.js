@@ -1,6 +1,7 @@
 'use strict';
 
 const path = require('node:path');
+const { internationalDigits } = require('./lib/phone');
 
 // Μεταβλητές που ορίστηκαν στο περιβάλλον του υπολογιστή/server πριν διαβαστεί το .env: αυτές
 // υπερισχύουν του αρχείου (το dotenv δεν τις αλλάζει). Χρειάζεται στη σελίδα «Ρυθμίσεις δοκιμών».
@@ -85,6 +86,8 @@ const config = {
     authority: env.COMPANY_AUTHORITY || DEFAULT_AUTHORITY,
     address: env.COMPANY_ADDRESS || '',
     phone: env.COMPANY_PHONE || '',
+    // WhatsApp (προαιρετικό): διεθνής μορφή, μόνο ψηφία, π.χ. 306941234567. Κενό = χωρίς WhatsApp.
+    whatsapp: internationalDigits(env.COMPANY_WHATSAPP) || '',
     email: env.COMPANY_EMAIL || '',
     privacyEmail: env.COMPANY_PRIVACY_EMAIL || env.COMPANY_EMAIL || '',
     // Δηλώστε true ΜΟΝΟ αν υπάρχει σύμβαση οδικής βοήθειας για όλο τον στόλο.

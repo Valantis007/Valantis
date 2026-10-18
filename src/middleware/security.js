@@ -69,6 +69,8 @@ const limits = {
   passwordResetRequest: limiter(60, 5),
   passwordResetSubmit: limiter(15, 20),
   lookup: limiter(15, 20),
+  // Σύνδεσμος «Η κράτησή μου» από το email (/b/<token>): ίδιο όριο με την αναζήτηση κράτησης (/manage).
+  bookingLink: limiter(15, 20),
   contact: limiter(60, 5),
   booking: limiter(15, 20),
 };

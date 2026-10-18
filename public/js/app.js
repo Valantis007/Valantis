@@ -197,6 +197,39 @@
   update();
 })();
 
+// WhatsApp: το στρογγυλό κουμπί του κινητού κρύβεται όσο ο πελάτης γράφει σε πεδίο (ανοιχτό πληκτρολόγιο),
+// για να μην καλύπτει το πεδίο ή το κουμπί υποβολής. Χωρίς JavaScript φαίνεται πάντα.
+(function () {
+  'use strict';
+  if (!document.querySelector('[data-wa-float]')) return;
+  var body = document.body;
+  function opensKeyboard(el) {
+    if (!el || !el.tagName) return false;
+    if (el.tagName === 'TEXTAREA') return true;
+    if (el.tagName !== 'INPUT') return false;
+    return ['radio', 'checkbox', 'button', 'submit', 'hidden', 'range', 'color', 'file'].indexOf(el.type) === -1;
+  }
+  document.addEventListener('focusin', function (event) {
+    body.classList.toggle('wa-float-off', opensKeyboard(event.target));
+  });
+  document.addEventListener('focusout', function () {
+    body.classList.remove('wa-float-off');
+  });
+})();
+
+// Φόρμα επικοινωνίας: οδηγίες που αφορούν μόνο ένα είδος μηνύματος (π.χ. «Αίτημα αλλαγής κράτησης»).
+(function () {
+  'use strict';
+  var kind = document.getElementById('kind');
+  var notes = document.querySelectorAll('[data-kind-only]');
+  if (!kind || !notes.length) return;
+  function update() {
+    notes.forEach(function (el) { el.hidden = el.getAttribute('data-kind-only') !== kind.value; });
+  }
+  kind.addEventListener('change', update);
+  update();
+})();
+
 // Φίλτρα αποτελεσμάτων: στο κινητό κλειστά (ανοίγουν με πάτημα), και εφαρμόζονται αμέσως μόλις αλλάξουν.
 (function () {
   document.documentElement.classList.add('js');

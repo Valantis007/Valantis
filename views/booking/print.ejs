@@ -12,7 +12,7 @@
     <div class="section-head">
       <div>
         <strong><%= company.name %></strong><br>
-        <span class="small muted"><%= company.legalName %><% if (company.vat) { %> · <%= t('ΑΦΜ') %> <%= company.vat %><% } %><% if (company.gemi) { %> · <%= t('ΓΕΜΗ') %> <%= company.gemi %><% } %><% if (company.mhte) { %> · <%= t('ΜΗΤΕ') %> <%= company.mhte %><% } %><br><%= company.address %> · <%= company.phone %> · <%= company.email %></span>
+        <span class="small muted"><%= company.legalName %><% if (company.vat) { %> · <%= t('ΑΦΜ') %> <%= company.vat %><% } %><% if (company.gemi) { %> · <%= t('ΓΕΜΗ') %> <%= company.gemi %><% } %><% if (company.mhte) { %> · <%= t('ΜΗΤΕ') %> <%= company.mhte %><% } %><br><%= company.address %> · <%= company.phone %><% if (locals.whatsapp) { %> · <a href="<%= whatsapp.url(booking.reference) %>" target="_blank" rel="noopener">WhatsApp <%= whatsapp.display %></a><% } %> · <%= company.email %></span>
       </div>
       <button class="btn no-print" type="button" data-print><%= t('Εκτύπωση') %></button>
     </div>

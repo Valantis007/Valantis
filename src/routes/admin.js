@@ -22,6 +22,7 @@ const translationsCheck = require('../lib/translations-check');
 const companyLib = require('../lib/company');
 const presets = require('../lib/presets');
 const places = require('../lib/places');
+const whatsapp = require('../lib/whatsapp');
 const { PLACEHOLDER_ADDRESSES } = require('../db/seed-locations');
 const QRCode = require('qrcode');
 const { transaction, normalizeText } = require('../db');
@@ -286,6 +287,10 @@ module.exports = function adminRoutes(db, { uploadDir, settings = {} }) {
       chargeCategories: deposits.CATEGORIES,
       newLink,
       today: time.datePart(time.nowLocal()),
+      // «WhatsApp στον πελάτη»: έτοιμα μηνύματα στη γλώσσα του, στο τηλέφωνο της κράτησης.
+      whatsappCustomer: whatsapp.customerLinks(b),
+      // Μηνύματα της φόρμας επικοινωνίας για αυτή την κράτηση (π.χ. αίτημα αλλαγής).
+      bookingMessages: db.prepare('SELECT id, kind, subject, handled, created_at FROM messages WHERE booking_reference = ? ORDER BY created_at DESC LIMIT 20').all(b.reference),
     });
   });
 
@@ -458,7 +463,7 @@ module.exports = function adminRoutes(db, { uploadDir, settings = {} }) {
     const b = req.booking;
     if (!['confirmed', 'active'].includes(b.status)) req.flash('error', 'Μόνο για επιβεβαιωμένες κρατήσεις.');
     else {
-      bookings.sendConfirmation(b, bookings.getExtras(db, b.id));
+      bookings.sendConfirmation(b, bookings.getExtras(db, b.id), { db });
       req.flash('success', 'Το email επιβεβαίωσης στάλθηκε ξανά.');
     }
     res.redirect(303, back(req));
@@ -1042,7 +1047,14 @@ module.exports = function adminRoutes(db, { uploadDir, settings = {} }) {
 
   // ---------------- Μηνύματα ----------------
   router.get('/messages', (req, res) => {
-    const rows = db.prepare('SELECT * FROM messages ORDER BY handled, created_at DESC LIMIT 200').all();
+    // Ο κωδικός κράτησης γίνεται σύνδεσμος προς την κράτηση (αν υπάρχει).
+    const rows = db
+      .prepare(
+        `SELECT m.*, b.id AS booking_id FROM messages m
+         LEFT JOIN bookings b ON b.reference = m.booking_reference
+         ORDER BY m.handled, m.created_at DESC LIMIT 200`,
+      )
+      .all();
     res.render('admin/messages', { title: 'Μηνύματα', rows });
   });
 
@@ -1089,6 +1101,10 @@ module.exports = function adminRoutes(db, { uploadDir, settings = {} }) {
       null,
       config.mail.adminNotify ? null : settingsLink('Ορισμός email για τις ειδοποιήσεις του γραφείου'),
     );
+    // WhatsApp (προαιρετικό): αριθμός που γράφτηκε αλλά δεν είναι σε διεθνή μορφή δεν χρησιμοποιείται.
+    const waRaw = String(process.env.COMPANY_WHATSAPP || '').trim();
+    if (c.whatsapp) add('ok', `WhatsApp: +${c.whatsapp} (σύνδεσμος στην ιστοσελίδα και στα emails)`);
+    else if (waRaw) add('bad', `WhatsApp: ο αριθμός «${waRaw}» δεν είναι σε διεθνή μορφή και δεν εμφανίζεται`, 'Γράψτε τον με τον κωδικό χώρας, μόνο ψηφία (π.χ. 306941234567).', settingsLink('Ρύθμιση WhatsApp'));
     const active = providers.active();
     if (!active) {
       add('warn', 'Online πληρωμές: απενεργοποιημένες (μόνο πληρωμή στην παραλαβή, εγγύηση μόνο με POS)', null, settingsLink('Ρύθμιση δοκιμαστικών πληρωμών με κάρτα (Stripe)'));

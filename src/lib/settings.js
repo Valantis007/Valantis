@@ -10,10 +10,12 @@ const nodemailer = require('nodemailer');
 const config = require('../config');
 const envFile = require('./env-file');
 const { str, isEmail, intOrNull, checkbox } = require('./validation');
+const { internationalDigits } = require('./phone');
 
 const MAIL_KEYS = ['SMTP_HOST', 'SMTP_PORT', 'SMTP_SECURE', 'SMTP_USER', 'SMTP_PASS', 'MAIL_FROM', 'ADMIN_NOTIFY_EMAIL'];
 const STRIPE_KEYS = ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET'];
-const KEYS = [...MAIL_KEYS, ...STRIPE_KEYS];
+const WHATSAPP_KEYS = ['COMPANY_WHATSAPP'];
+const KEYS = [...MAIL_KEYS, ...STRIPE_KEYS, ...WHATSAPP_KEYS];
 const SECRET_KEYS = new Set(['SMTP_PASS', 'STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET']);
 const GMAIL = { host: 'smtp.gmail.com', port: 465, secure: true };
 
@@ -291,6 +293,20 @@ async function verifyStripe({ key, webhookSecret }) {
   }
 }
 
+// ---------------- WhatsApp (αριθμός της επιχείρησης) ----------------
+
+// Αριθμός WhatsApp: αποθηκεύεται σε διεθνή μορφή, μόνο ψηφία (π.χ. «694 123 4567» → 306941234567).
+// Κενό = χωρίς WhatsApp.
+function parseWhatsapp(body) {
+  const typed = str(body.company_whatsapp, 40);
+  const errors = {};
+  const digits = typed ? internationalDigits(typed) : '';
+  if (typed && !digits) {
+    errors.company_whatsapp = 'Γράψτε τον αριθμό με τον κωδικό χώρας, μόνο ψηφία (π.χ. 306941234567 για το 694 123 4567).';
+  }
+  return { form: { company_whatsapp: typed }, errors, updates: { COMPANY_WHATSAPP: digits || '' } };
+}
+
 // ---------------- Κανονική λειτουργία (production): μόνο οδηγίες ----------------
 
 const SERVER_GUIDE = [
@@ -303,16 +319,19 @@ const SERVER_GUIDE = [
   ['ADMIN_NOTIFY_EMAIL', 'Πού έρχονται οι ειδοποιήσεις του γραφείου (νέες κρατήσεις κ.λπ.).'],
   ['STRIPE_SECRET_KEY', 'Στις online δοκιμές sk_test_…· στο άνοιγμα το πραγματικό sk_live_….'],
   ['STRIPE_WEBHOOK_SECRET', 'Το «Signing secret» (whsec_…) του webhook προς /webhooks/stripe.'],
+  ['COMPANY_WHATSAPP', 'Προαιρετικό: αριθμός WhatsApp της επιχείρησης με τον κωδικό χώρας, μόνο ψηφία (π.χ. 306941234567).', true],
 ];
 
 function serverGuide() {
-  return SERVER_GUIDE.map(([key, text]) => ({ key, text, set: Boolean(process.env[key]), secret: SECRET_KEYS.has(key) }));
+  return SERVER_GUIDE.map(([key, text, optional = false]) => ({ key, text, optional, set: Boolean(process.env[key]), secret: SECRET_KEYS.has(key) }));
 }
 
 module.exports = {
   KEYS,
   MAIL_KEYS,
   STRIPE_KEYS,
+  WHATSAPP_KEYS,
+  parseWhatsapp,
   GMAIL,
   TEMPLATE,
   envPath,

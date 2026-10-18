@@ -156,6 +156,7 @@ async function handleRentalPaid(db, row, state, actor) {
       subject: i18n.msg('Επιστροφή πληρωμής - κράτηση {ref}', { ref: b.reference }),
       template: 'payment-returned',
       data: { booking: b, amountCents: state.amountCents, reason: decision.reason },
+      db,
     });
   }
   return decision;
@@ -537,6 +538,7 @@ async function cancelBooking(db, bookingId, { actor, reason = null, note = null,
       subject: i18n.msg('Ακύρωση κράτησης {ref}', { ref: updated.reference }),
       template: 'booking-cancelled',
       data: { booking: updated, refundedCents: refundedCents + refundPendingCents, refundDueCents: claim.refundDue, reason, note },
+      db,
     });
   }
   if (claim.refundDue > 0) {

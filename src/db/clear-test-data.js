@@ -16,6 +16,7 @@ const TABLES = [
   'checkouts',
   'booking_events',
   'booking_extras',
+  'booking_access_tokens',
   'bookings',
   'messages',
   'processed_webhooks',

@@ -190,6 +190,58 @@ for (const locale of ['en', 'es']) {
     assertNoGreek((await agent.get(p('/cars/2'))).text, `${p('/cars/2')} (FDW ανά ενοικίαση)`);
   });
 
+  test(`[${locale}] WhatsApp, «Η κράτησή μου» και αίτημα αλλαγής χωρίς ελληνικό κείμενο`, async (t) => {
+    const config = require('../src/config');
+    const whatsapp = require('../src/lib/whatsapp');
+    const before = config.company.whatsapp;
+    config.company.whatsapp = '306941234567';
+    t.after(() => {
+      config.company.whatsapp = before;
+    });
+    const { db, app } = h.setup();
+    const agent = h.agent(app);
+    const params = h.searchParams();
+    const ok = await h.post(agent, p('/booking'), { ...params, ...h.driver(LATIN_DRIVER) }, p(`/booking/new?${new URLSearchParams(params)}`));
+    const ref = h.bookingRef(ok);
+    // Το έτοιμο μήνυμα του WhatsApp (μέσα στον σύνδεσμο, κωδικοποιημένο) ελέγχεται κι αυτό.
+    const waTexts = (html) => [...String(html).matchAll(/https:\/\/wa\.me\/\d+\?text=([^"&]+)/g)].map((m) => decodeURIComponent(m[1]));
+    const check = (html, where) => {
+      assertNoGreek(html, where);
+      const texts = waTexts(html);
+      for (const text of texts) assertNoGreek(text, `${where} (WhatsApp: ${text})`);
+      return texts;
+    };
+    for (const path of ['/', '/contact', `/contact?kind=change_request&ref=${ref}`, `/booking/${ref}`, `/booking/${ref}/print`, '/privacy', '/cars/1', `/booking/new?${new URLSearchParams(h.searchParams({ car: 2 }))}`]) {
+      const res = await agent.get(p(path));
+      assert.equal(res.status, 200, p(path));
+      assert.ok(check(res.text, p(path)).length > 0, `${p(path)}: σύνδεσμος WhatsApp`);
+    }
+    // Αίτημα αλλαγής: σφάλμα (χωρίς κωδικό), αποστολή, επιβεβαίωση στη σελίδα της κράτησης.
+    const missing = await h.post(h.agent(app), p('/contact'), { name: 'Ann', email: 'ann@example.com', subject: 'Change', body: 'Another pick-up time, please.', kind: 'change_request' }, p('/contact'));
+    assert.equal(missing.status, 422);
+    check(missing.text, `${p('/contact')} (αίτημα αλλαγής χωρίς κωδικό)`);
+    const sent = await h.post(agent, p('/contact'), { name: 'John Smith', email: 'john@example.com', subject: `Change ${ref}`, body: 'Another pick-up time, please.', kind: 'change_request', booking_reference: ref }, p('/contact'));
+    assert.equal(sent.headers.location, p(`/booking/${ref}`));
+    check((await agent.get(p(`/booking/${ref}`))).text, `${p(`/booking/${ref}`)} (αίτημα αλλαγής στάλθηκε)`);
+    // Λάθος σύνδεσμος «Η κράτησή μου» → αναζήτηση κράτησης με μήνυμα.
+    const wrong = h.agent(app);
+    const tap = await wrong.get(p(`/b/${'x'.repeat(43)}`));
+    assert.equal(tap.headers.location, p('/manage'));
+    check((await wrong.get(p('/manage'))).text, `${p('/manage')} (σύνδεσμος που έληξε)`);
+    // Emails: επιβεβαίωση με «Η κράτησή μου» και WhatsApp, επιβεβαίωση λήψης του αιτήματος αλλαγής.
+    await h.mailer.flush();
+    const confirmation = h.mailer.outbox.find((m) => m.to === 'john@example.com' && m.subject.includes(ref) && !m.subject.includes('Change'));
+    assert.match(confirmation.html, new RegExp(`/${locale}/b/[A-Za-z0-9_-]{43}`));
+    assert.ok(check(confirmation.html, 'email επιβεβαίωσης').length > 0);
+    const ack = h.mailer.outbox.find((m) => m.to === 'john@example.com' && m.subject.includes('Change'));
+    check(ack.html, 'email επιβεβαίωσης λήψης (αίτημα αλλαγής)');
+    // Τα έτοιμα μηνύματα του γραφείου στο WhatsApp του πελάτη.
+    const booking = bookingsLib.getByReference(db, ref);
+    const links = whatsapp.customerLinks(booking).links;
+    assert.equal(links.length, 3);
+    for (const l of links) assertNoGreek(l.text, `WhatsApp στον πελάτη (${l.code})`);
+  });
+
   test(`[${locale}] emails προς τον πελάτη χωρίς ελληνικό κείμενο`, async () => {
     const { db, app } = h.setup();
     const agent = h.agent(app);
@@ -221,6 +273,7 @@ for (const locale of ['en', 'es']) {
       message: { name: 'Ann', subject: 'Question', body: 'Hello there, a question.' },
       receivedAt: '16/10/2026 10:00',
       termsAttached: true,
+      bookingUrl: `${i18n.siteUrl(locale)}/b/abc`,
     };
     const templates = [
       'booking-confirmed',

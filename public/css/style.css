@@ -33,6 +33,9 @@
   --error-bg: #fdecea;
   --warning-bg: #fff6e0;
   --info-bg: #eaf1fd;
+  /* WhatsApp: σκούρο πράσινο (λευκό εικονίδιο με επαρκή αντίθεση). */
+  --wa: #128c7e;
+  --wa-dark: #0e6f64;
   --radius: 8px;
   --shadow: none;
   --font: "Source Sans 3", system-ui, -apple-system, "Segoe UI", "Noto Sans", sans-serif;
@@ -576,3 +579,32 @@ figure.car-hero { margin: 0; }
 }
 @media (prefers-reduced-motion: reduce) { .bottom-bar { transition: none !important; } }
 @media print { .bottom-bar { display: none !important; } body.has-bottom-bar { padding-bottom: 0; } }
+
+/* ===== WhatsApp (COMPANY_WHATSAPP) ===== */
+.wa-link { display: inline-flex; align-items: center; gap: 5px; }
+.wa-link .wa-icon { color: var(--wa); flex: none; }
+.btn-wa { display: inline-flex; align-items: center; gap: 8px; background: var(--card); border-color: var(--wa); color: var(--wa-dark); font-weight: 700; }
+.btn-wa:hover { background: #e7f5f3; border-color: var(--wa-dark); color: var(--wa-dark); }
+.btn-wa .wa-icon { color: var(--wa); }
+.change-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; }
+/* Στρογγυλό κουμπί κάτω δεξιά: μόνο στο κινητό. Όπου υπάρχει η κάτω μπάρα (σύνολο κράτησης), κάθεται
+   ΠΑΝΩ της (--bottom-bar-space)· όταν η μπάρα κρύβεται κατεβαίνει. Κρύβεται όσο ο πελάτης γράφει σε πεδίο. */
+.wa-float { display: none; }
+@media (max-width: 640px) {
+  .wa-float {
+    display: flex; align-items: center; justify-content: center;
+    position: fixed; z-index: 29; width: 52px; height: 52px; border-radius: 50%;
+    right: max(16px, env(safe-area-inset-right, 0px));
+    bottom: calc(16px + var(--bottom-bar-space, 0px) + env(safe-area-inset-bottom, 0px));
+    background: var(--wa); color: #fff; box-shadow: 0 4px 14px rgba(15, 39, 66, 0.28);
+    transition: bottom 0.2s ease, opacity 0.2s, visibility 0.2s;
+  }
+  .wa-float:hover, .wa-float:focus-visible { background: var(--wa-dark); color: #fff; }
+  .wa-float:focus-visible { outline: 3px solid var(--brand); outline-offset: 3px; }
+  .wa-float-off .wa-float, body:has(.nav-toggle:checked) .wa-float { opacity: 0; visibility: hidden; }
+  /* Χώρος στο τέλος της σελίδας, ώστε το κουμπί να μην κρύβει το κάτω μέρος του footer. */
+  body.has-wa-float { padding-bottom: calc(52px + 24px + env(safe-area-inset-bottom, 0px)); }
+  body.has-wa-float.has-bottom-bar { padding-bottom: calc(var(--bottom-bar-h, 68px) + 12px + 52px + 16px + env(safe-area-inset-bottom, 0px)); }
+}
+@media (prefers-reduced-motion: reduce) { .wa-float { transition: none !important; } }
+@media print { .wa-float { display: none !important; } body.has-wa-float, body.has-wa-float.has-bottom-bar { padding-bottom: 0; } }

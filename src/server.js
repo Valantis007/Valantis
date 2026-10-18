@@ -36,6 +36,9 @@ const server = app.listen(config.port, () => {
     console.log(`• Το SMTP δεν έχει ρυθμιστεί: τα emails καταγράφονται αντί να αποστέλλονται.${config.isProduction ? '' : ` Ρύθμιση: ${config.baseUrl}/admin/settings`}`);
   }
   if (!config.mail.adminNotify) console.warn('• ΠΡΟΣΟΧΗ: δεν έχει οριστεί ADMIN_NOTIFY_EMAIL — το γραφείο δεν θα λαμβάνει ειδοποιήσεις (νέες κρατήσεις, επιστροφές, εγγυήσεις).');
+  if (process.env.COMPANY_WHATSAPP && !config.company.whatsapp) {
+    console.warn(`• ΠΡΟΣΟΧΗ: το COMPANY_WHATSAPP («${process.env.COMPANY_WHATSAPP}») δεν είναι σε διεθνή μορφή (π.χ. 306941234567) — το WhatsApp δεν εμφανίζεται.`);
+  }
   runMaintenance(db, { store: app.locals.sessionStore, force: true });
 });
 

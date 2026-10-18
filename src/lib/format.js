@@ -126,6 +126,13 @@ const labels = {
     withdrawn: 'Αποσύρθηκε',
     charged: 'Εξοφλήθηκε',
   },
+  // Είδος μηνύματος της φόρμας επικοινωνίας.
+  messageKind: {
+    question: 'Ερώτηση',
+    complaint: 'Παράπονο',
+    charge_dispute: 'Αμφισβήτηση χρέωσης',
+    change_request: 'Αίτημα αλλαγής κράτησης',
+  },
   refundStatus: { pending: 'Σε εξέλιξη', done: 'Ολοκληρώθηκε', failed: 'Απέτυχε' },
   checkoutKind: { rental: 'Ενοικίαση', deposit: 'Εγγύηση', charge: 'Χρεώσεις' },
   checkoutStatus: {

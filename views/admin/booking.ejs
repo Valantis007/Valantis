@@ -314,6 +314,30 @@
         </div>
       <% } %>
 
+      <div class="card pad stack wa-admin">
+        <h2 class="h4">WhatsApp στον πελάτη</h2>
+        <% if (!config.company.whatsapp) { %>
+          <p class="small muted">Ορίστε πρώτα τον αριθμό WhatsApp της επιχείρησης (<code>COMPANY_WHATSAPP</code>) <% if (config.isProduction) { %>στον server<% } else { %>στις <a href="/admin/settings#whatsapp">Ρυθμίσεις δοκιμών</a><% } %>: τότε ενημερώνεται και η πολιτική απορρήτου ότι επικοινωνείτε και μέσω WhatsApp.</p>
+        <% } else if (!whatsappCustomer.phone) { %>
+          <p class="small muted"><% if (b.phone) { %>Το τηλέφωνο «<%= b.phone %>» δεν έχει κωδικό χώρας (π.χ. +44): ρωτήστε τον πελάτη ή καλέστε τον.<% } else { %>Η κράτηση δεν έχει τηλέφωνο.<% } %></p>
+        <% } else { %>
+          <p class="small">Ανοίγει το WhatsApp με έτοιμο μήνυμα στη γλώσσα του πελάτη (<%= { el: 'ελληνικά', en: 'αγγλικά', es: 'ισπανικά' }[b.locale] || 'ελληνικά' %>) προς <strong>+<%= whatsappCustomer.phone %></strong>. Το μήνυμα στέλνεται μόνο όταν πατήσετε «Αποστολή» στο WhatsApp· μπορείτε να το αλλάξετε πριν.</p>
+          <% whatsappCustomer.links.forEach(function (l) { %>
+            <a class="btn btn-wa btn-block" href="<%= l.url %>" target="_blank" rel="noopener" title="<%= l.text %>"><%- include('../partials/wa-icon', { size: 18 }) %><%= l.label %></a>
+          <% }) %>
+        <% } %>
+      </div>
+      <% if (bookingMessages.length) { %>
+        <div class="card pad">
+          <h2 class="h4">Μηνύματα για την κράτηση</h2>
+          <ul class="plain small">
+            <% bookingMessages.forEach(function (m) { %>
+              <li><% if (m.kind !== 'question') { %><strong><%= format.label('messageKind', m.kind) %>:</strong> <% } %><%= m.subject %> <span class="muted">· <%= format.utcTimestamp(m.created_at, config.rules.timezone) %><%= m.handled ? '' : ' · εκκρεμεί' %></span></li>
+            <% }) %>
+          </ul>
+          <a href="/admin/messages" class="small">Όλα τα μηνύματα</a>
+        </div>
+      <% } %>
       <% if (['confirmed', 'active'].includes(b.status)) { %>
         <form method="post" action="/admin/bookings/<%= b.id %>/resend" class="card pad">
           <input type="hidden" name="_csrf" value="<%= csrfToken() %>">

@@ -61,6 +61,8 @@ async function render(template, data = {}, locale = null) {
     format: format.forLocale(lang),
     // Στοιχεία επιχείρησης στη γλώσσα του email (στα αγγλικά/ισπανικά χωρίς ελληνικά γράμματα).
     company: company.forLocale(lang),
+    // WhatsApp της επιχείρησης στο κάτω μέρος (null αν δεν έχει οριστεί COMPANY_WHATSAPP).
+    whatsapp: template.startsWith('admin-') ? null : require('./whatsapp').forLocale(lang),
     // «Πώς θα μας βρείτε»: οδηγίες σημείων και σύνδεσμοι Google Maps (src/lib/places.js).
     places: require('./places'),
     locale: lang,
@@ -81,9 +83,18 @@ async function render(template, data = {}, locale = null) {
  * Στέλνει email από πρότυπο του φακέλου views/emails.
  * Δεν «πετάει» σφάλμα: μια αποτυχία αποστολής δεν πρέπει να χαλάσει μια κράτηση.
  */
-async function send({ to, subject, template, data = {}, replyTo, attachments, locale = null }) {
+async function send({ to, subject, template, data = {}, replyTo, attachments, locale = null, db = null }) {
   if (!to) return false;
   const lang = localeFor(template, data, locale);
+  // Email προς τον πελάτη για μια κράτηση: κουμπί «Η κράτησή μου» στην αρχή (views/emails/_top.ejs),
+  // με νέο σύνδεσμο πρόσβασης (src/lib/booking-access.js). Ποτέ στα emails του γραφείου.
+  if (db && !template.startsWith('admin-') && data.booking && data.booking.id && data.bookingUrl === undefined) {
+    try {
+      data = { ...data, bookingUrl: require('./booking-access').linkFor(db, data.booking, lang) };
+    } catch (err) {
+      console.error('[email] Αποτυχία δημιουργίας συνδέσμου «Η κράτησή μου»:', err.message);
+    }
+  }
   // Το θέμα μπορεί να είναι Msg (i18n.msg) ή ελληνικό κείμενο: μεταφράζεται στη γλώσσα του email.
   subject = i18n.t(lang, subject);
   try {

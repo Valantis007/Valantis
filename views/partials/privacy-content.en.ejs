@@ -16,10 +16,12 @@
       <tr><td>Security deposit, damage, fraud prevention, evidence in payment disputes</td><td>Card type and last 4 digits, authorisation code, vehicle condition reports and photographs of the car, correspondence</td><td>Legitimate interest (Art. 6(1)(f)): protecting our fleet and defending legal claims</td><td>Until the security deposit is settled and the related claims become time-barred</td></tr>
       <tr><td>Customer account</td><td>Email, password (encrypted), name, telephone</td><td>Performance of a contract (Art. 6(1)(b))</td><td>Until the account is deleted</td></tr>
       <tr><td>Replying to messages and complaints</td><td>Name, email, telephone, message</td><td>Legitimate interest / pre-contractual measures</td><td><%= config.retention.messagesMonths %> months</td></tr>
+      <% if (company.whatsapp) { %><tr><td>Contact via WhatsApp (optional)</td><td>Telephone number, WhatsApp profile name, content of the messages</td><td>Performance of a contract (Art. 6(1)(b)) for messages about your booking; for other questions, legitimate interest / pre-contractual measures</td><td><%= config.retention.messagesMonths %> months (we delete older chats)</td></tr><% } %>
     </tbody>
   </table>
   </div>
   <p>Providing the booking details is necessary for concluding the contract; without them we cannot complete the booking. The checks on the driver’s age and how long they have held a driving licence are carried out automatically, based on the published rules; you can contact us to have the decision reviewed by a member of our staff. We do not send marketing messages without your consent.</p>
+  <% if (company.whatsapp) { %><p id="whatsapp"><strong>WhatsApp:</strong> contacting us via WhatsApp is optional and is your choice; you can always call us, email us or use the contact form. If you write to us on WhatsApp, we see your telephone number, your profile name and whatever you send us. We may also send you a short message about your booking on WhatsApp, to the telephone number you gave in the booking (e.g. that the car is ready, or to ask for your flight number); if you do not want this, tell us and we will contact you another way. The WhatsApp service is provided by WhatsApp Ireland Limited (Meta group), which processes the data relating to the use of the service in accordance with its own terms and privacy policy. We do not use WhatsApp for marketing messages.</p><% } %>
 
   <h2>3. Card details</h2>
   <p>Card payments are made on the secure page of the payment provider (Stripe or Revolut) or on our bank’s POS terminal. <strong>We do not see or store the full number or the CVV of your card.</strong> For the security deposit we store only the card type (e.g. Visa credit), the last 4 digits and the authorisation code.</p>
@@ -30,10 +32,11 @@
     <li>Website hosting and email delivery providers (processors, under a contract pursuant to Art. 28 GDPR).</li>
     <li>Our accountant and e-invoicing provider, and the Independent Authority for Public Revenue (AADE) (myDATA).</li>
     <li>The insurance company (in the event of damage or an accident), and the authorities (Traffic Police, municipalities) where required by law.</li>
+    <% if (company.whatsapp) { %><li>WhatsApp Ireland Limited (Meta group), only if we communicate via WhatsApp.</li><% } %>
   </ul>
 
   <h2>5. Transfers outside the EEA</h2>
-  <p>Some providers (e.g. the Stripe group) may process data in the United States. Such transfers take place on the basis of the EU-U.S. Data Privacy Framework or the European Commission’s Standard Contractual Clauses.</p>
+  <p>Some providers (e.g. the Stripe group<% if (company.whatsapp) { %> and the Meta group for WhatsApp<% } %>) may process data in the United States. Such transfers take place on the basis of the EU-U.S. Data Privacy Framework or the European Commission’s Standard Contractual Clauses.</p>
 
   <h2>6. Your rights</h2>
   <p>You have the right of access, rectification, erasure, restriction of processing and data portability. You can download your data or delete your account from the ‘My account’ page, or write to us; we reply within one month. On deletion, we keep only what tax legislation requires or what relates to a pending claim.</p>

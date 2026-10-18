@@ -1,6 +1,8 @@
 <%- include('_top') %>
+<% const complaint = ['complaint', 'charge_dispute'].includes(message.kind); %>
 <p><%= t('Αγαπητέ/ή {name},', { name: message.name }) %></p>
-<p><%= t('Λάβαμε το μήνυμά σας «{subject}» στις {date}.', { subject: message.subject, date: receivedAt }) %><% if (message.kind !== 'question') { %> <%= t('Θα σας απαντήσουμε αιτιολογημένα εντός 15 ημερών.') %><% } else { %> <%= t('Θα σας απαντήσουμε το συντομότερο.') %><% } %></p>
-<% if (message.kind !== 'question') { %><p style="color:#6b7280;font-size:13px;"><%= t('Αν δεν βρεθεί λύση, μπορείτε να απευθυνθείτε στον Συνήγορο του Καταναλωτή (www.synigoroskatanaloti.gr).') %></p><% } %>
+<p><%= t('Λάβαμε το μήνυμά σας «{subject}» στις {date}.', { subject: message.subject, date: receivedAt }) %><% if (complaint) { %> <%= t('Θα σας απαντήσουμε αιτιολογημένα εντός 15 ημερών.') %><% } else { %> <%= t('Θα σας απαντήσουμε το συντομότερο.') %><% } %></p>
+<% if (message.kind === 'change_request') { %><p><strong><%= t('Η αλλαγή ισχύει μόνο αφού σας την επιβεβαιώσουμε· η τιμή μπορεί να αλλάξει.') %></strong></p><% } %>
+<% if (complaint) { %><p style="color:#6b7280;font-size:13px;"><%= t('Αν δεν βρεθεί λύση, μπορείτε να απευθυνθείτε στον Συνήγορο του Καταναλωτή (www.synigoroskatanaloti.gr).') %></p><% } %>
 <p><%= company.name %></p>
 <%- include('_bottom') %>

@@ -1,0 +1,13 @@
+<%# «Χρειάζεστε αλλαγή;»: αίτημα αλλαγής (φόρμα επικοινωνίας, είδος change_request) και WhatsApp, αν έχει οριστεί. %>
+<div class="card pad change-card" id="change">
+  <h2 class="h4"><%= t('Χρειάζεστε αλλαγή;') %></h2>
+  <p><%= t('Π.χ. άλλες ημερομηνίες ή ώρες, άλλο σημείο παραλαβής ή επιστροφής, πρόσθετα.') %></p>
+  <p class="small"><strong><%= t('Η αλλαγή ισχύει μόνο αφού σας την επιβεβαιώσουμε· η τιμή μπορεί να αλλάξει.') %></strong></p>
+  <div class="change-actions">
+    <a class="btn btn-primary" href="<%= u(`/contact?kind=change_request&ref=${booking.reference}`) %>"><%= t('Αίτημα αλλαγής') %></a>
+    <% if (locals.whatsapp) { %>
+      <a class="btn btn-wa" href="<%= whatsapp.url(booking.reference) %>" target="_blank" rel="noopener"><%- include('../partials/wa-icon', { size: 18 }) %>WhatsApp</a>
+      <span class="small muted"><%= whatsapp.hours %></span>
+    <% } %>
+  </div>
+</div>

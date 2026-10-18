@@ -11,7 +11,8 @@ const { availableCarIds } = require('../lib/availability');
 const bookings = require('../lib/bookings');
 const deposits = require('../lib/deposits');
 const payments = require('../lib/payments');
-const { msg } = require('../lib/i18n');
+const { msg, localizePath } = require('../lib/i18n');
+const bookingAccess = require('../lib/booking-access');
 const { str, isEmail, intOrNull, checkbox } = require('../lib/validation');
 const { limits } = require('../middleware/security');
 
@@ -177,11 +178,53 @@ module.exports = function publicRoutes(db) {
     res.redirect(`/booking/${booking.reference}`);
   });
 
-  const MESSAGE_KINDS = ['question', 'complaint', 'charge_dispute'];
+  // «Η κράτησή μου» από το email: ο σύνδεσμος ανοίγει την κράτηση χωρίς κωδικό/email (μόνο αυτή,
+  // σε αυτόν τον browser) και οδηγεί στη σελίδα της στη γλώσσα της κράτησης. Λάθος ή ληγμένος
+  // σύνδεσμος: η αναζήτηση με κωδικό και email (ίδια απάντηση και στις δύο περιπτώσεις).
+  router.get('/b/:token', limits.bookingLink, (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    const booking = bookingAccess.findBooking(db, req.params.token);
+    if (!booking) {
+      req.flash('info', 'Ο σύνδεσμος της κράτησης δεν ισχύει πλέον. Συμπληρώστε τον κωδικό και το email της κράτησης.');
+      return res.redirect(303, '/manage');
+    }
+    req.session.bookingAccess = [...new Set([...(req.session.bookingAccess || []), booking.reference])];
+    // Χωρίς το res.redirect, που θα κρατούσε τη γλώσσα του συνδέσμου αντί της κράτησης.
+    res.status(303).location(localizePath(booking.locale, `/booking/${booking.reference}`)).end();
+  });
+
+  // change_request: αίτημα αλλαγής κράτησης (από το «Χρειάζεστε αλλαγή;» της σελίδας κράτησης).
+  const MESSAGE_KINDS = ['question', 'complaint', 'charge_dispute', 'change_request'];
+  // Είδη με αιτιολογημένη απάντηση εντός 15 ημερών (διαδικασία παραπόνων).
+  const COMPLAINT_KINDS = ['complaint', 'charge_dispute'];
+  const cleanRef = (value) => str(value, 20).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+
+  // Κράτηση που μπορεί να δει αυτός ο επισκέπτης (session ή δικός του λογαριασμός· όχι το γραφείο).
+  function ownBooking(req, ref) {
+    if (!/^[A-Z0-9]{8}$/.test(ref)) return null;
+    const booking = bookings.getByReference(db, ref);
+    if (!booking) return null;
+    const viaSession = req.session && (req.session.bookingAccess || []).includes(booking.reference);
+    const viaAccount = req.user && req.user.role !== 'admin' && req.user.id === booking.user_id;
+    return viaSession || viaAccount ? booking : null;
+  }
 
   router.get('/contact', (req, res) => {
     const kind = MESSAGE_KINDS.includes(req.query.kind) ? req.query.kind : 'question';
-    res.render('pages/contact', { title: 'Επικοινωνία', values: { kind }, errors: {}, locations: locations() });
+    const values = { kind };
+    const ref = cleanRef(req.query.ref);
+    if (ref) values.booking_reference = ref;
+    // Αίτημα αλλαγής από τη σελίδα της κράτησης: τα στοιχεία συμπληρώνονται από την κράτηση.
+    const own = kind === 'change_request' && ref ? ownBooking(req, ref) : null;
+    if (own) {
+      Object.assign(values, {
+        name: `${own.first_name} ${own.last_name}`.trim(),
+        email: own.email,
+        phone: own.phone || '',
+        subject: req.t('Αίτημα αλλαγής κράτησης {ref}', { ref: own.reference }),
+      });
+    }
+    res.render('pages/contact', { title: 'Επικοινωνία', values, errors: {}, locations: locations() });
   });
 
   router.get('/company', (req, res) => res.render('pages/company', { title: 'Στοιχεία εταιρείας' }));
@@ -203,13 +246,14 @@ module.exports = function publicRoutes(db) {
       subject: str(req.body.subject, 150),
       body: str(req.body.body, 4000),
       kind: MESSAGE_KINDS.includes(req.body.kind) ? req.body.kind : 'question',
-      booking_reference: str(req.body.booking_reference, 20).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8),
+      booking_reference: cleanRef(req.body.booking_reference),
     };
     const errors = {};
     if (!values.name) errors.name = 'Συμπληρώστε το όνομά σας.';
     if (!isEmail(values.email)) errors.email = 'Συμπληρώστε έγκυρο email.';
     if (!values.subject) errors.subject = 'Συμπληρώστε θέμα.';
     if (values.body.length < 10) errors.body = 'Γράψτε το μήνυμά σας (τουλάχιστον 10 χαρακτήρες).';
+    if (values.kind === 'change_request' && !values.booking_reference) errors.booking_reference = 'Συμπληρώστε τον κωδικό κράτησης.';
     // Παγίδα για bots: κρυφό πεδίο που οι άνθρωποι αφήνουν κενό.
     if (req.body.website) return res.redirect('/contact');
     if (Object.keys(errors).length) {
@@ -243,7 +287,13 @@ module.exports = function publicRoutes(db) {
       template: 'admin-contact',
       data: { message: values },
     });
-    req.flash('success', values.kind === 'question' ? 'Λάβαμε το μήνυμά σας. Θα σας απαντήσουμε το συντομότερο.' : 'Λάβαμε το μήνυμά σας. Θα σας απαντήσουμε αιτιολογημένα εντός 15 ημερών.');
+    if (values.kind === 'change_request') {
+      req.flash('success', 'Λάβαμε το αίτημα αλλαγής. Θα σας απαντήσουμε το συντομότερο· η αλλαγή ισχύει μόνο αφού σας την επιβεβαιώσουμε.');
+      // Πίσω στη σελίδα της κράτησης, αν ο επισκέπτης έχει πρόσβαση σε αυτήν.
+      const own = ownBooking(req, values.booking_reference);
+      return res.redirect(own ? `/booking/${own.reference}` : '/contact');
+    }
+    req.flash('success', COMPLAINT_KINDS.includes(values.kind) ? 'Λάβαμε το μήνυμά σας. Θα σας απαντήσουμε αιτιολογημένα εντός 15 ημερών.' : 'Λάβαμε το μήνυμά σας. Θα σας απαντήσουμε το συντομότερο.');
     res.redirect('/contact');
   });
 

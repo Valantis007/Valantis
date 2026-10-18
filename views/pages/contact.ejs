@@ -5,6 +5,7 @@
     <p><%= t('Είμαστε στη διάθεσή σας για κάθε ερώτηση σχετικά με κρατήσεις, τιμές ή ειδικά αιτήματα.') %></p>
     <ul class="contact-list">
       <% if (company.phone) { %><li><strong><%= t('Τηλέφωνο:') %></strong> <a href="tel:<%= company.phone.replace(/\s/g, '') %>"><%= company.phone %></a></li><% } %>
+      <% if (whatsapp) { %><li><strong>WhatsApp:</strong> <a class="wa-link" href="<%= whatsapp.url(values.booking_reference || null) %>" target="_blank" rel="noopener"><%- include('../partials/wa-icon', { size: 16 }) %><%= t('Συνομιλία στο WhatsApp') %></a> <span class="small muted">(<%= whatsapp.hours %>)</span></li><% } %>
       <% if (company.email) { %><li><strong>Email:</strong> <a href="mailto:<%= company.email %>"><%= company.email %></a></li><% } %>
       <% if (company.address) { %><li><strong><%= t('Διεύθυνση:') %></strong> <%= company.address %></li><% } %>
       <li><strong><%= t('Ωράριο:') %></strong> <%= t('καθημερινά {from} - {to}', { from: `${String(config.rules.openingHour).padStart(2, '0')}:00`, to: `${config.rules.closingHour}:00` }) %></li>
@@ -42,15 +43,21 @@
       <div class="field">
         <label for="kind"><%= t('Είδος') %></label>
         <select id="kind" name="kind">
-          <% [['question', 'Ερώτηση'], ['complaint', 'Παράπονο'], ['charge_dispute', 'Αμφισβήτηση χρέωσης']].forEach(function (k) { %>
-            <option value="<%= k[0] %>" <%= values.kind === k[0] ? 'selected' : '' %>><%= t(k[1]) %></option>
+          <% ['question', 'change_request', 'complaint', 'charge_dispute'].forEach(function (k) { %>
+            <option value="<%= k %>" <%= values.kind === k ? 'selected' : '' %>><%= format.label('messageKind', k) %></option>
           <% }) %>
         </select>
       </div>
       <div class="field">
         <label for="booking_reference"><%= t('Κωδικός κράτησης (αν υπάρχει)') %></label>
-        <input id="booking_reference" name="booking_reference" value="<%= values.booking_reference || '' %>" maxlength="8" class="uppercase">
+        <input id="booking_reference" name="booking_reference" value="<%= values.booking_reference || '' %>" maxlength="8" class="uppercase" autocomplete="off">
+        <% if (errors.booking_reference) { %><span class="error"><%= t(errors.booking_reference) %></span><% } %>
       </div>
+    </div>
+    <%# Αίτημα αλλαγής: φαίνεται όταν επιλεγεί αυτό το είδος (χωρίς JavaScript: όταν η σελίδα άνοιξε με αυτό). %>
+    <div class="alert alert-info small" data-kind-only="change_request" <%= values.kind === 'change_request' ? '' : 'hidden' %>>
+      <%= t('Γράψτε τι θέλετε να αλλάξει: π.χ. ημερομηνίες, ώρες, σημείο παραλαβής ή επιστροφής, πρόσθετα.') %>
+      <strong><%= t('Η αλλαγή ισχύει μόνο αφού σας την επιβεβαιώσουμε· η τιμή μπορεί να αλλάξει.') %></strong>
     </div>
     <div class="field">
       <label for="subject"><%= t('Θέμα') %></label>

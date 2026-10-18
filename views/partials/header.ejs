@@ -13,7 +13,7 @@
   <script src="/js/dates.js" defer></script>
   <% if (locals.refreshUrl) { %><noscript><meta http-equiv="refresh" content="8;url=<%= locals.refreshUrl %>"></noscript><% } %>
 </head>
-<body class="<%= locals.bodyClass || '' %>">
+<body class="<%= [locals.bodyClass, locals.whatsapp && !currentPath.startsWith('/admin') ? 'has-wa-float' : ''].filter(Boolean).join(' ') %>">
   <a class="skip-link" href="#main"><%= t('Μετάβαση στο περιεχόμενο') %></a>
   <% if (locals.paymentsTestMode) { %><div class="test-mode-banner" role="note"><%= t('ΔΟΚΙΜΑΣΤΙΚΗ ΛΕΙΤΟΥΡΓΙΑ — οι πληρωμές με κάρτα δεν είναι πραγματικές') %></div><% } %>
   <header class="site-header">

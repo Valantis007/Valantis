@@ -10,6 +10,7 @@ const config = require('./config');
 const format = require('./lib/format');
 const i18n = require('./lib/i18n');
 const company = require('./lib/company');
+const whatsapp = require('./lib/whatsapp');
 const time = require('./lib/time');
 const providers = require('./lib/providers');
 const SqliteStore = require('./lib/sessionStore');
@@ -109,6 +110,8 @@ function createApp({ db, uploadDir = config.uploadDir, settingsEnvPath = null, o
     res.locals.config = config;
     // Στοιχεία επιχείρησης στη γλώσσα της σελίδας (στα αγγλικά/ισπανικά χωρίς ελληνικά γράμματα).
     res.locals.company = company.forLocale(req.locale);
+    // WhatsApp της επιχείρησης (COMPANY_WHATSAPP): null αν δεν έχει οριστεί.
+    res.locals.whatsapp = whatsapp.forLocale(req.locale);
     res.locals.format = format.forLocale(req.locale);
     res.locals.time = time;
     res.locals.currentPath = req.path;
@@ -152,6 +155,7 @@ function createApp({ db, uploadDir = config.uploadDir, settingsEnvPath = null, o
     Object.assign(res.locals, {
       config,
       company: company.forLocale(locale),
+      whatsapp: res.locals.whatsapp ?? null,
       format: format.forLocale(locale),
       time,
       locale,

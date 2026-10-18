@@ -504,6 +504,22 @@ const MIGRATIONS = [
     // Σημείο «στη διεύθυνση που θα μας δώσετε» με άλλο όνομα: ζητά κι αυτό διεύθυνση από τον πελάτη.
     db.prepare('UPDATE locations SET needs_address = 1 WHERE address = ?').run(HOTEL_ADDRESS);
   },
+
+  // 12: «Η κράτησή μου» με ένα πάτημα από το email: τυχαίος σύνδεσμος πρόσβασης (/b/<token>).
+  //     Αποθηκεύεται ΜΟΝΟ το sha256 του token (όπως στο deposits.link_token_hash). Κάθε email παίρνει
+  //     δικό του token, ώστε να λειτουργούν και οι σύνδεσμοι των παλαιότερων emails· όλα ισχύουν έως
+  //     60 ημέρες μετά την επιστροφή (ο έλεγχος γίνεται από το src/lib/booking-access.js). Οι παλιές
+  //     κρατήσεις αποκτούν token όταν τους σταλεί το επόμενο email.
+  `
+  CREATE TABLE booking_access_tokens (
+    id INTEGER PRIMARY KEY,
+    booking_id INTEGER NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
+    token_hash TEXT NOT NULL UNIQUE,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    last_used_at TEXT
+  );
+  CREATE INDEX idx_booking_access_tokens_booking ON booking_access_tokens (booking_id);
+  `,
 ];
 
 function migrate(db) {

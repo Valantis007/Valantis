@@ -217,6 +217,7 @@ function sendLinkEmail(db, bookingId, depositId, url) {
     subject: i18n.msg('Εγγύηση για την κράτηση {ref}', { ref: booking.reference }),
     template: 'deposit-link',
     data: { booking, deposit, url, window: holdWindow(booking) },
+    db,
   });
 }
 
@@ -326,6 +327,7 @@ async function syncFromCheckout(db, row, state, { actor = 'system' } = {}) {
         subject: i18n.msg('Δέσμευση εγγύησης - κράτηση {ref}', { ref: booking.reference }),
         template: 'deposit-held',
         data: { booking, deposit: getDeposit(db, decision.depositId) },
+        db,
       });
     }
     return decision;
@@ -457,6 +459,7 @@ function addCharge(db, bookingId, { category, description, amountCents, evidence
     subject: i18n.msg(charge.status === 'proposed' ? 'Χρέωση για αποδοχή - κράτηση {ref}' : 'Χρέωση μετά την επιστροφή - κράτηση {ref}', { ref: booking.reference }),
     template: charge.status === 'proposed' ? 'charge-notice' : 'charge-added',
     data: { booking, charge },
+    db,
   });
   return charge;
 }
@@ -668,6 +671,7 @@ async function settleDeposit(db, depositId, { actor, force = false, posConfirmed
       outstandingCents: outstandingCents(db, booking.id),
       unresolved: unresolvedDamage(db, booking.id),
     },
+    db,
   });
   return { capturedCents, releasedCents, outstandingCents: outstandingCents(db, booking.id) };
 }

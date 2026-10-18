@@ -8,6 +8,7 @@ const payments = require('./payments');
 const deposits = require('./deposits');
 const config = require('../config');
 const time = require('./time');
+const bookingAccess = require('./booking-access');
 const { expireOpenCheckouts } = require('./checkouts');
 
 let running = false;
@@ -40,7 +41,9 @@ function purgeExpiredPersonalData(db, nowLocal = time.nowLocal()) {
   const messages = db
     .prepare(`DELETE FROM messages WHERE created_at < datetime('now', ?)`)
     .run(`-${config.retention.messagesMonths} months`).changes;
-  return { purged, messages };
+  // Σύνδεσμοι «Η κράτησή μου» που έληξαν (60 ημέρες μετά την επιστροφή).
+  const accessTokens = bookingAccess.purgeExpired(db, nowLocal);
+  return { purged, messages, accessTokens };
 }
 
 async function runMaintenance(db, { store = null, force = false } = {}) {
