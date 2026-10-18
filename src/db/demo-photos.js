@@ -12,7 +12,12 @@ const { addDemoPhotos } = require('../lib/demo-photos');
   const result = await addDemoPhotos(db, config.uploadDir);
   if (!result.considered) console.log('Όλα τα αυτοκίνητα έχουν ήδη φωτογραφία.');
   for (const name of result.added) console.log(`✓ ${name}`);
+  for (const name of result.skipped || []) console.log(`= ${name}: έχει πλέον δική σας φωτογραφία`);
   for (const f of result.failed) console.log(`✕ ${f.car}: ${f.reason}`);
+  if (result.offline) {
+    console.error(result.offline);
+    process.exitCode = 1;
+  }
   db.close();
 })().catch((err) => {
   console.error(err.message);

@@ -62,7 +62,7 @@
   <section>
     <% if (search.ok) { %>
       <p class="results-summary">
-        <% const days = time.rentalDays(search.pickupAt, search.returnAt); %><%- th(cars.length === 1 && locale !== 'el' ? '<strong>{count}</strong> διαθέσιμο αυτοκίνητο' : '<strong>{count}</strong> διαθέσιμα αυτοκίνητα', { count: cars.length }) %> <%- th(days === 1 && locale !== 'el' ? 'για <strong>{days} ημέρα</strong>' : 'για <strong>{days} ημέρες</strong>', { days }) %>
+        <% const days = time.rentalDays(search.pickupAt, search.returnAt); %><%- th(cars.length === 1 ? '<strong>{count}</strong> διαθέσιμο αυτοκίνητο' : '<strong>{count}</strong> διαθέσιμα αυτοκίνητα', { count: cars.length }) %> <%- th(days === 1 ? 'για <strong>{days} ημέρα</strong>' : 'για <strong>{days} ημέρες</strong>', { days }) %>
         · <%= format.dateTime(search.pickupAt) %> → <%= format.dateTime(search.returnAt) %>
         <% if (unavailableCount) { %><span class="muted">(<%= t('{n} δεν είναι διαθέσιμα', { n: unavailableCount }) %>)</span><% } %>
       </p>

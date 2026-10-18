@@ -49,7 +49,8 @@
     var maxRental = Number(form.getAttribute('data-max-rental-days')) || 30;
     var minDate = today;
     // Η παραλαβή έως maxDays μπροστά· η επιστροφή έως τη μέγιστη διάρκεια μετά την παραλαβή.
-    var maxDate = addDays(today, maxDays);
+    // Τελευταία ημέρα παραλαβής: ο server μετρά από την τρέχουσα ώρα, άρα η ημέρα +maxDays δεν χωράει ολόκληρη.
+    var maxDate = addDays(today, maxDays - 1);
     function lastReturn(from) { return addDays(from || today, maxRental); }
     function selectable(date) {
       if (date < minDate) return false;
@@ -216,6 +217,19 @@
       foot.appendChild(summary);
       foot.appendChild(close);
       pop.appendChild(foot);
+      ensureTabStop();
+    }
+    // Πάντα μία ορατή, διαθέσιμη ημέρα στη σειρά του Tab (π.χ. μετά από «επόμενος μήνας»).
+    function firstVisibleDay() {
+      var days = pop.querySelectorAll('.cal-day:not([disabled])');
+      for (var i = 0; i < days.length; i += 1) if (days[i].offsetParent !== null) return days[i];
+      return null;
+    }
+    function ensureTabStop() {
+      var pick = (state.picking === 'end' ? state.end : state.start) || state.start;
+      var btn = (pick && dayButton(pick)) || (state.start && dayButton(state.start)) || firstVisibleDay();
+      if (btn && !btn.disabled) btn.tabIndex = 0;
+      return btn;
     }
 
     function focusDay(btn) {
@@ -233,7 +247,7 @@
     // Ορατή ημέρα (στο κινητό και στη στενή φόρμα φαίνεται μόνο ο πρώτος μήνας).
     function dayButton(date) {
       var btn = pop.querySelector('.cal-day[data-date="' + iso(date) + '"]');
-      return btn && btn.offsetParent !== null ? btn : null;
+      return btn && !btn.disabled && btn.offsetParent !== null ? btn : null;
     }
     function twoMonthsVisible() {
       var months = pop.querySelectorAll('.cal-month');
@@ -278,7 +292,12 @@
         state.picking = 'end';
         render();
         renderPop();
-        focusDay(pop.querySelector('.cal-day.end:not([disabled])'));
+        if (!dayButton(state.end)) {
+          // Η επιστροφή πέφτει σε μήνα που δεν φαίνεται: εμφανίζεται, ώστε να συνεχίσει κανείς με τα βέλη.
+          state.view = new Date(state.end.getFullYear(), state.end.getMonth() - (twoMonthsVisible() ? 1 : 0), 1);
+          renderPop();
+        }
+        focusDay(dayButton(state.end) || ensureTabStop());
       } else {
         // Επιστροφή την ίδια ημέρα επιτρέπεται (π.χ. 10:00–18:00)· τις ώρες τις ελέγχει ο server.
         state.end = date;
@@ -295,10 +314,18 @@
     pop.addEventListener('keydown', function (event) {
       var day = event.target.closest && event.target.closest('.cal-day');
       if (!day) return;
+      var from = parseIso(day.getAttribute('data-date'));
+      var target;
       var step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[event.key];
-      if (!step) return;
+      if (step) target = addDays(from, step);
+      else if (event.key === 'PageDown' || event.key === 'PageUp') {
+        // Ίδια ημέρα του επόμενου/προηγούμενου μήνα (ή η τελευταία του, αν δεν υπάρχει).
+        step = event.key === 'PageDown' ? 1 : -1;
+        var y = from.getFullYear();
+        var mo = from.getMonth() + step;
+        target = new Date(y, mo, Math.min(from.getDate(), new Date(y, mo + 1, 0).getDate()));
+      } else return;
       event.preventDefault();
-      var target = addDays(parseIso(day.getAttribute('data-date')), step);
       if (!selectable(target)) return;
       var btn = dayButton(target);
       if (!btn) {
@@ -337,12 +364,17 @@
   document.querySelectorAll('[data-search-form]').forEach(initRange);
 
   // ------------------------------------------------------------------ ΗΗ/ΜΜ/ΕΕΕΕ
-  // Δέχεται 15/03/1990, 5/3/1990, 15.03.1990, 15,03,1990, 15031990 ή 1990-03-15.
+  // Δέχεται 15/03/1990, 5/3/1990, 15.03.1990, 15,03,1990, 15031990, καθώς και πρώτα το έτος: 1990-03-15.
   function parseDmy(value) {
     var t = String(value || '').trim();
-    var m = /^(\d{1,2})[\/.,\- ](\d{1,2})[\/.,\- ](\d{4})$/.exec(t) || /^(\d{2})(\d{2})(\d{4})$/.exec(t);
+    var sep = '[\\/.,\\- ]\\s*';
+    var m = new RegExp('^(\\d{1,2})\\s*' + sep + '(\\d{1,2})\\s*' + sep + '(\\d{4})$').exec(t);
     if (m) return parseIso(m[3] + '-' + pad(Number(m[2])) + '-' + pad(Number(m[1])));
-    return parseIso(t);
+    m = new RegExp('^(\\d{4})\\s*' + sep + '(\\d{1,2})\\s*' + sep + '(\\d{1,2})$').exec(t);
+    if (m) return parseIso(m[1] + '-' + pad(Number(m[2])) + '-' + pad(Number(m[3])));
+    m = /^(\d{2})(\d{2})(\d{4})$/.exec(t);
+    if (m) return parseIso(m[3] + '-' + m[2] + '-' + m[1]) || parseIso(t.slice(0, 4) + '-' + t.slice(4, 6) + '-' + t.slice(6));
+    return null;
   }
   function formatDmy(d) { return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear(); }
 
@@ -353,7 +385,7 @@
     text.inputMode = 'numeric';
     if (input.getAttribute('autocomplete')) text.autocomplete = input.getAttribute('autocomplete');
     text.placeholder = input.getAttribute('data-dmy') || 'ΗΗ/ΜΜ/ΕΕΕΕ';
-    text.maxLength = 12;
+    text.maxLength = 16;
     text.className = 'dmy';
     if (input.required) text.required = true;
     if (input.id) { text.id = input.id; input.removeAttribute('id'); }
@@ -393,19 +425,9 @@
       else { text.removeAttribute('aria-invalid'); text.removeAttribute('aria-describedby'); }
     }
 
-    text.addEventListener('input', function (event) {
-      // Μόνο όταν γράφουμε στο τέλος του πεδίου (διορθώσεις στη μέση μένουν όπως είναι): η τελεία, η παύλα
-      // και το κενό γίνονται κάθετος, και η κάθετος μπαίνει όταν έρθει το 3ο ή το 5ο ψηφίο — έτσι το
-      // Backspace σβήνει πάντα αυτό που γράψαμε.
-      var atEnd = text.selectionStart === text.value.length;
-      var typing = !event.inputType || event.inputType.indexOf('insert') === 0;
-      if (atEnd && typing && !/^\s*\d{4}-/.test(text.value)) {
-        // Διαχωριστικό μόνο ανάμεσα σε ψηφία (κενά στην αρχή/στο τέλος μιας επικόλλησης αγνοούνται).
-        var v = text.value.replace(/(\d)\s*[.,\- \/]+\s*(?=\d)/g, '$1/')
-          .replace(/^(\d{2})(\d)$/, '$1/$2')
-          .replace(/^(\d{1,2}\/\d{2})(\d)$/, '$1/$2');
-        if (v !== text.value) text.value = v;
-      }
+    // Ό,τι γράφεται μένει όπως γράφτηκε (χωρίς αυτόματες καθέτους, που μπέρδευαν διορθώσεις και το
+    // «πρώτα το έτος»)· μόλις φύγει η εστίαση, μια έγκυρη ημερομηνία γράφεται ως ΗΗ/ΜΜ/ΕΕΕΕ.
+    text.addEventListener('input', function () {
       if (sync()) { showError(false); hideServerError(); }
     });
     function finish() {
