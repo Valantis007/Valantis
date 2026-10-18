@@ -9,10 +9,10 @@
           <span><% if (pickupPlace) { %><strong><%= tf(pickupPlace, 'name') %><% if (returnPlace && returnPlace.id !== pickupPlace.id) { %> → <%= tf(returnPlace, 'name') %><% } %></strong><br><% } %><%= format.dateTime(search.pickupAt) %> → <%= format.dateTime(search.returnAt) %></span>
           <span class="search-toggle-edit"><%= t('Αλλαγή') %></span>
         </summary>
-        <%- include('../partials/search-form', { locations, values: searchValues, errors, compact: true, buttonLabel: 'Ενημέρωση' }) %>
+        <%- include('../partials/search-form', { locations, values: searchValues, errors, compact: true, buttonLabel: 'Ενημέρωση', keep: { category: filters.category, transmission: filters.transmission, seats: filters.seats, sort: filters.sort === 'price_asc' ? '' : filters.sort } }) %>
       </details>
     <% } else { %>
-      <%- include('../partials/search-form', { locations, values: searchValues, errors, compact: true, buttonLabel: 'Ενημέρωση' }) %>
+      <%- include('../partials/search-form', { locations, values: searchValues, errors, compact: true, buttonLabel: 'Ενημέρωση', keep: { category: filters.category, transmission: filters.transmission, seats: filters.seats, sort: filters.sort === 'price_asc' ? '' : filters.sort } }) %>
     <% } %>
   </div>
 </section>

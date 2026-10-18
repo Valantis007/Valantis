@@ -180,6 +180,14 @@ module.exports = function publicRoutes(db) {
   });
 
   router.get('/company', (req, res) => res.render('pages/company', { title: 'Στοιχεία εταιρείας' }));
+
+  // Αναφορά δημιουργών για φωτογραφίες τρίτων (όπως απαιτούν οι άδειες Creative Commons).
+  router.get('/photo-credits', (req, res) => {
+    const cars = db
+      .prepare('SELECT id, make, model, image, image_credit, image_source FROM cars WHERE active = 1 AND image_credit IS NOT NULL ORDER BY make, model')
+      .all();
+    res.render('pages/photo-credits', { title: 'Πηγές φωτογραφιών', cars });
+  });
   router.get('/complaints', (req, res) => res.render('pages/complaints', { title: 'Παράπονα & επίλυση διαφορών' }));
 
   router.post('/contact', limits.contact, async (req, res) => {

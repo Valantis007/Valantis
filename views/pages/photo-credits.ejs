@@ -1,0 +1,19 @@
+<%- include('../partials/header') %>
+<div class="container section prose">
+  <h1><%= t('Πηγές φωτογραφιών') %></h1>
+  <p><%= t('Οι παρακάτω φωτογραφίες προέρχονται από τρίτους και χρησιμοποιούνται με την άδεια που αναφέρεται για καθεμία. Δείχνουν το μοντέλο ενδεικτικά.') %></p>
+  <% if (!cars.length) { %>
+    <p class="muted"><%= t('Δεν υπάρχουν φωτογραφίες τρίτων.') %></p>
+  <% } else { %>
+    <ul class="credit-list">
+      <% cars.forEach(function (car) { %>
+        <li>
+          <a href="<%= u(`/cars/${car.id}`) %>"><img src="<%= car.image %>" alt="<%= car.make %> <%= car.model %>" class="thumb" loading="lazy"></a>
+          <span><strong><%= car.make %> <%= car.model %></strong><br>
+            <span class="small"><% if (car.image_source) { %><a href="<%= car.image_source %>" target="_blank" rel="noopener nofollow"><%= car.image_credit %></a><% } else { %><%= car.image_credit %><% } %></span></span>
+        </li>
+      <% }) %>
+    </ul>
+  <% } %>
+</div>
+<%- include('../partials/footer') %>

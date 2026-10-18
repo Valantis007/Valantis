@@ -121,10 +121,18 @@
 
 // Φίλτρα αποτελεσμάτων: στο κινητό κλειστά (ανοίγουν με πάτημα), και εφαρμόζονται αμέσως μόλις αλλάξουν.
 (function () {
+  document.documentElement.classList.add('js');
   var mobile = window.matchMedia('(max-width: 900px)');
   var boxes = document.querySelectorAll('details[data-mobile-collapsed]');
   function layout() {
     boxes.forEach(function (box) {
+      var summaryEl = box.querySelector('summary');
+      // Σε μεγάλη οθόνη η σύνοψη αναζήτησης κρύβεται: αν είχε την εστίαση, αυτή πάει στο πρώτο πεδίο.
+      if (!mobile.matches && summaryEl && document.activeElement === summaryEl && box.classList.contains('search-toggle')) {
+        box.open = true;
+        var first = box.querySelector('select, input:not([type="hidden"]), button');
+        if (first) first.focus();
+      }
       // Σε μεγάλη οθόνη πάντα ανοιχτά (π.χ. tablet που γύρισε οριζόντια). Στο κινητό: όπως τα άφησε ο χρήστης,
       // αρχικά κλειστά, εκτός αν η αναζήτηση έχει σφάλμα που πρέπει να διορθωθεί.
       var open = !mobile.matches || box.getAttribute('data-user-open') === '1' || Boolean(box.querySelector('.error'));
@@ -132,8 +140,12 @@
       // Η εστίαση δεν «χάνεται» σε πεδίο που κρύβεται: πηγαίνει στον τίτλο που το ξανανοίγει.
       if (!open && box.open && box.contains(document.activeElement) && summary) summary.focus();
       box.open = open;
-      // Σε μεγάλη οθόνη ο τίτλος δεν είναι κουμπί (δεν κλείνει τα φίλτρα).
-      if (summary) summary.tabIndex = mobile.matches ? 0 : -1;
+      // Σε μεγάλη οθόνη ο τίτλος δεν είναι κουμπί (δεν κλείνει τα φίλτρα) και διαβάζεται ως επικεφαλίδα.
+      if (summary) {
+        summary.tabIndex = mobile.matches ? 0 : -1;
+        if (mobile.matches) { summary.removeAttribute('role'); summary.removeAttribute('aria-level'); }
+        else { summary.setAttribute('role', 'heading'); summary.setAttribute('aria-level', '2'); }
+      }
     });
   }
   boxes.forEach(function (box) {
@@ -148,6 +160,12 @@
   layout();
   if (mobile.addEventListener) mobile.addEventListener('change', layout);
   else if (mobile.addListener) mobile.addListener(layout);
+
+  // «Πίσω» σε σελίδα αποτελεσμάτων από τη μνήμη του browser: η φόρμα θα έδειχνε τις αλλαγές που δεν
+  // εφαρμόστηκαν, ενώ τα αποτελέσματα είναι της αρχικής αναζήτησης — φορτώνεται ξανά.
+  window.addEventListener('pageshow', function (event) {
+    if (event.persisted && document.querySelector('form[data-autosubmit]')) window.location.reload();
+  });
 
   document.querySelectorAll('form[data-autosubmit]').forEach(function (form) {
     form.querySelectorAll('select').forEach(function (select) {

@@ -25,9 +25,9 @@
   function daysBetween(a, b) { return Math.round((Date.UTC(b.getFullYear(), b.getMonth(), b.getDate()) - Date.UTC(a.getFullYear(), a.getMonth(), a.getDate())) / 864e5); }
   function fill(text, n) { return String(text || '').replace('{n}', n); }
 
-  // Χωρίς έτος όταν είναι το τρέχον (χωράει στο πεδίο)· με έτος για τον επόμενο χρόνο.
+  // Χωρίς έτος όταν είναι το τρέχον· για άλλο έτος χωρίς ημέρα εβδομάδας, ώστε να φαίνεται πάντα το έτος.
   var fmtShort = new Intl.DateTimeFormat(intl, { weekday: 'short', day: 'numeric', month: 'short' });
-  var fmtShortYear = new Intl.DateTimeFormat(intl, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+  var fmtShortYear = new Intl.DateTimeFormat(intl, { day: 'numeric', month: 'short', year: 'numeric' });
   function shortDate(d) { return (d.getFullYear() === new Date().getFullYear() ? fmtShort : fmtShortYear).format(d); }
   var fmtMonth = new Intl.DateTimeFormat(intl, { month: 'long', year: 'numeric' });
   var fmtLong = new Intl.DateTimeFormat(intl, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -71,6 +71,13 @@
       // Κάτω από μία ώρα ο server την απορρίπτει (π.χ. ίδια ημέρα με ίδια ώρα): όχι «1 ημέρα».
       if (minutes < 60) return null;
       return Math.max(1, Math.ceil((minutes - grace) / 1440));
+    }
+    function summaryText() {
+      if (!state.start || !state.end) return '';
+      var n = rentalDays();
+      if (n === null) return texts.tooShort || '';
+      if (n > maxRental) return texts.tooLong || '';
+      return n === 1 ? texts.oneDay || '' : fill(texts.days, n);
     }
 
     function makeDisplay(input, label) {
@@ -124,7 +131,6 @@
       wrap.appendChild(title);
       var grid = document.createElement('div');
       grid.className = 'cal-grid';
-      grid.setAttribute('role', 'grid');
       // Η εβδομάδα ξεκινά Δευτέρα (Ελλάδα, Ισπανία, Ηνωμένο Βασίλειο).
       for (var w = 0; w < 7; w += 1) {
         var wd = document.createElement('span');
@@ -151,6 +157,8 @@
         if (sameDay(date, state.end)) b.classList.add('end');
         if (state.start && state.end && date > state.start && date < state.end) b.classList.add('in-range');
         if (sameDay(date, state.start) || sameDay(date, state.end)) b.setAttribute('aria-pressed', 'true');
+        // Μία μόνο ημέρα στη σειρά του Tab· μέσα στο ημερολόγιο κινούμαστε με τα βέλη.
+        b.tabIndex = -1;
         grid.appendChild(b);
       }
       wrap.appendChild(grid);
@@ -171,13 +179,17 @@
       next.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
       var hint = document.createElement('p');
       hint.className = 'cal-hint';
+      hint.setAttribute('aria-live', 'polite');
       hint.textContent = state.picking === 'start' ? texts.choosePickup || '' : texts.chooseReturn || '';
       var v = state.view;
-      prev.disabled = v.getFullYear() < today.getFullYear() || (v.getFullYear() === today.getFullYear() && v.getMonth() <= today.getMonth());
+      // Στον πρώτο μήνα το «προηγούμενος» μένει εστιάσιμο (aria-disabled) αλλά δεν κάνει τίποτα, ώστε
+      // επαναλαμβανόμενα Enter να μη «γυρίζουν» το ημερολόγιο μπρος-πίσω.
+      var atFirst = v.getFullYear() < today.getFullYear() || (v.getFullYear() === today.getFullYear() && v.getMonth() <= today.getMonth());
+      if (atFirst) prev.setAttribute('aria-disabled', 'true');
       prev.setAttribute('data-dir', 'prev');
       next.setAttribute('data-dir', 'next');
       // Μετά την αλλαγή μήνα η εστίαση μένει στο ίδιο κουμπί (το περιεχόμενο ξαναζωγραφίζεται).
-      prev.addEventListener('click', function () { state.view = new Date(v.getFullYear(), v.getMonth() - 1, 1); renderPop(); focusNav('prev'); });
+      prev.addEventListener('click', function () { if (atFirst) return; state.view = new Date(v.getFullYear(), v.getMonth() - 1, 1); renderPop(); focusNav('prev'); });
       next.addEventListener('click', function () { state.view = new Date(v.getFullYear(), v.getMonth() + 1, 1); renderPop(); focusNav('next'); });
       head.appendChild(prev);
       head.appendChild(hint);
@@ -193,10 +205,9 @@
       var foot = document.createElement('div');
       foot.className = 'cal-foot';
       var summary = document.createElement('span');
-      if (state.start && state.end) {
-        var n = rentalDays();
-        summary.textContent = n === null ? texts.tooShort || '' : n === 1 ? texts.oneDay || '' : fill(texts.days, n);
-      }
+      summary.className = 'cal-summary';
+      summary.setAttribute('aria-live', 'polite');
+      summary.textContent = summaryText();
       var close = document.createElement('button');
       close.type = 'button';
       close.className = 'btn btn-small';
@@ -207,12 +218,17 @@
       pop.appendChild(foot);
     }
 
+    function focusDay(btn) {
+      if (!btn) return;
+      pop.querySelectorAll('.cal-day[tabindex="0"]').forEach(function (b) { b.tabIndex = -1; });
+      btn.tabIndex = 0;
+      btn.focus();
+    }
     function focusNav(dir) {
       // Αν το κουμπί απενεργοποιήθηκε (π.χ. πρώτος μήνας), η εστίαση πάει στο άλλο κουμπί μήνα —
       // ποτέ σε τυχαία ημέρα, ώστε ένα ακόμη Enter να μην αλλάξει ημερομηνία.
       var btn = pop.querySelector('.cal-nav[data-dir="' + dir + '"]');
-      if (!btn || btn.disabled) btn = pop.querySelector('.cal-nav[data-dir="' + (dir === 'prev' ? 'next' : 'prev') + '"]');
-      if (btn && !btn.disabled) btn.focus();
+      if (btn) btn.focus();
     }
     // Ορατή ημέρα (στο κινητό και στη στενή φόρμα φαίνεται μόνο ο πρώτος μήνας).
     function dayButton(date) {
@@ -236,7 +252,7 @@
       endBtn.setAttribute('aria-expanded', 'true');
       var focus = pop.querySelector('.cal-day.' + (which === 'end' ? 'end' : 'start') + ':not([disabled])') ||
         pop.querySelector('.cal-day.start:not([disabled])') || pop.querySelector('.cal-day:not([disabled])');
-      if (focus) focus.focus();
+      focusDay(focus);
     }
 
     function closePop(returnFocus) {
@@ -254,15 +270,15 @@
       if (!day || day.disabled) return;
       var date = parseIso(day.getAttribute('data-date'));
       if (state.picking === 'start' || !state.start || date < state.start) {
+        // Η διάρκεια μένει ίδια· η επιστροφή μένει την ίδια ημέρα μόνο αν ήταν ήδη ενοικίαση μίας ημέρας.
         var length = state.start && state.end ? Math.max(daysBetween(state.start, state.end), 0) : 3;
         state.start = date;
-        if (!state.end || state.end < date) state.end = addDays(date, length);
+        if (!state.end || state.end < date || (sameDay(state.end, date) && length > 0)) state.end = addDays(date, length);
         if (state.end > lastReturn(date)) state.end = lastReturn(date);
         state.picking = 'end';
         render();
         renderPop();
-        var endDay = pop.querySelector('.cal-day.end');
-        if (endDay) endDay.focus();
+        focusDay(pop.querySelector('.cal-day.end:not([disabled])'));
       } else {
         // Επιστροφή την ίδια ημέρα επιτρέπεται (π.χ. 10:00–18:00)· τις ώρες τις ελέγχει ο server.
         state.end = date;
@@ -292,7 +308,21 @@
         renderPop();
         btn = dayButton(target);
       }
-      if (btn && !btn.disabled) btn.focus();
+      if (btn && !btn.disabled) focusDay(btn);
+    });
+
+    // Η εστίαση έφυγε από το ημερολόγιο (π.χ. Tab μετά το «Εντάξει»): κλείνει, ώστε να μην κρύβει
+    // το στοιχείο που εστιάστηκε.
+    pop.addEventListener('focusout', function (event) {
+      var to = event.relatedTarget;
+      if (to && !pop.contains(to) && to !== startBtn && to !== endBtn) closePop(false);
+    });
+    ['pickup_time', 'return_time'].forEach(function (name) {
+      var select = form.querySelector('[name="' + name + '"]');
+      if (select) select.addEventListener('change', function () {
+        var summary = pop.querySelector('.cal-summary');
+        if (summary) summary.textContent = summaryText();
+      });
     });
 
     startBtn.addEventListener('click', function () { openPop('start'); });
@@ -307,10 +337,10 @@
   document.querySelectorAll('[data-search-form]').forEach(initRange);
 
   // ------------------------------------------------------------------ ΗΗ/ΜΜ/ΕΕΕΕ
-  // Δέχεται 15/03/1990, 5/3/1990, 15.03.1990, 15031990 ή 1990-03-15.
+  // Δέχεται 15/03/1990, 5/3/1990, 15.03.1990, 15,03,1990, 15031990 ή 1990-03-15.
   function parseDmy(value) {
     var t = String(value || '').trim();
-    var m = /^(\d{1,2})[\/.\- ](\d{1,2})[\/.\- ](\d{4})$/.exec(t) || /^(\d{2})(\d{2})(\d{4})$/.exec(t);
+    var m = /^(\d{1,2})[\/.,\- ](\d{1,2})[\/.,\- ](\d{4})$/.exec(t) || /^(\d{2})(\d{2})(\d{4})$/.exec(t);
     if (m) return parseIso(m[3] + '-' + pad(Number(m[2])) + '-' + pad(Number(m[1])));
     return parseIso(t);
   }
@@ -321,7 +351,7 @@
     var text = document.createElement('input');
     text.type = 'text';
     text.inputMode = 'numeric';
-    text.autocomplete = input.getAttribute('autocomplete') || 'off';
+    if (input.getAttribute('autocomplete')) text.autocomplete = input.getAttribute('autocomplete');
     text.placeholder = input.getAttribute('data-dmy') || 'ΗΗ/ΜΜ/ΕΕΕΕ';
     text.maxLength = 12;
     text.className = 'dmy';
@@ -370,7 +400,8 @@
       var atEnd = text.selectionStart === text.value.length;
       var typing = !event.inputType || event.inputType.indexOf('insert') === 0;
       if (atEnd && typing && !/^\s*\d{4}-/.test(text.value)) {
-        var v = text.value.replace(/[.\- ]/g, '/').replace(/\/{2,}/g, '/')
+        // Διαχωριστικό μόνο ανάμεσα σε ψηφία (κενά στην αρχή/στο τέλος μιας επικόλλησης αγνοούνται).
+        var v = text.value.replace(/(\d)\s*[.,\- \/]+\s*(?=\d)/g, '$1/')
           .replace(/^(\d{2})(\d)$/, '$1/$2')
           .replace(/^(\d{1,2}\/\d{2})(\d)$/, '$1/$2');
         if (v !== text.value) text.value = v;

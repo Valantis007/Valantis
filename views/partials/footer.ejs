@@ -20,7 +20,8 @@
           <a href="<%= u('/privacy') %>"><%= t('Πολιτική απορρήτου & cookies') %></a><br>
           <a href="<%= u('/faq') %>"><%= t('Συχνές ερωτήσεις') %></a><br>
           <a href="<%= u('/company') %>"><%= t('Στοιχεία εταιρείας') %></a><br>
-          <a href="<%= u('/complaints') %>"><%= t('Παράπονα & επίλυση διαφορών') %></a>
+          <a href="<%= u('/complaints') %>"><%= t('Παράπονα & επίλυση διαφορών') %></a><% if (locals.hasPhotoCredits) { %><br>
+          <a href="<%= u('/photo-credits') %>"><%= t('Πηγές φωτογραφιών') %></a><% } %>
         </p>
       </div>
       <div>

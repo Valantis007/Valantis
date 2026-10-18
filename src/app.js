@@ -109,6 +109,8 @@ function createApp({ db, uploadDir = config.uploadDir }) {
     // Δοκιμαστικά κλειδιά (Stripe test / Revolut Sandbox): εμφανίζεται ένδειξη σε κάθε σελίδα.
     res.locals.paymentsTestMode = Boolean(activeProvider && activeProvider.mode && activeProvider.mode() === 'test');
     res.locals.errors = {};
+    // Φωτογραφίες τρίτων (π.χ. Wikimedia Commons): σύνδεσμος «Πηγές φωτογραφιών» στο κάτω μέρος κάθε σελίδας.
+    res.locals.hasPhotoCredits = Boolean(db.prepare('SELECT 1 FROM cars WHERE active = 1 AND image_credit IS NOT NULL LIMIT 1').get());
     next();
   });
 

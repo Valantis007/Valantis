@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const http = require('node:http');
 const h = require('./helpers');
 
-// Ψεύτικη Wikipedia / Wikimedia Commons: κάθε άρθρο έχει φωτογραφία, εκτός από το Mini (μη ελεύθερη άδεια).
+// Ψεύτικη Wikipedia / Wikimedia Commons: κάθε άρθρο έχει φωτογραφία· του Mini έχει άδεια μη εμπορικής χρήσης (NC).
 function fakeWikimedia() {
   const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01, 0xff, 0xd9]);
   const requests = [];
@@ -34,8 +34,8 @@ function fakeWikimedia() {
               url: 'unused',
               descriptionurl: `https://commons.wikimedia.org/wiki/${encodeURIComponent(file)}`,
               extmetadata: {
-                Artist: { value: '<a href="https://example.org/user">Jane &amp; Doe</a>' },
-                LicenseShortName: { value: nonFree ? 'Fair use' : 'CC BY-SA 4.0' },
+                Artist: { value: '<a href="https://example.org/user">Jane &amp; Fran&#231;ois&#160;Doe</a>' },
+                LicenseShortName: { value: nonFree ? 'CC BY-NC-SA 2.0' : 'CC BY-SA 4.0' },
               },
             }],
           }],
@@ -75,12 +75,12 @@ test('ενδεικτικές φωτογραφίες: λήψη με ελεύθε�
   assert.equal(res.status, 303);
   const page = await aa.get('/admin/cars');
   assert.match(page.text, /Προστέθηκαν φωτογραφίες σε 9 από 10 αυτοκίνητα/);
-  assert.match(page.text, /Χωρίς φωτογραφία: Mini Cooper Cabrio \(δεν βρέθηκε φωτογραφία με ελεύθερη άδεια\)/);
+  assert.match(page.text, /Χωρίς φωτογραφία: Mini Cooper Cabrio — δεν βρέθηκε φωτογραφία με ελεύθερη άδεια/);
   assert.ok(requests.every((r) => /^CarRentalDemoPhotos\//.test(r.agent)), 'User-Agent για τη Wikimedia');
 
   const panda = db.prepare('SELECT * FROM cars WHERE id = 1').get();
   assert.match(panda.image, /^\/uploads\/[a-f0-9]{24}\.jpg$/);
-  assert.equal(panda.image_credit, 'Jane & Doe · CC BY-SA 4.0 · Wikimedia Commons');
+  assert.equal(panda.image_credit, 'Jane & François Doe · CC BY-SA 4.0 · Wikimedia Commons');
   assert.match(panda.image_source, /^https:\/\/commons\.wikimedia\.org\/wiki\//);
   assert.equal(db.prepare('SELECT image FROM cars WHERE id = 2').get().image, '/uploads/own.jpg');
   assert.match(db.prepare("SELECT image FROM cars WHERE make = 'Mini'").get().image, /^\/img\/cars\//);
@@ -88,9 +88,14 @@ test('ενδεικτικές φωτογραφίες: λήψη με ελεύθε�
   // Το αρχείο σερβίρεται και η αναφορά δημιουργού εμφανίζεται κάτω από τη φωτογραφία, σε κάθε γλώσσα.
   assert.equal((await h.request(app).get(panda.image)).status, 200);
   const el = await h.request(app).get('/cars/1');
-  assert.match(el.text, /<figcaption class="photo-credit">Φωτογραφία: <a href="https:\/\/commons\.wikimedia\.org\/wiki\/[^"]+" target="_blank" rel="noopener nofollow">Jane &amp; Doe · CC BY-SA 4.0 · Wikimedia Commons<\/a>/);
+  assert.match(el.text, /<figcaption class="photo-credit">Φωτογραφία: <a href="https:\/\/commons\.wikimedia\.org\/wiki\/[^"]+" target="_blank" rel="noopener nofollow">Jane &amp; François Doe · CC BY-SA 4.0 · Wikimedia Commons<\/a>/);
   const en = await h.request(app).get('/en/cars/1');
   assert.match(en.text, /<figcaption class="photo-credit">Photo: /);
+  // Η αναφορά καλύπτει και τις άλλες σελίδες όπου φαίνεται η φωτογραφία: σελίδα «Πηγές φωτογραφιών» από το κάτω μέρος.
+  assert.match((await h.request(app).get('/es/')).text, /<a href="\/es\/photo-credits">Créditos de las fotos<\/a>/);
+  const credits = await h.request(app).get('/en/photo-credits');
+  assert.equal(credits.status, 200);
+  assert.match(credits.text, /Fiat Panda<\/strong>[\s\S]*Jane &amp; François Doe · CC BY-SA 4\.0 · Wikimedia Commons/);
 
   // Νέα φωτογραφία από τον διαχειριστή: η αναφορά δημιουργού σβήνει.
   const token = await h.csrf(aa, '/admin/cars/1');
@@ -117,4 +122,26 @@ test('ενδεικτικές φωτογραφίες: λήψη με ελεύθε�
   assert.equal(second.filter((r) => r.path.startsWith('/img/')).length, 0);
   assert.ok(second.filter((r) => r.path === '/commons').length <= 3, 'μόνο το Mini ξαναδοκιμάζεται');
   assert.equal(db.prepare("SELECT COUNT(*) AS n FROM cars WHERE image LIKE '/img/cars/%'").get().n, 1);
+});
+
+test('ενδεικτικές φωτογραφίες χωρίς internet: σταματά αμέσως με ένα μήνυμα', async (t) => {
+  // Θύρα χωρίς server: η σύνδεση αποτυγχάνει όπως χωρίς internet.
+  const closed = http.createServer();
+  await new Promise((resolve) => closed.listen(0, '127.0.0.1', resolve));
+  const port = closed.address().port;
+  await new Promise((resolve) => closed.close(resolve));
+  process.env.DEMO_PHOTOS_WIKI_API = `http://127.0.0.1:${port}/wiki`;
+  process.env.DEMO_PHOTOS_COMMONS_API = `http://127.0.0.1:${port}/commons`;
+  t.after(() => {
+    delete process.env.DEMO_PHOTOS_WIKI_API;
+    delete process.env.DEMO_PHOTOS_COMMONS_API;
+  });
+  const { db, app } = h.setup();
+  const admin = await h.createUser(db, { email: 'admin@example.com', role: 'admin' });
+  const aa = h.agent(app);
+  await h.login(aa, admin);
+  await h.post(aa, '/admin/cars/demo-photos', {}, '/admin/cars');
+  const page = await aa.get('/admin/cars');
+  assert.equal((page.text.match(/Δεν υπάρχει σύνδεση με τη Wikipedia/g) || []).length, 1);
+  assert.doesNotMatch(page.text, /Χωρίς φωτογραφία:/);
 });

@@ -56,8 +56,10 @@ function parseSearch(db, input, now = time.nowLocal()) {
       errors.pickup_date = msg('Δεχόμαστε κρατήσεις έως {days} ημέρες μπροστά.', { days: rules.maxAdvanceDays });
     }
     const minutes = time.minutesBetween(pickupAt, returnAt);
-    if (minutes < 60) {
+    if (minutes <= 0) {
       errors.return_date = 'Η επιστροφή πρέπει να είναι μετά την παραλαβή.';
+    } else if (minutes < 60) {
+      errors.return_date = 'Η επιστροφή πρέπει να είναι τουλάχιστον 1 ώρα μετά την παραλαβή.';
     } else if (time.rentalDays(pickupAt, returnAt) > rules.maxRentalDays) {
       errors.return_date = msg('Η μέγιστη διάρκεια ενοικίασης είναι {days} ημέρες.', { days: rules.maxRentalDays });
     }

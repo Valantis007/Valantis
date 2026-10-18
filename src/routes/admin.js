@@ -664,8 +664,13 @@ module.exports = function adminRoutes(db, { uploadDir }) {
         req.flash('success', 'Όλα τα αυτοκίνητα έχουν ήδη φωτογραφία.');
       } else {
         if (result.added.length) req.flash('success', `Προστέθηκαν φωτογραφίες σε ${result.added.length} από ${result.considered} αυτοκίνητα.`);
+        if (result.skipped.length) req.flash('success', `Έχουν πλέον δική σας φωτογραφία (δεν άλλαξαν): ${result.skipped.join(', ')}.`);
+        if (result.offline) req.flash('error', result.offline);
         if (result.failed.length) {
-          req.flash('error', `Χωρίς φωτογραφία: ${result.failed.map((f) => `${f.car} (${f.reason})`).join(', ')}.`);
+          req.flash('error', `Χωρίς φωτογραφία: ${result.failed.map((f) => `${f.car} — ${f.reason}`).join('· ')}.`);
+        }
+        if (!result.added.length && !result.skipped.length && !result.offline && !result.failed.length) {
+          req.flash('success', 'Δεν χρειάστηκε καμία αλλαγή.');
         }
       }
       res.redirect(303, '/admin/cars');

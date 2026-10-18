@@ -81,10 +81,11 @@ function validateDriver(input, car, pickupAt, options) {
     last_name: str(input.last_name, 80),
     email: str(input.email, 254).toLowerCase(),
     phone: str(input.phone, 30),
-    birth_date: str(input.birth_date, 10),
+    // Μέχρι 20 χαρακτήρες: ένα άκυρο κείμενο δεν κόβεται σε κάτι που μοιάζει έγκυρο.
+    birth_date: str(input.birth_date, 20),
     license_number: str(input.license_number, 40),
     license_country: str(input.license_country, 60),
-    license_issued: str(input.license_issued, 10),
+    license_issued: str(input.license_issued, 20),
     flight_number: str(input.flight_number, 20),
     notes: str(input.notes, 1000),
     payment_method: str(input.payment_method, 20) || (paymentEnabled ? 'card' : 'pay_at_pickup'),

@@ -16,6 +16,8 @@ const USER_AGENT = `CarRentalDemoPhotos/1.0 (${config.company.email || 'local te
 const TYPES = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp' };
 const MAX_BYTES = 5 * 1024 * 1024;
 const FREE_LICENSE = /^(cc0|cc[ -]by(-sa)?( \d(\.\d)?)?|public domain|pd)\b/i;
+// Μη εμπορική χρήση (NC) ή χωρίς παράγωγα (ND): όχι για ιστοσελίδα επιχείρησης.
+const RESTRICTED = /\b(nc|nd)\b/i;
 
 // Άρθρα της Wikipedia για τα ενδεικτικά αυτοκίνητα (η πρώτη φωτογραφία του άρθρου είναι συνήθως
 // η τρέχουσα γενιά, από μπροστά-πλάγια). Για άλλα αυτοκίνητα γίνεται αναζήτηση με μάρκα και μοντέλο.
@@ -66,7 +68,10 @@ async function searchImage(car) {
 
 const plain = (html) => String(html || '')
   .replace(/<[^>]*>/g, ' ')
-  .replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#0?39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ')
+  .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))
+  .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCodePoint(parseInt(n, 16)))
+  .replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ')
+  .replace(/&amp;/g, '&')
   .replace(/\s+/g, ' ')
   .trim();
 
@@ -81,7 +86,7 @@ async function commonsFile(name) {
   if (!info || !TYPES[info.mime]) return null;
   const meta = info.extmetadata || {};
   const license = plain(meta.LicenseShortName && meta.LicenseShortName.value);
-  if (!FREE_LICENSE.test(license)) return null;
+  if (!FREE_LICENSE.test(license) || RESTRICTED.test(license)) return null;
   const artist = plain(meta.Artist && meta.Artist.value).slice(0, 100) || 'Wikimedia Commons';
   return {
     url: info.thumburl || info.url,
@@ -107,9 +112,17 @@ async function download(file, uploadDir) {
   const res = await fetch(file.url, { headers: { 'User-Agent': USER_AGENT }, signal: AbortSignal.timeout(30000) });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const type = String(res.headers.get('content-type') || '').split(';')[0].trim();
-  if (!TYPES[type]) throw new Error(`μη αναμενόμενος τύπος αρχείου (${type || 'άγνωστος'})`);
-  const body = Buffer.from(await res.arrayBuffer());
-  if (body.length > MAX_BYTES) throw new Error('πολύ μεγάλο αρχείο');
+  if (!TYPES[type]) throw new Error(`μη αναμενόμενος τύπος αρχείου: ${type || 'άγνωστος'}`);
+  // Το όριο ελέγχεται πριν και κατά τη λήψη (όχι αφού κατέβει ολόκληρο το αρχείο).
+  if (Number(res.headers.get('content-length')) > MAX_BYTES) throw new Error('πολύ μεγάλο αρχείο');
+  const chunks = [];
+  let size = 0;
+  for await (const chunk of res.body) {
+    size += chunk.length;
+    if (size > MAX_BYTES) throw new Error('πολύ μεγάλο αρχείο');
+    chunks.push(chunk);
+  }
+  const body = Buffer.concat(chunks);
   const filename = `${crypto.randomBytes(12).toString('hex')}${TYPES[type]}`;
   await fs.mkdir(uploadDir, { recursive: true });
   await fs.writeFile(path.join(uploadDir, filename), body);
@@ -119,12 +132,13 @@ async function download(file, uploadDir) {
 /**
  * Βάζει φωτογραφία σε κάθε αυτοκίνητο που έχει ακόμα το γενικό σχέδιο (/img/cars/*.svg).
  * Δεν αγγίζει φωτογραφίες που ανέβασε ο διαχειριστής.
- * Επιστρέφει { added: [ονόματα], failed: [{ car, reason }] }.
+ * Επιστρέφει { added: [ονόματα], failed: [{ car, reason }], skipped: [ονόματα], offline: μήνυμα|null }.
  */
 async function addDemoPhotos(db, uploadDir) {
   const cars = db.prepare("SELECT id, make, model, image FROM cars WHERE image IS NULL OR image LIKE '/img/cars/%' ORDER BY id").all();
   const added = [];
   const failed = [];
+  const skipped = [];
   for (const car of cars) {
     const label = `${car.make} ${car.model}`;
     try {
@@ -141,17 +155,22 @@ async function addDemoPhotos(db, uploadDir) {
         .run(image, file.credit, file.source, car.id);
       if (!res.changes) {
         await fs.rm(path.join(uploadDir, path.basename(image)), { force: true });
+        skipped.push(label);
         continue;
       }
       added.push(label);
     } catch (err) {
-      let reason = err.message;
-      if (err.name === 'TimeoutError') reason = 'λήξη χρόνου σύνδεσης';
-      else if (err.message === 'fetch failed') reason = 'δεν υπάρχει σύνδεση με τη Wikipedia (ελέγξτε το internet)';
-      failed.push({ car: label, reason });
+      // Χωρίς σύνδεση (ή κολλημένη σύνδεση) σταματά αμέσως, με ένα μήνυμα — όχι 11 φορές το ίδιο.
+      if (err.name === 'TimeoutError' || err.message === 'fetch failed') {
+        const offline = err.name === 'TimeoutError'
+          ? 'Η Wikipedia δεν απαντά (λήξη χρόνου σύνδεσης). Δοκιμάστε ξανά αργότερα.'
+          : 'Δεν υπάρχει σύνδεση με τη Wikipedia. Ελέγξτε τη σύνδεση στο internet και δοκιμάστε ξανά.';
+        return { added, failed, skipped, considered: cars.length, offline };
+      }
+      failed.push({ car: label, reason: err.message });
     }
   }
-  return { added, failed, considered: cars.length };
+  return { added, failed, skipped, considered: cars.length, offline: null };
 }
 
 module.exports = { addDemoPhotos, findPhoto, candidates };

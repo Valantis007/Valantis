@@ -141,7 +141,7 @@ input[type="date"], input[type="datetime-local"], input:not([type]), select, tex
 }
 textarea { resize: vertical; }
 input:focus, select:focus, textarea:focus { border-color: var(--brand); outline: none; box-shadow: 0 0 0 3px rgba(29, 91, 216, 0.18); }
-.field:has(.error) input, .field:has(.error) select { border-color: var(--error); }
+.field:has(.error:not(.hidden)) input, .field:has(.error:not(.hidden)) select { border-color: var(--error); }
 .check { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
 .check input { margin-top: 4px; width: 18px; height: 18px; flex-shrink: 0; }
 .row-inline { display: flex; gap: 6px; }
@@ -380,7 +380,7 @@ details p { margin: 10px 0 0; }
 .cal-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
 .cal-hint { margin: 0; font-weight: 700; text-align: center; }
 .cal-nav { width: 40px; height: 40px; flex: 0 0 auto; display: grid; place-items: center; border: 1px solid var(--border); border-radius: 6px; background: #fff; color: var(--text); cursor: pointer; }
-.cal-nav[disabled] { opacity: 0.35; cursor: default; }
+.cal-nav[disabled], .cal-nav[aria-disabled="true"] { opacity: 0.35; cursor: default; }
 .cal-months { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
 .stacked .cal-months { grid-template-columns: 1fr; }
 .stacked .cal-month + .cal-month { display: none; }
@@ -411,7 +411,7 @@ input.dmy { letter-spacing: 0.02em; }
 figure.car-hero { margin: 0; }
 .car-hero:has(img[src^="/uploads/"]) { padding: 0; overflow: hidden; }
 .car-hero img[src^="/uploads/"] { width: 100%; max-height: 420px; object-fit: cover; }
-.photo-credit { font-size: 0.75rem; color: var(--muted, #5b6675); padding: 6px 12px; background: #fff; line-height: 1.4; }
+.photo-credit { overflow-wrap: anywhere; font-size: 0.75rem; color: var(--muted, #5b6675); padding: 6px 12px; background: #fff; line-height: 1.4; }
 .photo-credit a { color: inherit; }
 
 /* ===== Αρχική (design Γ): κατηγορίες, δημοφιλή, πληροφορίες ===== */
@@ -456,7 +456,8 @@ figure.car-hero { margin: 0; }
 .filters summary::after { content: ""; width: 8px; height: 8px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); margin-left: auto; transition: transform 0.15s; }
 .filters details[open] summary::after { transform: rotate(-135deg); }
 .filters details[open] summary { margin-bottom: 12px; }
-@media (min-width: 901px) { .filters summary { pointer-events: none; } .filters summary::after { display: none; } }
+/* Σε μεγάλη οθόνη τα φίλτρα είναι πάντα ανοιχτά (με JavaScript· χωρίς αυτό ο τίτλος μένει κανονικό κουμπί). */
+@media (min-width: 901px) { .js .filters summary { pointer-events: none; } .js .filters summary::after { display: none; } }
 .count-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--brand); color: #fff; font-size: 0.75rem; }
 .filters details { background: transparent; border: 0; border-radius: 0; padding: 0; margin: 0; }
 /* Αναζήτηση πάνω από τα αποτελέσματα: στο κινητό μία γραμμή-σύνοψη που ανοίγει. */
@@ -467,3 +468,9 @@ figure.car-hero { margin: 0; }
 .search-toggle[open] > summary { margin-bottom: 12px; }
 .search-toggle[open] .search-toggle-edit { visibility: hidden; }
 @media (min-width: 901px) { .search-toggle > summary { display: none; } }
+
+/* Εστίαση πάνω στο σκούρο μπλε (κεφαλίδα, μπάρα αναζήτησης): λευκό περίγραμμα, ευδιάκριτο. */
+.site-header :focus-visible, .search-bar :focus-visible, .hero :focus-visible { outline-color: #fff; }
+.hero .search-card :focus-visible, .search-bar .calendar-pop :focus-visible { outline-color: rgba(29, 91, 216, 0.6); }
+.credit-list { list-style: none; padding: 0; display: grid; gap: 12px; }
+.credit-list li { display: flex; gap: 14px; align-items: center; overflow-wrap: anywhere; }
