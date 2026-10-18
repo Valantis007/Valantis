@@ -15,7 +15,11 @@
         <ul class="checklist">
           <li><%= format.mileage(car) %></li>
           <li><%= t('Υποχρεωτική ασφάλιση αστικής ευθύνης (έναντι τρίτων)') %></li>
-          <li><%= t('Βασική κάλυψη ζημιών (CDW) — απαλλαγή {amount} (0 € με την Πλήρη Απαλλαγή FDW)', { amount: format.money(car.excess_cents ?? car.deposit_cents) }) %></li>
+          <li><%= t('Βασική κάλυψη ζημιών (CDW) — απαλλαγή {amount}', { amount: format.money(car.excess_cents ?? car.deposit_cents) }) %>
+            <%# Η FDW είναι προαιρετική (με χρέωση): γραμμή κάτω από τη βασική κάλυψη, όχι στα «Περιλαμβάνονται». %>
+            <% if (waiver) { %><span class="checklist-sub"><%= waiver.pricing === 'per_day'
+              ? t('Μηδενική συμμετοχή με την Πλήρη Απαλλαγή (FDW): +{price}/ημέρα', { price: format.money(waiver.price_cents) })
+              : t('Μηδενική συμμετοχή με την Πλήρη Απαλλαγή (FDW): +{price} ανά ενοικίαση', { price: format.money(waiver.price_cents) }) %></span><% } %></li>
           <% if (company.roadsideAssistance) { %><li><%= t('Οδική βοήθεια 24/7') %></li><% } %>
           <li><%= t('ΦΠΑ {vat}%', { vat: config.rules.vatPercent }) %></li>
         </ul>
@@ -27,19 +31,30 @@
         </ul>
       </div>
     </div>
-    <aside class="card pad sticky">
+    <aside class="card pad sticky" id="availability" tabindex="-1">
       <h2 class="h3"><%= t('Τιμή & διαθεσιμότητα') %></h2>
-      <%- include('../partials/search-form', { locations, values: searchValues, errors, stacked: true, action: `/cars/${car.id}`, buttonLabel: 'Έλεγχος διαθεσιμότητας' }) %>
+      <div<%= quote ? '' : ' data-bottom-bar-target' %>><%- include('../partials/search-form', { locations, values: searchValues, errors, stacked: true, action: `/cars/${car.id}`, buttonLabel: 'Έλεγχος διαθεσιμότητας' }) %></div>
       <% if (search.ok && available === false) { %>
         <div class="alert alert-error"><%- th('Το αυτοκίνητο δεν είναι διαθέσιμο για αυτές τις ημερομηνίες. <a href="{url}">Δείτε διαθέσιμα αυτοκίνητα</a>.', { url: u(`/cars?${query}`) }) %></div>
       <% } else if (quote) { %>
-        <%- include('../booking/_quote', { quote }) %>
+        <div data-bottom-bar-target><%- include('../booking/_quote', { quote }) %></div>
         <%- include('../partials/payment-means') %>
-        <a class="btn btn-primary btn-block" href="<%= u(`/booking/new?car_id=${car.id}`) %>&<%= query %>"><%= t('Συνέχεια στην κράτηση') %></a>
+        <a class="btn btn-primary btn-block" href="<%= u(`/booking/new?car_id=${car.id}`) %>&<%= query %>" data-bottom-bar-target><%= t('Συνέχεια στην κράτηση') %></a>
       <% } else { %>
         <p class="price"><%- th('από <strong>{price}</strong> / ημέρα', { price: format.money(car.daily_rate_cents) }) %></p>
       <% } %>
     </aside>
   </div>
+</div>
+<%# Κάτω μπάρα στο κινητό (≤900px): με τιμή, το σύνολο και «Συνέχεια στην κράτηση»· αλλιώς «Έλεγχος διαθεσιμότητας»,
+    που πηγαίνει στη φόρμα ημερομηνιών (σύνδεσμος #, λειτουργεί και χωρίς JavaScript). %>
+<div class="bottom-bar" data-bottom-bar>
+  <% if (quote) { %>
+    <p class="bottom-bar-price bottom-bar-stack"><%- quote.days === 1 ? th('<strong>{total}</strong> για 1 ημέρα', { total: format.money(quote.totalCents) }) : th('<strong>{total}</strong> για {n} ημέρες', { total: format.money(quote.totalCents), n: quote.days }) %></p>
+    <a class="btn btn-primary" href="<%= u(`/booking/new?car_id=${car.id}`) %>&<%= query %>"><%= t('Συνέχεια στην κράτηση') %></a>
+  <% } else { %>
+    <p class="bottom-bar-price"><%- th('από<br><strong>{price}</strong> / ημέρα', { price: format.money(car.daily_rate_cents) }) %></p>
+    <a class="btn btn-primary" href="#availability" data-bar-scroll><%= t('Έλεγχος διαθεσιμότητας') %></a>
+  <% } %>
 </div>
 <%- include('../partials/footer') %>

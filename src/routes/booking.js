@@ -49,6 +49,10 @@ module.exports = function bookingRoutes(db) {
     const quote = bookings.quoteFor(db, { car, search, extras: selectedExtras });
     const selected = Object.fromEntries(selectedExtras.map((s) => [s.extra.id, s.qty]));
     const query = searchQuery(search.values);
+    // Η Πλήρης Απαλλαγή (FDW) εμφανίζεται χωριστά, στην «Κάλυψη ζημιών» (βασική ή πλήρης)· τα υπόλοιπα
+    // στα «Πρόσθετα». Το πεδίο της φόρμας μένει το ίδιο (extra_<id>), άρα και ο υπολογισμός της τιμής.
+    const allExtras = bookings.activeExtras(db);
+    const waiver = bookings.damageWaiver(allExtras);
     // Μετά την υποβολή (POST /booking) η επιλογή γλώσσας οδηγεί πίσω στη φόρμα.
     if (req.method !== 'GET') res.locals.languages = languageLinks(req.locale, `/booking/new?car_id=${car.id}&${query}`);
     res.status(status).render('booking/new', {
@@ -57,12 +61,15 @@ module.exports = function bookingRoutes(db) {
       search,
       query,
       loginUrl: `/login?returnTo=${encodeURIComponent(`/booking/new?car_id=${car.id}&${query}`)}`,
-      extras: bookings.activeExtras(db),
+      extras: allExtras.filter((x) => x !== waiver),
+      waiver,
       selected,
       driver,
       errors,
       formError,
       quote,
+      // Κάτω μπάρα στο κινητό (σύνολο και «Σύνοψη & ολοκλήρωση»).
+      bodyClass: 'has-bottom-bar',
     });
   }
 

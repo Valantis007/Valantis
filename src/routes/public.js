@@ -125,6 +125,10 @@ module.exports = function publicRoutes(db) {
       query: searchQuery(search.values),
       quote,
       available,
+      // «Μηδενική συμμετοχή με την Πλήρη Απαλλαγή (FDW)» κάτω από τη βασική κάλυψη (αν προσφέρεται).
+      waiver: bookings.damageWaiver(bookings.activeExtras(db)),
+      // Κάτω μπάρα στο κινητό (τιμή και επόμενο βήμα).
+      bodyClass: 'has-bottom-bar',
     });
   });
 

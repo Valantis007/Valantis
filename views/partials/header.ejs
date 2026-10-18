@@ -2,7 +2,7 @@
 <html lang="<%= locale %>" data-lang-prefix="<%= langPrefix %>">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title><%= title ? `${t(title)} | ${company.name}` : company.name %></title>
   <meta name="description" content="<%= company.name %> - <%= t('Ενοικίαση αυτοκινήτων με online κράτηση, διαφανείς τιμές και δωρεάν ακύρωση.') %>">
   <% languages.forEach(function (l) { %><link rel="alternate" hreflang="<%= l.code %>" href="<%= config.baseUrl %><%= l.href %>">

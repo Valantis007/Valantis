@@ -54,6 +54,45 @@
       </section>
       <% } %>
 
+      <% if (waiver) {
+        // «Κάλυψη ζημιών»: βασική (περιλαμβάνεται, προεπιλογή) ή Πλήρης Απαλλαγή (FDW). Ποτέ προεπιλεγμένη η FDW
+        // (Οδηγία 2011/83/ΕΕ άρθ. 22). Ίδιο πεδίο με τα πρόσθετα: extra_<id> = 0 (βασική) ή 1 (FDW).
+        const fdwChosen = Boolean(selected[waiver.id]);
+        const waiverPrice = format.money(waiver.price_cents);
+        const waiverCost = waiver.pricing === 'per_day'
+          ? (quote.days === 1
+            ? th('<strong>+{price}/ημέρα</strong> ({total} για 1 ημέρα)', { price: waiverPrice, total: format.money(waiver.price_cents) })
+            : th('<strong>+{price}/ημέρα</strong> ({total} για {n} ημέρες)', { price: waiverPrice, total: format.money(waiver.price_cents * quote.days), n: quote.days }))
+          // Χρέωση ανά ενοικίαση: η ετικέτα («ανά ενοικίαση») είναι ήδη στη γλώσσα της σελίδας.
+          : th('<strong>+{price}</strong> {pricing}', { price: waiverPrice, pricing: format.label('pricing', waiver.pricing) }); %>
+      <section class="card pad cover">
+        <h2 class="h3" id="cover-title"><%= t('Κάλυψη ζημιών') %></h2>
+        <div class="radio-cards cover-cards" role="radiogroup" aria-labelledby="cover-title">
+          <label class="radio-card cover-card">
+            <input type="radio" name="extra_<%= waiver.id %>" value="0" <%= fdwChosen ? '' : 'checked' %> data-extra data-kind="damage_waiver">
+            <span class="cover-text">
+              <strong><%= t('Βασική κάλυψη (περιλαμβάνεται)') %></strong>
+              <span><%= t('Συμμετοχή σας σε ζημιές έως {excess}', { excess: format.money(quote.baseExcessCents) }) %></span>
+            </span>
+            <span class="cover-price"><strong>+<%= format.money(0) %></strong></span>
+          </label>
+          <label class="radio-card cover-card">
+            <input type="radio" name="extra_<%= waiver.id %>" value="1" <%= fdwChosen ? 'checked' : '' %> data-extra data-kind="damage_waiver">
+            <span class="cover-text">
+              <strong><%= t('Πλήρης Απαλλαγή (FDW)') %></strong>
+              <span><%= t('Συμμετοχή σας σε ζημιές {zero}', { zero: format.money(0) }) %></span>
+            </span>
+            <span class="cover-price"><%- waiverCost %></span>
+          </label>
+        </div>
+        <ul class="cover-notes">
+          <li><%= t('Η εγγύηση στην πιστωτική κάρτα είναι {deposit} και στις δύο περιπτώσεις.', { deposit: format.money(quote.depositCents) }) %></li>
+          <li class="small muted"><%= t('Η Πλήρης Απαλλαγή (FDW) δεν είναι ασφαλιστικό προϊόν: είναι συμβατική παραίτηση της εταιρείας από αξιώσεις για ζημιές του οχήματος.') %></li>
+          <li class="small muted"><%- th('Εξαιρέσεις και για τις δύο καλύψεις: <a href="{url}" target="_blank">όροι ενοικίασης, §7</a> (π.χ. ζημιές από δόλο ή βαριά αμέλεια, οδήγηση υπό την επίδραση αλκοόλ ή ουσιών).', { url: u('/terms#damage') }) %></li>
+        </ul>
+      </section>
+      <% } %>
+
       <% if (extras.length) { %>
       <section class="card pad">
         <h2 class="h3"><%= t('Πρόσθετα') %></h2>
@@ -158,14 +197,22 @@
       </dl>
       <p class="small"><a href="<%= u(`/cars/${car.id}?${query}`) %>"><%= t('Αλλαγή ημερομηνιών ή σημείων') %></a></p>
       <%- include('../partials/find-us', { findUs: places.forSearch(search.pickupLocation, search.returnLocation), compact: true }) %>
-      <%- include('_quote', { quote }) %>
+      <%# Ο σύνδεσμος της κάτω μπάρας (κινητό) οδηγεί εδώ: σύνολο και, αμέσως μετά, το κουμπί κράτησης. %>
+      <div id="booking-summary" tabindex="-1" data-bottom-bar-target><%- include('_quote', { quote }) %></div>
       <p class="small muted"><%= t('Ελέγξτε τα στοιχεία σας· μπορείτε να τα διορθώσετε πριν την υποβολή.') %></p>
-      <button type="submit" class="btn btn-primary btn-block" data-submit><%= t('Κράτηση με υποχρέωση πληρωμής') %></button>
+      <button type="submit" class="btn btn-primary btn-block" data-submit data-bottom-bar-target><%= t('Κράτηση με υποχρέωση πληρωμής') %></button>
       <p class="small muted center" data-submit-hint data-hint-card="<%= providerHint %>" data-hint-pickup="<%= pickupHint %>">
         <%= paymentsEnabled && d.payment_method === 'card' ? providerHint : pickupHint %>
       </p>
       <p class="small muted center"><%= t('Δεν υφίσταται δικαίωμα υπαναχώρησης 14 ημερών. Δωρεάν ακύρωση έως {hours} ώρες πριν την παραλαβή.', { hours: config.rules.freeCancellationHours }) %></p>
     </aside>
   </form>
+</div>
+<%# Κάτω μπάρα στο κινητό (≤900px): το σύνολο (ενημερώνεται από την ίδια απάντηση του /api/quote) και σύνδεσμος
+    που πηγαίνει στη σύνοψη. ΔΕΝ υποβάλλει τη φόρμα: το κουμπί «Κράτηση με υποχρέωση πληρωμής» μένει μόνο ένα,
+    μετά την ενημέρωση πριν την κράτηση (ν. 2251/1994 άρθ. 3β). Λειτουργεί και χωρίς JavaScript (σύνδεσμος #). %>
+<div class="bottom-bar" data-bottom-bar>
+  <p class="bottom-bar-price" aria-live="polite" aria-atomic="true"><span class="bottom-bar-label"><%= t('Σύνολο') %></span> <strong data-bar-total><%= format.money(quote.totalCents) %></strong></p>
+  <a class="btn btn-primary" href="#booking-summary" data-bar-scroll><%= t('Σύνοψη & ολοκλήρωση') %></a>
 </div>
 <%- include('../partials/footer') %>

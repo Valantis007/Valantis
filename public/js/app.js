@@ -74,6 +74,8 @@
             var el = quote.querySelector('[data-q="' + key + '"]');
             if (el) el.textContent = data[key];
           });
+          // Το ίδιο σύνολο και στην κάτω μπάρα του κινητού.
+          document.querySelectorAll('[data-bar-total]').forEach(function (el) { el.textContent = data.total; });
           // Η απαλλαγή της βασικής κάλυψης (CDW) δεν αλλάζει· με την FDW εμφανίζεται η σημείωση «0 €».
           var fdwRow = document.querySelector('[data-q-row="fdw"]');
           if (fdwRow) fdwRow.classList.toggle('hidden', !data.hasWaiver);
@@ -134,6 +136,65 @@
       if (field) field.scrollIntoView({ block: 'center' });
     }
   }
+})();
+
+// Κάτω μπάρα στο κινητό (φόρμα κράτησης, σελίδα αυτοκινήτου). Χωρίς JavaScript φαίνεται πάντα και ο σύνδεσμός
+// της πηγαίνει στη σύνοψη (#). Εδώ: ομαλή μετακίνηση, και απόκρυψη όταν φαίνεται ήδη η σύνοψη/το κουμπί της
+// σελίδας (για να μην υπάρχουν δύο ίδια) ή όταν ο πελάτης γράφει σε πεδίο (ανοιχτό πληκτρολόγιο).
+(function () {
+  'use strict';
+  var bar = document.querySelector('[data-bottom-bar]');
+  if (!bar) return;
+  var body = document.body;
+  var visible = [];
+  var typing = false;
+
+  function update() {
+    body.classList.toggle('bottom-bar-off', typing || visible.length > 0);
+  }
+
+  var targets = document.querySelectorAll('[data-bottom-bar-target]');
+  if (window.IntersectionObserver && targets.length) {
+    // Το κάτω μέρος της οθόνης (κάτω από τη μπάρα) δεν μετράει ως «φαίνεται».
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        var i = visible.indexOf(entry.target);
+        if (entry.isIntersecting && i === -1) visible.push(entry.target);
+        if (!entry.isIntersecting && i !== -1) visible.splice(i, 1);
+      });
+      update();
+    }, { rootMargin: '0px 0px -90px 0px' });
+    targets.forEach(function (el) { observer.observe(el); });
+  }
+
+  // Πεδία που ανοίγουν πληκτρολόγιο (όχι επιλογές/κουτάκια).
+  function opensKeyboard(el) {
+    if (!el || !el.tagName) return false;
+    if (el.tagName === 'TEXTAREA') return true;
+    if (el.tagName !== 'INPUT') return false;
+    return ['radio', 'checkbox', 'button', 'submit', 'hidden', 'range', 'color', 'file'].indexOf(el.type) === -1;
+  }
+  document.addEventListener('focusin', function (event) {
+    typing = opensKeyboard(event.target);
+    update();
+  });
+  document.addEventListener('focusout', function () {
+    typing = false;
+    update();
+  });
+
+  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  bar.querySelectorAll('[data-bar-scroll]').forEach(function (link) {
+    link.addEventListener('click', function (event) {
+      var target = document.getElementById((link.getAttribute('href') || '').slice(1));
+      if (!target) return;
+      event.preventDefault();
+      target.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+      // Η εστίαση πηγαίνει εκεί (πληκτρολόγιο, αναγνώστες οθόνης), χωρίς δεύτερη μετακίνηση.
+      try { target.focus({ preventScroll: true }); } catch (e) { target.focus(); }
+    });
+  });
+  update();
 })();
 
 // Φίλτρα αποτελεσμάτων: στο κινητό κλειστά (ανοίγουν με πάτημα), και εφαρμόζονται αμέσως μόλις αλλάξουν.

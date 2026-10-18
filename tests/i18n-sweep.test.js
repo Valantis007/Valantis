@@ -45,6 +45,23 @@ for (const locale of ['en', 'es']) {
     }
   });
 
+  test(`[${locale}] κάτω μπάρα: το σύνολο που γράφει το JavaScript έρχεται από το /api/quote στη μορφή της γλώσσας`, async () => {
+    const { db, app } = h.setup();
+    const fdw = db.prepare("SELECT id FROM extras WHERE kind = 'damage_waiver' ORDER BY sort_order, id").get().id;
+    const params = h.searchParams();
+    const form = await h.request(app).get(p(`/booking/new?${new URLSearchParams(params)}`));
+    const shown = /<strong data-bar-total>([^<]+)<\/strong>/.exec(form.text)[1];
+    // Η σελίδα και το /api/quote (που ενημερώνει τη μπάρα όταν αλλάζει η κάλυψη) γράφουν το ποσό με τον ίδιο τρόπο.
+    const basic = await h.request(app).get(p(`/api/quote?${new URLSearchParams({ ...params, [`extra_${fdw}`]: '0' })}`));
+    assert.equal(basic.body.total, shown);
+    const full = await h.request(app).get(p(`/api/quote?${new URLSearchParams({ ...params, [`extra_${fdw}`]: '1' })}`));
+    assert.match(full.body.total, locale === 'en' ? /^€\d+\.\d\d$/ : /^\d+,\d\d\s€$/);
+    // Το public/js/app.js δεν έχει δικά του κείμενα (μόνο σχόλια στα ελληνικά): όλα έρχονται από τη σελίδα.
+    const js = fs.readFileSync(path.join(__dirname, '..', 'public', 'js', 'app.js'), 'utf8');
+    const code = js.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"\\])\/\/.*$/gm, '$1');
+    assert.doesNotMatch(code, GREEK);
+  });
+
   test(`[${locale}] φόρμα κράτησης μετά από σφάλμα: η ένδειξη αφαιρεμένου αριθμού κάρτας στη γλώσσα της σελίδας`, async () => {
     const { app } = h.setup();
     const agent = h.agent(app);

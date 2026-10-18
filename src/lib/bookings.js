@@ -38,6 +38,12 @@ function activeExtras(db) {
   return db.prepare('SELECT * FROM extras WHERE active = 1 ORDER BY sort_order, id').all();
 }
 
+// Η Πλήρης Απαλλαγή (FDW) που προσφέρεται ως επιλογή στην «Κάλυψη ζημιών» (απέναντι στη βασική
+// κάλυψη): το πρώτο ενεργό πρόσθετο του είδους, κατά σειρά. Τυχόν άλλα του ίδιου είδους μένουν στα «Πρόσθετα».
+function damageWaiver(extras) {
+  return extras.find((x) => x.kind === 'damage_waiver') || null;
+}
+
 // Τα πρόσθετα έρχονται από τη φόρμα ως extra_<id>=<ποσότητα>.
 function parseExtras(db, input) {
   const selected = [];
@@ -405,6 +411,7 @@ module.exports = {
   BookingError,
   parseExtras,
   activeExtras,
+  damageWaiver,
   quoteFor,
   validateDriver,
   isValidGreekVat,

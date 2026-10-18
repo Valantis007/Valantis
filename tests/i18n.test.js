@@ -51,12 +51,17 @@ for (const locale of ['en', 'es']) {
     // Παράδοση σε ξενοδοχείο (πεδία διεύθυνσης) και αεροδρόμιο → λιμάνι («Πώς θα μας βρείτε»).
     const hotel = new URLSearchParams(h.searchParams({ pickupLocation: 4, returnLocation: 4 })).toString();
     const airportPort = new URLSearchParams(h.searchParams({ pickupLocation: 2, returnLocation: 3 })).toString();
+    // Σελίδα αυτοκινήτου με τιμή (κάτω μπάρα «… για 3 ημέρες») και φόρμα για 1 ημέρα («Κάλυψη ζημιών», ενικός).
+    const carSearch = new URLSearchParams(h.searchParams()).toString().replace('car_id=1&', '');
+    const oneDay = new URLSearchParams(h.searchParams({ days: 1 })).toString();
     const pages = [
       '/',
       '/cars',
       `/cars?${search}`,
       '/cars/1',
+      `/cars/1?${carSearch}`,
       `/booking/new?${search}`,
+      `/booking/new?${oneDay}`,
       `/booking/new?${hotel}`,
       `/booking/new?${airportPort}`,
       '/manage',
@@ -145,6 +150,44 @@ for (const locale of ['en', 'es']) {
       assert.match(res.text, /Hotel Electra Palace/);
       assertNoGreek(res.text, `${p(path)} (ξενοδοχείο)`);
     }
+  });
+
+  test(`[${locale}] κάλυψη ζημιών και κάτω μπάρα: όλες οι καταστάσεις χωρίς ελληνικό κείμενο`, async () => {
+    const { db, app } = h.setup();
+    const fdw = db.prepare("SELECT id FROM extras WHERE kind = 'damage_waiver' ORDER BY sort_order, id").get().id;
+    const params = h.searchParams();
+    const form = p(`/booking/new?${new URLSearchParams(params)}`);
+    const agent = h.agent(app);
+    const page = await agent.get(form);
+    assert.match(page.text, locale === 'en' ? /Damage cover[\s\S]*Basic cover \(included\)[\s\S]*Full Damage Waiver \(FDW\)/ : /Cobertura de daños[\s\S]*Cobertura básica \(incluida\)[\s\S]*Exención total por daños \(FDW\)/);
+    assert.match(page.text, locale === 'en' ? /Summary &amp; finish/ : /Resumen y finalizar/);
+    assert.match(page.text, new RegExp(`href="/${locale}/terms#damage"`));
+    // Φόρμα που ξαναεμφανίζεται με επιλεγμένη την FDW (σφάλμα επικύρωσης), και με τη βασική.
+    for (const value of ['1', '0']) {
+      const res = await h.post(agent, p('/booking'), { ...params, ...h.driver({ ...LATIN_DRIVER, email: 'not-an-email' }), [`extra_${fdw}`]: value }, form);
+      assert.equal(res.status, 422);
+      assertNoGreek(res.text, `${p('/booking')} (σφάλμα, extra_${fdw}=${value})`);
+    }
+    // Σελίδα αυτοκινήτου: τιμή για 1 ημέρα, χωρίς διαθεσιμότητα.
+    const one = h.searchParams({ days: 1 });
+    delete one.car_id;
+    const oneDay = await agent.get(p(`/cars/1?${new URLSearchParams(one)}`));
+    assert.match(oneDay.text, locale === 'en' ? /for 1 day/ : /por 1 día/);
+    assertNoGreek(oneDay.text, `${p('/cars/1')} (1 ημέρα)`);
+    const ok = await h.post(agent, p('/booking'), { ...params, ...h.driver(LATIN_DRIVER), [`extra_${fdw}`]: '1' }, form);
+    assert.equal(ok.status, 303);
+    const three = { ...params };
+    delete three.car_id;
+    const taken = await agent.get(p(`/cars/1?${new URLSearchParams(three)}`));
+    assert.match(taken.text, /data-bar-scroll/);
+    assertNoGreek(taken.text, `${p('/cars/1')} (μη διαθέσιμο)`);
+    // Η κράτηση με FDW (σελίδα, εκτύπωση) και Πλήρης Απαλλαγή με χρέωση ανά ενοικίαση.
+    for (const path of [`/booking/${h.bookingRef(ok)}`, `/booking/${h.bookingRef(ok)}/print`]) assertNoGreek((await agent.get(p(path))).text, `${p(path)} (FDW)`);
+    db.prepare("UPDATE extras SET pricing = 'per_rental' WHERE id = ?").run(fdw);
+    const perRental = await agent.get(p(`/booking/new?${new URLSearchParams(h.searchParams({ car: 2 }))}`));
+    assert.match(perRental.text, locale === 'en' ? /per rental/ : /por alquiler/);
+    assertNoGreek(perRental.text, `${p('/booking/new')} (FDW ανά ενοικίαση)`);
+    assertNoGreek((await agent.get(p('/cars/2'))).text, `${p('/cars/2')} (FDW ανά ενοικίαση)`);
   });
 
   test(`[${locale}] emails προς τον πελάτη χωρίς ελληνικό κείμενο`, async () => {

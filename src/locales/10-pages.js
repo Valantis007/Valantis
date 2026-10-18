@@ -114,8 +114,6 @@ module.exports = {
     '← Πίσω στα αποτελέσματα': '← Back to results',
     'Περιλαμβάνονται στην τιμή': 'Included in the price',
     'Υποχρεωτική ασφάλιση αστικής ευθύνης (έναντι τρίτων)': 'Compulsory third-party liability insurance',
-    'Βασική κάλυψη ζημιών (CDW) — απαλλαγή {amount} (0 € με την Πλήρη Απαλλαγή FDW)':
-      'Basic damage cover (CDW) — excess {amount} (€0 with the Full Damage Waiver, FDW)',
     'Οδική βοήθεια 24/7': '24/7 roadside assistance',
     'ΦΠΑ {vat}%': '{vat}% VAT',
     'Απαιτήσεις': 'Requirements',
@@ -383,8 +381,6 @@ module.exports = {
     '← Πίσω στα αποτελέσματα': '← Volver a los resultados',
     'Περιλαμβάνονται στην τιμή': 'Incluido en el precio',
     'Υποχρεωτική ασφάλιση αστικής ευθύνης (έναντι τρίτων)': 'Seguro obligatorio de responsabilidad civil (frente a terceros)',
-    'Βασική κάλυψη ζημιών (CDW) — απαλλαγή {amount} (0 € με την Πλήρη Απαλλαγή FDW)':
-      'Cobertura básica de daños (CDW): franquicia de {amount} (0 € con la Exención total por daños, FDW)',
     'Οδική βοήθεια 24/7': 'Asistencia en carretera 24/7',
     'ΦΠΑ {vat}%': 'IVA del {vat}%',
     'Απαιτήσεις': 'Requisitos',
