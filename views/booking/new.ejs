@@ -7,7 +7,14 @@
    const providerHint = t('Θα μεταφερθείτε στην ασφαλή σελίδα πληρωμής ({provider}). Η κράτηση ολοκληρώνεται με την επιτυχή πληρωμή.', { provider: paymentProviderLabel });
    const pickupHint = t('Η πληρωμή γίνεται κατά την παραλαβή.');
    // Αριθμοί καρτών που αφαιρέθηκαν από τις σημειώσεις (bookings.maskCardNumbers): η ένδειξη στη γλώσσα της σελίδας.
-   function unmasked(s) { return String(s || '').split('[αφαιρέθηκε]').join(t('[αφαιρέθηκε]')); } %>
+   function unmasked(s) { return String(s || '').split('[αφαιρέθηκε]').join(t('[αφαιρέθηκε]')); }
+   // Σημεία όπου φέρνουμε/παραλαμβάνουμε εμείς το αυτοκίνητο (π.χ. ξενοδοχείο): ζητείται η διεύθυνση.
+   const needPickupAddress = Boolean(search.pickupLocation.needs_address);
+   const needReturnAddress = Boolean(search.returnLocation.needs_address);
+   const sameChoice = needPickupAddress && needReturnAddress;
+   const addressPlaces = [];
+   if (needPickupAddress) addressPlaces.push(tf(search.pickupLocation, 'name'));
+   if (needReturnAddress && !addressPlaces.includes(tf(search.returnLocation, 'name'))) addressPlaces.push(tf(search.returnLocation, 'name')); %>
 <div class="container section">
   <p><a href="<%= u(`/cars/${car.id}?${query}`) %>">← <%= t('Πίσω') %></a></p>
   <h1><%= t('Ολοκλήρωση κράτησης') %></h1>
@@ -22,6 +29,31 @@
     <% }) %>
 
     <div class="stack">
+      <% if (needPickupAddress || needReturnAddress) { %>
+      <section class="card pad address-fields" data-address-fields>
+        <h2 class="h3"><%= addressPlaces.join(' · ') %></h2>
+        <% if (needPickupAddress) { %>
+          <div class="field">
+            <label for="pickup_address"><%= t('Διεύθυνση παράδοσης (ξενοδοχείο, οδός, περιοχή) *') %></label>
+            <input id="pickup_address" name="pickup_address" value="<%= unmasked(d.pickup_address) %>" maxlength="200" required autocomplete="street-address">
+            <span class="hint"><%= t('Εντός πόλης') %></span>
+            <%- err('pickup_address') %>
+          </div>
+        <% } %>
+        <% if (sameChoice) { %>
+          <label class="check"><input type="checkbox" name="return_same_address" value="1" <%= d.return_same_address ? 'checked' : '' %> data-same-address><span><%= t('Θα παραλάβουμε το αυτοκίνητο από την ίδια διεύθυνση') %></span></label>
+        <% } %>
+        <% if (needReturnAddress) { %>
+          <div class="field" data-return-address>
+            <label for="return_address"><%= t('Διεύθυνση από όπου θα παραλάβουμε το αυτοκίνητο *') %></label>
+            <input id="return_address" name="return_address" value="<%= sameChoice && d.return_same_address ? '' : unmasked(d.return_address) %>" maxlength="200" required autocomplete="street-address">
+            <span class="hint"><%= t('Εντός πόλης') %></span>
+            <%- err('return_address') %>
+          </div>
+        <% } %>
+      </section>
+      <% } %>
+
       <% if (extras.length) { %>
       <section class="card pad">
         <h2 class="h3"><%= t('Πρόσθετα') %></h2>
@@ -125,6 +157,7 @@
         <div><dt><%= t('Επιστροφή') %></dt><dd><%= format.dateTime(search.returnAt) %><br><span class="muted"><%= tf(search.returnLocation, 'name') %></span></dd></div>
       </dl>
       <p class="small"><a href="<%= u(`/cars/${car.id}?${query}`) %>"><%= t('Αλλαγή ημερομηνιών ή σημείων') %></a></p>
+      <%- include('../partials/find-us', { findUs: places.forSearch(search.pickupLocation, search.returnLocation), compact: true }) %>
       <%- include('_quote', { quote }) %>
       <p class="small muted"><%= t('Ελέγξτε τα στοιχεία σας· μπορείτε να τα διορθώσετε πριν την υποβολή.') %></p>
       <button type="submit" class="btn btn-primary btn-block" data-submit><%= t('Κράτηση με υποχρέωση πληρωμής') %></button>

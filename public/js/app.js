@@ -53,10 +53,12 @@
     var submit = bookingForm.querySelector('[data-submit]');
     var pending = null;
 
+    // Μόνο τα στοιχεία της αναζήτησης και τα πρόσθετα (όχι π.χ. η διεύθυνση παράδοσης του πελάτη).
+    var QUOTE_KEYS = ['car_id', 'pickup_location', 'return_location', 'pickup_date', 'pickup_time', 'return_date', 'return_time'];
     function refreshQuote() {
       var params = new URLSearchParams();
       new FormData(bookingForm).forEach(function (value, key) {
-        if (key === 'car_id' || key.indexOf('pickup_') === 0 || key.indexOf('return_') === 0 || key.indexOf('extra_') === 0) {
+        if (QUOTE_KEYS.indexOf(key) !== -1 || key.indexOf('extra_') === 0) {
           params.append(key, value);
         }
       });
@@ -110,6 +112,21 @@
     }
     bookingForm.querySelectorAll('[data-kind="child_seat"]').forEach(function (el) { el.addEventListener('change', syncChild); });
     syncChild();
+
+    // Διεύθυνση από όπου παραλαμβάνουμε το αυτοκίνητο: κρύβεται όταν είναι η ίδια με τη διεύθυνση παράδοσης
+    // (χωρίς JavaScript την κρύβει το CSS· εδώ απενεργοποιείται και το πεδίο, ώστε να μη σταλεί).
+    var sameAddress = bookingForm.querySelector('[data-same-address]');
+    var returnAddress = bookingForm.querySelector('[data-return-address]');
+    function syncAddress(focus) {
+      if (!sameAddress || !returnAddress) return;
+      returnAddress.classList.toggle('hidden', sameAddress.checked);
+      var input = returnAddress.querySelector('input');
+      if (!input) return;
+      input.disabled = sameAddress.checked;
+      if (focus === true && !sameAddress.checked) input.focus();
+    }
+    if (sameAddress) sameAddress.addEventListener('change', function () { syncAddress(true); });
+    syncAddress();
 
     var firstError = document.querySelector('.error');
     if (firstError) {

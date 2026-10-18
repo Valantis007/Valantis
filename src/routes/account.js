@@ -89,7 +89,7 @@ module.exports = function accountRoutes(db) {
         `SELECT b.reference, b.status, b.created_at, b.pickup_at, b.return_at, c.make, c.model,
            pl.name AS pickup_location, rl.name AS return_location,
            b.first_name, b.last_name, b.email, b.phone, b.birth_date, b.license_number, b.license_country, b.license_issued,
-           b.flight_number, b.notes, b.child_info, b.invoice_requested, b.invoice_vat, b.invoice_name, b.invoice_address,
+           b.flight_number, b.notes, b.child_info, b.pickup_address, b.return_address, b.invoice_requested, b.invoice_vat, b.invoice_name, b.invoice_address,
            b.invoice_tax_office, b.invoice_activity, b.total_cents, b.paid_cents, b.refunded_cents, b.payment_status,
            b.payment_method, b.terms_version, b.terms_accepted_at, b.id
          FROM bookings b JOIN cars c ON c.id = b.car_id
@@ -149,7 +149,8 @@ module.exports = function accountRoutes(db) {
       db.prepare(
         `UPDATE bookings SET first_name = 'Διαγραμμένος', last_name = 'πελάτης', email = 'deleted@invalid',
            phone = '', birth_date = '', license_number = '', license_country = '', license_issued = '',
-           flight_number = NULL, notes = NULL, child_info = NULL, invoice_vat = NULL, invoice_name = NULL,
+           flight_number = NULL, notes = NULL, child_info = NULL, pickup_address = NULL, return_address = NULL,
+           invoice_vat = NULL, invoice_name = NULL,
            invoice_address = NULL, invoice_tax_office = NULL, invoice_activity = NULL, personal_data_purged_at = datetime('now')
          WHERE user_id = ? AND paid_cents = 0 AND status IN ('cancelled', 'expired')`,
       ).run(req.user.id);

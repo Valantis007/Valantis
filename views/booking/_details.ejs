@@ -7,8 +7,10 @@
     </div>
   </div>
   <dl class="trip">
-    <div><dt><%= t('Παραλαβή') %></dt><dd><strong><%= format.dateTime(booking.pickup_at) %></strong><br><%= tf(booking, 'pickup_location_name') %><br><span class="muted small"><%= tf(booking, 'pickup_location_address') %></span></dd></div>
-    <div><dt><%= t('Επιστροφή') %></dt><dd><strong><%= format.dateTime(booking.return_at) %></strong><br><%= tf(booking, 'return_location_name') %><br><span class="muted small"><%= tf(booking, 'return_location_address') %></span></dd></div>
+    <div><dt><%= t('Παραλαβή') %></dt><dd><strong><%= format.dateTime(booking.pickup_at) %></strong><br><%= tf(booking, 'pickup_location_name') %><br>
+      <% if (booking.pickup_address) { %><strong class="small" data-customer-address="pickup"><%= t('Διεύθυνση παράδοσης: {address}', { address: booking.pickup_address }) %></strong><% } else { %><span class="muted small"><%= tf(booking, 'pickup_location_address') %></span><% } %></dd></div>
+    <div><dt><%= t('Επιστροφή') %></dt><dd><strong><%= format.dateTime(booking.return_at) %></strong><br><%= tf(booking, 'return_location_name') %><br>
+      <% if (booking.return_address) { %><strong class="small" data-customer-address="return"><%= t('Θα παραλάβουμε το αυτοκίνητο από: {address}', { address: booking.return_address }) %></strong><% } else { %><span class="muted small"><%= tf(booking, 'return_location_address') %></span><% } %></dd></div>
   </dl>
   <h3 class="h4"><%= t('Οδηγός') %></h3>
   <p><%= booking.first_name %> <%= booking.last_name %> · <%= booking.email %> · <%= booking.phone %><% if (booking.flight_number) { %><br><%= t('Πτήση/πλοίο') %>: <%= booking.flight_number %><% } %></p>

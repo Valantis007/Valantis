@@ -177,7 +177,7 @@ module.exports = function publicRoutes(db) {
 
   router.get('/contact', (req, res) => {
     const kind = MESSAGE_KINDS.includes(req.query.kind) ? req.query.kind : 'question';
-    res.render('pages/contact', { title: 'Επικοινωνία', values: { kind }, errors: {} });
+    res.render('pages/contact', { title: 'Επικοινωνία', values: { kind }, errors: {}, locations: locations() });
   });
 
   router.get('/company', (req, res) => res.render('pages/company', { title: 'Στοιχεία εταιρείας' }));
@@ -209,7 +209,7 @@ module.exports = function publicRoutes(db) {
     // Παγίδα για bots: κρυφό πεδίο που οι άνθρωποι αφήνουν κενό.
     if (req.body.website) return res.redirect('/contact');
     if (Object.keys(errors).length) {
-      return res.status(422).render('pages/contact', { title: 'Επικοινωνία', values, errors });
+      return res.status(422).render('pages/contact', { title: 'Επικοινωνία', values, errors, locations: locations() });
     }
     db.prepare('INSERT INTO messages (name, email, phone, subject, body, kind, booking_reference, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(
       values.name,

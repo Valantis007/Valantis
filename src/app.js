@@ -29,6 +29,8 @@ function createApp({ db, uploadDir = config.uploadDir, settingsEnvPath = null, o
   app.locals.db = db;
   app.locals.uploadDir = uploadDir;
   app.locals.sessionStore = store;
+  // «Πώς θα μας βρείτε» (οδηγίες σημείων, Google Maps) για τα templates.
+  app.locals.places = require('./lib/places');
 
   app.set('view engine', 'ejs');
   app.set('views', path.join(__dirname, '..', 'views'));

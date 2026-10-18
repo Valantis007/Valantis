@@ -19,6 +19,9 @@
     <h1><%- th('Επιβεβαίωση κράτησης <span class="ref">{ref}</span>', { ref: booking.reference }) %></h1>
     <p><%- th('Κατάσταση: <strong>{status}</strong>', { status: format.label('status', booking.status) }) %></p>
     <%- include('_details', { booking, extras }) %>
+    <% if (['pending_payment', 'confirmed', 'active'].includes(booking.status)) { %>
+      <%- include('../partials/find-us', { findUs: places.forBooking(booking) }) %>
+    <% } %>
     <ul class="small">
       <li><%- th('<strong>Εγγύηση {amount}:</strong> δέσμευση (όχι χρέωση) σε πιστωτική κάρτα στο όνομα του κύριου οδηγού, κατά την παραλαβή ή online. Αποδεσμεύεται μετά την επιστροφή.', { amount: format.money(booking.deposit_cents) }) %></li>
       <li><%- th('<strong>Απαλλαγή ζημιών:</strong> {excess} (μέγιστη συμμετοχή σας σε ζημιές, εκτός από τις εξαιρέσεις των όρων §7).', { excess: format.money(booking.excess_cents ?? booking.deposit_cents) }) %></li>

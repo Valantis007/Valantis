@@ -134,7 +134,7 @@ code { background: #eef1f6; padding: 0 4px; border-radius: 4px; }
 .field label { font-weight: 600; font-size: 0.9rem; }
 .field .hint { font-size: 0.8rem; color: var(--muted); }
 .error { color: var(--error); font-size: 0.85rem; }
-input[type="text"], input[type="email"], input[type="tel"], input[type="password"], input[type="number"],
+input[type="text"], input[type="email"], input[type="tel"], input[type="url"], input[type="password"], input[type="number"],
 input[type="date"], input[type="datetime-local"], input:not([type]), select, textarea {
   width: 100%; padding: 9px 11px; font: inherit; color: var(--text);
   background: #fff; border: 1px solid #ccd5e1; border-radius: 6px; min-height: 44px;
@@ -506,3 +506,23 @@ figure.car-hero { margin: 0; }
 .credit-list li { display: flex; gap: 14px; align-items: center; overflow-wrap: anywhere; }
 .left { text-align: left; }
 .alert pre { white-space: pre-wrap; overflow-wrap: anywhere; margin: 8px 0 0; }
+
+/* ===== «Πώς θα μας βρείτε» (views/partials/find-us.ejs) και διεύθυνση παράδοσης ===== */
+.find-us h2 { margin: 0 0 8px; }
+.find-us-stop p { margin: 0 0 6px; }
+.find-us-stop + .find-us-stop { border-top: 1px solid var(--border); margin-top: 12px; padding-top: 12px; }
+.find-us-text { white-space: pre-line; overflow-wrap: anywhere; }
+.find-us .btn-small { margin-top: 2px; }
+/* Στη σύνοψη της φόρμας κράτησης: χωρίς κάρτα, μικρότερα γράμματα. */
+.find-us-compact { border-top: 1px solid var(--border); margin: 12px 0; padding-top: 12px; font-size: 0.875rem; }
+.find-us-compact h2 { font-size: 0.95rem; }
+.find-us-compact .find-us-stop + .find-us-stop { margin-top: 8px; padding-top: 8px; }
+.find-us-list { margin-top: 24px; }
+.inline-grid .full { flex-basis: 100%; }
+.location-form textarea { min-height: 4.5em; }
+.location-form .narrow { flex: 0 1 140px; }
+/* «Ίδια διεύθυνση»: χωρίς JavaScript το πεδίο κρύβεται με CSS (με JavaScript και απενεργοποιείται). */
+.address-fields { display: flex; flex-direction: column; gap: 12px; }
+.address-fields h2 { margin: 0; }
+.address-fields:has([data-same-address]:checked) [data-return-address] { display: none; }
+@media print { .find-us .btn-small { border: 0; padding: 0; } }

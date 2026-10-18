@@ -42,7 +42,9 @@ function missingTranslations(db) {
   }
   for (const l of db.prepare('SELECT * FROM locations WHERE active = 1 ORDER BY sort_order, id').all()) {
     add('location', l, l.name, 'Όνομα', l.name, missingLangs(l, 'name'), `/admin/locations#location-${l.id}`);
-    add('location', l, l.name, 'Διεύθυνση / οδηγίες', l.address, missingLangs(l, 'address'), `/admin/locations#location-${l.id}`);
+    add('location', l, l.name, 'Διεύθυνση', l.address, missingLangs(l, 'address'), `/admin/locations#location-${l.id}`);
+    add('location', l, l.name, 'Οδηγίες παραλαβής', l.instructions, missingLangs(l, 'instructions'), `/admin/locations#location-${l.id}`);
+    add('location', l, l.name, 'Οδηγίες επιστροφής', l.return_instructions, missingLangs(l, 'return_instructions'), `/admin/locations#location-${l.id}`);
   }
   return items;
 }

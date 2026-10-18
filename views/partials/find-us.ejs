@@ -1,0 +1,22 @@
+<%
+  // «Πώς θα μας βρείτε»: οδηγίες παραλαβής και επιστροφής με «Οδηγίες πορείας» (src/lib/places.js).
+  // findUs: places.forBooking(booking) ή places.forSearch(παραλαβή, επιστροφή)
+  // compact: σύντομη μορφή στη σύνοψη της φόρμας κράτησης (χωρίς κάρτα, με μικρότερα γράμματα).
+  const fu = findUs;
+  const compactMode = Boolean(locals.compact);
+  const items = [
+    { stop: fu.pickup, title: t('Παραλαβή'), showPlace: true },
+    { stop: fu.ret, title: t('Επιστροφή'), showPlace: !fu.same },
+  ].filter(function (i) { return i.stop && places.hasDetails(i.stop) && (i.showPlace || tf(i.stop, 'text')); });
+%>
+<% if (items.length) { %>
+<section class="find-us <%= compactMode ? 'find-us-compact' : 'card pad' %>">
+  <h2 class="h4"><%= t('Πώς θα μας βρείτε') %></h2>
+  <% items.forEach(function (i) { %>
+    <%- include('find-us-stop', { stop: i.stop, title: i.title, showPlace: i.showPlace, compact: compactMode }) %>
+  <% }) %>
+  <% if (company.phone && !compactMode) { %>
+    <p class="small muted"><%- th('Αν χρειαστείτε βοήθεια, καλέστε μας στο <a href="{url}">{phone}</a>.', { url: `tel:${company.phone.replace(/\s/g, '')}`, phone: company.phone }) %></p>
+  <% } %>
+</section>
+<% } %>

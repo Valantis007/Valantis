@@ -21,11 +21,16 @@
     <% } %>
   <% } else if (booking.status === 'expired') { %>
     <div class="alert alert-error"><%- th('Η κράτηση έληξε επειδή δεν ολοκληρώθηκε η πληρωμή. <a href="{url}">Κάντε νέα αναζήτηση</a>.', { url: u('/cars') }) %></div>
+  <% } else if (booking.status === 'confirmed' && booking.pickup_address) { %>
+    <div class="alert alert-success"><%- th('Η κράτησή σας είναι επιβεβαιωμένη. Θα σας φέρουμε το αυτοκίνητο στις <strong>{date}</strong> στη διεύθυνση «{address}».', { date: format.dateTime(booking.pickup_at), address: booking.pickup_address }) %></div>
   <% } else if (booking.status === 'confirmed') { %>
     <div class="alert alert-success"><%- th('Η κράτησή σας είναι επιβεβαιωμένη. Σας περιμένουμε στις <strong>{date}</strong> στο σημείο «{location}».', { date: format.dateTime(booking.pickup_at), location: tf(booking, 'pickup_location_name') }) %></div>
   <% } %>
 
   <%- include('_details', { booking, extras }) %>
+  <% if (['pending_payment', 'confirmed', 'active'].includes(booking.status)) { %>
+    <%- include('../partials/find-us', { findUs: places.forBooking(booking) }) %>
+  <% } %>
 
   <% if (pendingRefundCents) { %>
     <div class="alert alert-info"><%= t('Επιστροφή {amount} στην κάρτα σας είναι σε εξέλιξη.', { amount: format.money(pendingRefundCents) }) %></div>

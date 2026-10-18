@@ -21,6 +21,7 @@ const mileage = require('../lib/mileage');
 const translationsCheck = require('../lib/translations-check');
 const companyLib = require('../lib/company');
 const presets = require('../lib/presets');
+const places = require('../lib/places');
 const QRCode = require('qrcode');
 const { transaction, normalizeText } = require('../db');
 const { BLOCKING_SQL, OVERLAP_SQL, EFFECTIVE_RETURN_SQL, blockingParams } = require('../lib/availability');
@@ -910,10 +911,23 @@ module.exports = function adminRoutes(db, { uploadDir, settings = {} }) {
     rerender: true,
     missingType: 'location',
     parse(body) {
-      const values = { name: str(body.name, 100), address: str(body.address, 200), fee: str(body.fee, 10), sort_order: str(body.sort_order, 4) };
+      const values = {
+        name: str(body.name, 100),
+        address: str(body.address, 200),
+        // «Πώς θα μας βρείτε»: οδηγίες παραλαβής/επιστροφής (πολλές γραμμές) και σύνδεσμος χάρτη.
+        instructions: str(body.instructions, 1000),
+        return_instructions: str(body.return_instructions, 1000),
+        map_url: str(body.map_url, 500),
+        fee: str(body.fee, 10),
+        sort_order: str(body.sort_order, 4),
+      };
+      const textFields = { name: 100, address: 200, instructions: 1000, return_instructions: 1000 };
       const errors = {};
       if (!values.name) errors.name = 'Το όνομα είναι υποχρεωτικό.';
-      Object.assign(errors, translationErrors({ ...values, ...translations(body, { name: 100, address: 200 }) }, ['name', 'address']));
+      if (values.map_url && !places.isMapUrl(values.map_url)) {
+        errors.map_url = 'Ο σύνδεσμος χάρτη πρέπει να ξεκινά με https:// — αντιγράψτε τον από το Google Maps («Κοινοποίηση» → «Αντιγραφή συνδέσμου»).';
+      }
+      Object.assign(errors, translationErrors({ ...values, ...translations(body, textFields) }, Object.keys(textFields)));
       const fee = values.fee === '' ? 0 : format.parseMoneyToCents(values.fee);
       if (fee === null) errors.fee = 'Μη έγκυρη χρέωση.';
       return {
@@ -922,7 +936,12 @@ module.exports = function adminRoutes(db, { uploadDir, settings = {} }) {
         row: {
           name: values.name,
           address: values.address,
-          ...translations(body, { name: 100, address: 200 }),
+          instructions: values.instructions,
+          return_instructions: values.return_instructions,
+          ...translations(body, textFields),
+          map_url: values.map_url || null,
+          // Ο πελάτης γράφει διεύθυνση παράδοσης/παραλαβής (π.χ. ξενοδοχείο).
+          needs_address: checkbox(body.needs_address) ? 1 : 0,
           fee_cents: fee ?? 0,
           sort_order: intOrNull(values.sort_order) ?? 0,
           active: checkbox(body.active) ? 1 : 0,

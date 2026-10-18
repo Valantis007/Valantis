@@ -77,6 +77,8 @@ module.exports = function bookingRoutes(db) {
       // Στα ελληνικά προτείνεται «Ελλάδα»· στις άλλες γλώσσες ο πελάτης τη συμπληρώνει (συνήθως ξένο δίπλωμα).
       license_country: req.locale === 'el' ? 'Ελλάδα' : '',
       payment_method: providers.onlineEnabled() ? 'card' : 'pay_at_pickup',
+      // Παράδοση και παραλαβή στο ίδιο ξενοδοχείο (το πιο συνηθισμένο): ο πελάτης το αλλάζει αν θέλει.
+      return_same_address: true,
     };
   }
 
@@ -114,6 +116,9 @@ module.exports = function bookingRoutes(db) {
     const { values: driver, errors } = bookings.validateDriver(req.body, car, search.pickupAt, {
       paymentEnabled: providers.onlineEnabled(),
       needsChildInfo: selectedExtras.some((x) => x.extra.kind === 'child_seat'),
+      // Παράδοση/παραλαβή στη διεύθυνση του πελάτη (π.χ. ξενοδοχείο): ζητείται η διεύθυνση.
+      pickupNeedsAddress: Boolean(search.pickupLocation.needs_address),
+      returnNeedsAddress: Boolean(search.returnLocation.needs_address),
     });
     if (Object.keys(errors).length) {
       return renderForm(req, res, { status: 422, car, search, driver, errors, selectedExtras });

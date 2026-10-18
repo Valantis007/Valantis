@@ -3,18 +3,11 @@
 // Αρχικά δεδομένα: ενδεικτικά σημεία, πρόσθετα, εποχές και στόλος.
 // Αλλάξτε τα ελεύθερα από τον πίνακα διαχείρισης μετά την εγκατάσταση.
 
+const config = require('../config');
 const { transaction } = require('./index');
+const { seedLocations } = require('./seed-locations');
 
-const locations = [
-  { name: 'Γραφείο - Κέντρο πόλης', name_en: 'Office - City centre', name_es: 'Oficina - Centro de la ciudad', address: 'Οδός 1, Κέντρο', address_en: 'Street 1, City centre', address_es: 'Calle 1, Centro', fee_cents: 0, sort_order: 1 },
-  { name: 'Αεροδρόμιο', name_en: 'Airport', name_es: 'Aeropuerto', address: 'Αίθουσα αφίξεων', address_en: 'Arrivals hall', address_es: 'Sala de llegadas', fee_cents: 2000, sort_order: 2 },
-  { name: 'Λιμάνι', name_en: 'Port', name_es: 'Puerto', address: 'Επιβατικός σταθμός', address_en: 'Passenger terminal', address_es: 'Terminal de pasajeros', fee_cents: 1000, sort_order: 3 },
-  {
-    name: 'Παράδοση σε ξενοδοχείο (εντός πόλης)', name_en: 'Hotel delivery (within the city)', name_es: 'Entrega en el hotel (dentro de la ciudad)',
-    address: 'Στη διεύθυνση που θα μας δώσετε', address_en: 'At the address you give us', address_es: 'En la dirección que nos indique',
-    fee_cents: 1500, sort_order: 4,
-  },
-];
+// Τα σημεία με τις οδηγίες «Πώς θα μας βρείτε»: src/db/seed-locations.js.
 
 const extras = [
   {
@@ -80,10 +73,13 @@ function seedIfEmpty(db) {
   transaction(db, () => {
     if (!db.prepare('SELECT 1 FROM locations LIMIT 1').get()) {
       const stmt = db.prepare(
-        `INSERT INTO locations (name, name_en, name_es, address, address_en, address_es, fee_cents, sort_order)
-         VALUES (:name, :name_en, :name_es, :address, :address_en, :address_es, :fee_cents, :sort_order)`,
+        `INSERT INTO locations (name, name_en, name_es, address, address_en, address_es, instructions, instructions_en, instructions_es,
+           return_instructions, return_instructions_en, return_instructions_es, needs_address, fee_cents, sort_order)
+         VALUES (:name, :name_en, :name_es, :address, :address_en, :address_es, :instructions, :instructions_en, :instructions_es,
+           :return_instructions, :return_instructions_en, :return_instructions_es, :needs_address, :fee_cents, :sort_order)`,
       );
-      locations.forEach((l) => stmt.run({ address_en: null, address_es: null, ...l }));
+      // Οι οδηγίες του γραφείου αναφέρουν το ωράριο των ρυθμίσεων (OPENING_HOUR / CLOSING_HOUR).
+      seedLocations(config.rules).forEach((l) => stmt.run(l));
     }
     if (!db.prepare('SELECT 1 FROM extras LIMIT 1').get()) {
       const stmt = db.prepare(

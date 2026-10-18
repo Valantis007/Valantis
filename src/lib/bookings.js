@@ -97,10 +97,16 @@ function validateDriver(input, car, pickupAt, options) {
     invoice_address: str(input.invoice_address, 200),
     invoice_tax_office: str(input.invoice_tax_office, 80),
     invoice_activity: str(input.invoice_activity, 150),
+    // Διεύθυνση παράδοσης/παραλαβής του αυτοκινήτου (σημεία με needs_address, π.χ. ξενοδοχείο).
+    pickup_address: str(input.pickup_address, 200),
+    return_address: str(input.return_address, 200),
+    return_same_address: checkbox(input.return_same_address),
   };
   // Αριθμοί καρτών δεν πρέπει να καταλήγουν σε ελεύθερο κείμενο (PCI DSS).
   values.notes = maskCardNumbers(values.notes);
   values.child_info = maskCardNumbers(values.child_info);
+  values.pickup_address = maskCardNumbers(values.pickup_address);
+  values.return_address = maskCardNumbers(values.return_address);
   const errors = {};
   if (!values.first_name) errors.first_name = 'Συμπληρώστε το όνομα.';
   if (!values.last_name) errors.last_name = 'Συμπληρώστε το επώνυμο.';
@@ -139,6 +145,19 @@ function validateDriver(input, car, pickupAt, options) {
   if (options.needsChildInfo && !values.child_info) {
     errors.child_info = 'Συμπληρώστε ηλικία και βάρος του παιδιού, ώστε να σας δώσουμε το κατάλληλο κάθισμα.';
   }
+  // Σημεία όπου φέρνουμε/παραλαμβάνουμε εμείς το αυτοκίνητο: η διεύθυνση είναι υποχρεωτική.
+  // Σε άλλα σημεία δεν αποθηκεύεται (ούτε αν έμεινε στη φόρμα από προηγούμενη επιλογή).
+  const usable = (address) => address.replace(/\[αφαιρέθηκε\]/g, '').trim().length >= 3;
+  if (!options.pickupNeedsAddress) values.pickup_address = '';
+  else if (!usable(values.pickup_address)) errors.pickup_address = 'Συμπληρώστε τη διεύθυνση παράδοσης (ξενοδοχείο, οδός, περιοχή).';
+  if (!options.returnNeedsAddress) {
+    values.return_address = '';
+  } else if (options.pickupNeedsAddress && values.return_same_address) {
+    // «Ίδια με τη διεύθυνση παράδοσης»: παραλαμβάνουμε από εκεί που το φέραμε.
+    values.return_address = values.pickup_address;
+  } else if (!usable(values.return_address)) {
+    errors.return_address = 'Συμπληρώστε τη διεύθυνση από όπου θα παραλάβουμε το αυτοκίνητο.';
+  }
   if (values.invoice) {
     if (!isValidGreekVat(values.invoice_vat)) errors.invoice_vat = 'Μη έγκυρος ΑΦΜ.';
     if (!values.invoice_name) errors.invoice_name = 'Συμπληρώστε την επωνυμία.';
@@ -170,7 +189,14 @@ const BOOKING_SELECT = `
     pl.address_en AS pickup_location_address_en, pl.address_es AS pickup_location_address_es,
     rl.name AS return_location_name, rl.address AS return_location_address,
     rl.name_en AS return_location_name_en, rl.name_es AS return_location_name_es,
-    rl.address_en AS return_location_address_en, rl.address_es AS return_location_address_es
+    rl.address_en AS return_location_address_en, rl.address_es AS return_location_address_es,
+    -- «Πώς θα μας βρείτε» (src/lib/places.js): οδηγίες παραλαβής/επιστροφής, χάρτης, διεύθυνση πελάτη.
+    pl.instructions AS pickup_location_instructions, pl.instructions_en AS pickup_location_instructions_en,
+    pl.instructions_es AS pickup_location_instructions_es, pl.map_url AS pickup_location_map_url,
+    pl.needs_address AS pickup_location_needs_address,
+    rl.return_instructions AS return_location_return_instructions, rl.return_instructions_en AS return_location_return_instructions_en,
+    rl.return_instructions_es AS return_location_return_instructions_es, rl.map_url AS return_location_map_url,
+    rl.needs_address AS return_location_needs_address
   FROM bookings b
   JOIN cars c ON c.id = b.car_id
   JOIN locations pl ON pl.id = b.pickup_location_id
@@ -226,7 +252,7 @@ function createBooking(db, { car, search, extras, driver, userId = null, locale 
           deposit_cents, status, payment_method, payment_status, hold_expires_at, terms_accepted_at,
           terms_version, excess_cents, late_cancel_fee_cents, child_info,
           invoice_requested, invoice_vat, invoice_name, invoice_address, invoice_tax_office, invoice_activity, locale,
-          mileage_policy, mileage_limit_km
+          mileage_policy, mileage_limit_km, pickup_address, return_address
         ) VALUES (
           :reference, :user_id, :car_id, :pickup_location_id, :return_location_id, :pickup_at, :return_at, :days,
           :first_name, :last_name, :email, :phone, :birth_date, :license_number, :license_country, :license_issued,
@@ -234,7 +260,7 @@ function createBooking(db, { car, search, extras, driver, userId = null, locale 
           :deposit_cents, :status, :payment_method, 'unpaid', :hold_expires_at, datetime('now'),
           :terms_version, :excess_cents, :late_cancel_fee_cents, :child_info,
           :invoice_requested, :invoice_vat, :invoice_name, :invoice_address, :invoice_tax_office, :invoice_activity, :locale,
-          :mileage_policy, :mileage_limit_km
+          :mileage_policy, :mileage_limit_km, :pickup_address, :return_address
         )`,
       )
       .run({
@@ -280,6 +306,9 @@ function createBooking(db, { car, search, extras, driver, userId = null, locale 
         // Τα χιλιόμετρα που γνωστοποιήθηκαν στην κράτηση (όπως η απαλλαγή και η έκδοση των όρων).
         mileage_policy: freshCar.mileage_policy,
         mileage_limit_km: freshCar.mileage_limit_km ?? null,
+        // Μόνο για σημεία που ζητούν διεύθυνση (ο έλεγχος γίνεται στο validateDriver).
+        pickup_address: search.pickupLocation.needs_address ? driver.pickup_address || null : null,
+        return_address: search.returnLocation.needs_address ? driver.return_address || null : null,
       });
     const bookingId = Number(result.lastInsertRowid);
     const insertExtra = db.prepare(

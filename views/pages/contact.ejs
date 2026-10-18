@@ -9,6 +9,15 @@
       <% if (company.address) { %><li><strong><%= t('Διεύθυνση:') %></strong> <%= company.address %></li><% } %>
       <li><strong><%= t('Ωράριο:') %></strong> <%= t('καθημερινά {from} - {to}', { from: `${String(config.rules.openingHour).padStart(2, '0')}:00`, to: `${config.rules.closingHour}:00` }) %></li>
     </ul>
+    <% const stops = (locals.locations || []).map(function (l) { return places.fromLocation(l, 'pickup'); }).filter(places.hasDetails); %>
+    <% if (stops.length) { %>
+      <section class="find-us find-us-list" aria-labelledby="find-us-title">
+        <h2 class="h3" id="find-us-title"><%= t('Πώς θα μας βρείτε') %></h2>
+        <% stops.forEach(function (st) { %>
+          <%- include('../partials/find-us-stop', { stop: st, title: '', showPlace: true, compact: false }) %>
+        <% }) %>
+      </section>
+    <% } %>
   </div>
   <form method="post" action="<%= u('/contact') %>" class="card pad stack" novalidate>
     <input type="hidden" name="_csrf" value="<%= csrfToken() %>">

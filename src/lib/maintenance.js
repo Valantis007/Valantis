@@ -19,7 +19,7 @@ const status = { lastRun: null, lastError: null };
 /**
  * Διατήρηση δεδομένων (ΓΚΠΔ, αρχή περιορισμού της αποθήκευσης): μετά από
  * `retention.operationalMonths` από την επιστροφή διαγράφονται τα στοιχεία διπλώματος,
- * γέννησης, τηλέφωνο, πτήση, σημειώσεις. Μένουν όσα χρειάζονται για τα φορολογικά βιβλία
+ * γέννησης, τηλέφωνο, πτήση, σημειώσεις, διεύθυνση παράδοσης/παραλαβής του αυτοκινήτου. Μένουν όσα χρειάζονται για τα φορολογικά βιβλία
  * (ονοματεπώνυμο, email, ποσά, στοιχεία τιμολογίου). Δεν αγγίζονται κρατήσεις με εκκρεμή
  * εγγύηση ή χρέωση. Επιβεβαιωμένες κρατήσεις που δεν παραλήφθηκαν ποτέ (μη εμφάνιση) θεωρούνται
  * κλειστές μετά την ημερομηνία επιστροφής. Τα μηνύματα επικοινωνίας διαγράφονται μετά από `retention.messagesMonths`.
@@ -29,7 +29,8 @@ function purgeExpiredPersonalData(db, nowLocal = time.nowLocal()) {
   const purged = db
     .prepare(
       `UPDATE bookings SET phone = '', birth_date = '', license_number = '', license_country = '', license_issued = '',
-         flight_number = NULL, notes = NULL, child_info = NULL, personal_data_purged_at = datetime('now')
+         flight_number = NULL, notes = NULL, child_info = NULL, pickup_address = NULL, return_address = NULL,
+         personal_data_purged_at = datetime('now')
        WHERE personal_data_purged_at IS NULL AND status IN ('completed', 'cancelled', 'expired', 'confirmed') AND return_at < ?
          AND NOT EXISTS (SELECT 1 FROM deposits d WHERE d.booking_id = bookings.id AND d.status IN ('awaiting', 'held'))
          AND NOT EXISTS (SELECT 1 FROM booking_charges c WHERE c.booking_id = bookings.id

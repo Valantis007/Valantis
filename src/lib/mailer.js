@@ -61,6 +61,8 @@ async function render(template, data = {}, locale = null) {
     format: format.forLocale(lang),
     // Στοιχεία επιχείρησης στη γλώσσα του email (στα αγγλικά/ισπανικά χωρίς ελληνικά γράμματα).
     company: company.forLocale(lang),
+    // «Πώς θα μας βρείτε»: οδηγίες σημείων και σύνδεσμοι Google Maps (src/lib/places.js).
+    places: require('./places'),
     locale: lang,
     t: (value, params) => i18n.t(lang, value, params),
     th: (value, params) => i18n.th(lang, value, params),

@@ -469,6 +469,41 @@ const MIGRATIONS = [
         mileage_limit_km = (SELECT c.mileage_limit_km FROM cars c WHERE c.id = bookings.car_id);
     `);
   },
+
+  // 11: «Πώς θα μας βρείτε»: οδηγίες παραλαβής και επιστροφής ανά σημείο (και στα αγγλικά/ισπανικά),
+  //     σύνδεσμος χάρτη, και διεύθυνση του πελάτη για σημεία όπως η «Παράδοση σε ξενοδοχείο».
+  //     Τα αρχικά ενδεικτικά σημεία (αν έχουν ακόμη το αρχικό ελληνικό όνομα) παίρνουν τις
+  //     ενδεικτικές οδηγίες του src/db/seed-locations.js και στις τρεις γλώσσες.
+  (db) => {
+    db.exec(`
+      ALTER TABLE locations ADD COLUMN instructions TEXT NOT NULL DEFAULT '';
+      ALTER TABLE locations ADD COLUMN instructions_en TEXT;
+      ALTER TABLE locations ADD COLUMN instructions_es TEXT;
+      ALTER TABLE locations ADD COLUMN return_instructions TEXT NOT NULL DEFAULT '';
+      ALTER TABLE locations ADD COLUMN return_instructions_en TEXT;
+      ALTER TABLE locations ADD COLUMN return_instructions_es TEXT;
+      -- Σύνδεσμος χάρτη (π.χ. Google Maps). Κενό = οδηγίες πορείας προς τη διεύθυνση.
+      ALTER TABLE locations ADD COLUMN map_url TEXT;
+      -- 1 = ο πελάτης γράφει διεύθυνση παράδοσης/παραλαβής του αυτοκινήτου (π.χ. ξενοδοχείο).
+      ALTER TABLE locations ADD COLUMN needs_address INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE bookings ADD COLUMN pickup_address TEXT;
+      ALTER TABLE bookings ADD COLUMN return_address TEXT;
+    `);
+    const config = require('../config');
+    const { seedLocations, HOTEL_ADDRESS } = require('./seed-locations');
+    const update = db.prepare(
+      `UPDATE locations SET instructions = :instructions, instructions_en = :instructions_en, instructions_es = :instructions_es,
+         return_instructions = :return_instructions, return_instructions_en = :return_instructions_en,
+         return_instructions_es = :return_instructions_es, needs_address = :needs_address
+       WHERE name = :name AND instructions = '' AND return_instructions = ''`,
+    );
+    for (const l of seedLocations(config.rules)) {
+      const { name, instructions, instructions_en, instructions_es, return_instructions, return_instructions_en, return_instructions_es, needs_address } = l;
+      update.run({ name, instructions, instructions_en, instructions_es, return_instructions, return_instructions_en, return_instructions_es, needs_address });
+    }
+    // Σημείο «στη διεύθυνση που θα μας δώσετε» με άλλο όνομα: ζητά κι αυτό διεύθυνση από τον πελάτη.
+    db.prepare('UPDATE locations SET needs_address = 1 WHERE address = ?').run(HOTEL_ADDRESS);
+  },
 ];
 
 function migrate(db) {
