@@ -388,6 +388,22 @@ function customerCancellation(booking, now = time.nowLocal(), { pendingRefundCen
   return { allowed: true, late: false, feeCents: 0 };
 }
 
+// «Πληρωμή κατά την παραλαβή» για κράτηση που περιμένει ακόμη πληρωμή με κάρτα (π.χ. η κάρτα
+// απορρίφθηκε ή ο πελάτης έκλεισε τη σελίδα πληρωμής). Ο τρόπος αυτός επιτρέπεται πάντα στη φόρμα
+// κράτησης (validateDriver)· εδώ ελέγχεται ότι το αυτοκίνητο είναι ακόμη δεσμευμένο για την κράτηση
+// και ότι η παραλαβή δεν έχει περάσει.
+function canSwitchToPayAtPickup(booking, { nowMs = Date.now(), nowLocal = time.nowLocal() } = {}) {
+  return (
+    Boolean(booking) &&
+    booking.status === 'pending_payment' &&
+    booking.payment_status === 'unpaid' &&
+    booking.payment_method === 'card' &&
+    !booking.paid_cents &&
+    booking.hold_expires_at > nowMs &&
+    nowLocal < booking.pickup_at
+  );
+}
+
 // Κρατήσεις που δεν πληρώθηκαν εγκαίρως αποδεσμεύουν το αυτοκίνητο.
 // Επιστρέφει τα id τους, ώστε να κλείσουν και οι σελίδες πληρωμής στον πάροχο.
 function expireStaleHolds(db, nowMs = Date.now()) {
@@ -427,5 +443,6 @@ module.exports = {
   sendConfirmation,
   customerCancellation,
   isOnlinePayment,
+  canSwitchToPayAtPickup,
   expireStaleHolds,
 };

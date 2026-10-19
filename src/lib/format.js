@@ -81,6 +81,8 @@ const labels = {
     refunded: 'Επιστροφή χρημάτων',
     refund_due: 'Οφειλόμενη επιστροφή',
     payment_returned: 'Αυτόματη επιστροφή πληρωμής',
+    switched_to_pickup: 'Αλλαγή σε πληρωμή κατά την παραλαβή',
+    payment_reminder: 'Υπενθύμιση πληρωμής (email)',
     charges_paid: 'Πληρωμή χρεώσεων',
     deposit_link: 'Σύνδεσμος εγγύησης',
     deposit_link_cancelled: 'Ακύρωση συνδέσμου εγγύησης',
@@ -151,6 +153,12 @@ function msDateTime(ms, timezone = 'Europe/Athens', intl = 'el-GR') {
   return new Date(ms).toLocaleString(intl, { timeZone: timezone, dateStyle: 'short', timeStyle: 'short' });
 }
 
+// Ώρα (ΩΩ:ΛΛ, 24ωρη) μιας χρονοσφραγίδας σε χιλιοστά, π.χ. έως πότε είναι δεσμευμένο το αυτοκίνητο.
+function msTime(ms, timezone = 'Europe/Athens', intl = 'el-GR') {
+  if (!ms) return '';
+  return new Date(ms).toLocaleTimeString(intl, { timeZone: timezone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+}
+
 function label(group, key) {
   return (labels[group] && labels[group][key]) || key;
 }
@@ -171,6 +179,7 @@ function forLocale(locale = 'el') {
     money: (cents) => money(cents, intl),
     utcTimestamp: (value, timezone) => utcTimestamp(value, timezone, intl),
     msDateTime: (ms, timezone) => msDateTime(ms, timezone, intl),
+    msTime: (ms, timezone) => msTime(ms, timezone, intl),
     label: (group, key) => i18n.t(locale, label(group, key)),
     // Χιλιόμετρα αυτοκινήτου ή κράτησης: «Απεριόριστα χιλιόμετρα» / «Όριο: 200 χλμ. ανά ημέρα».
     mileage: (row) => mileage.label(row, (v, p) => i18n.t(locale, v, p), intl),
@@ -180,4 +189,4 @@ function forLocale(locale = 'el') {
   return localized[locale];
 }
 
-module.exports = { money, centsToInput, parseMoneyToCents, date, dateTime, utcTimestamp, msDateTime, labels, label, forLocale };
+module.exports = { money, centsToInput, parseMoneyToCents, date, dateTime, utcTimestamp, msDateTime, msTime, labels, label, forLocale };

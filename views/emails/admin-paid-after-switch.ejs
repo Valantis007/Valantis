@@ -1,0 +1,6 @@
+<%- include('_top') %>
+<p><strong>Πληρωμή με κάρτα μετά την αλλαγή σε πληρωμή κατά την παραλαβή</strong></p>
+<p>Στην κράτηση <%= booking.reference %> (<%= booking.first_name %> <%= booking.last_name %>, <%= booking.phone %>) ο πελάτης είχε επιλέξει «Πληρωμή κατά την παραλαβή», επειδή η πληρωμή με κάρτα δεν είχε ολοκληρωθεί. Η πληρωμή με κάρτα ολοκληρώθηκε τελικά (<strong><%= format.money(booking.paid_cents) %></strong>, <%= booking.payment_provider %>) και καταχωρήθηκε στην κράτηση.</p>
+<p><strong>Μην εισπράξετε ξανά το ποσό της ενοικίασης στην παραλαβή.</strong> Ο πελάτης ενημερώθηκε με email.</p>
+<p><a href="<%= baseUrl %>/admin/bookings/<%= booking.id %>">Άνοιγμα στη διαχείριση</a></p>
+<%- include('_bottom') %>

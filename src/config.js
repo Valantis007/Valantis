@@ -62,6 +62,17 @@ const nodeEnv = env.NODE_ENV || 'development';
 const isProduction = nodeEnv === 'production';
 const isTest = nodeEnv === 'test';
 
+// Το Stripe απαιτεί η σελίδα πληρωμής να ισχύει τουλάχιστον 30 λεπτά, άρα ελάχιστο 35.
+const paymentHoldMinutes = Math.min(Math.max(int('PAYMENT_HOLD_MINUTES', 35), 35), 600);
+
+// Email «Η κράτησή σας δεν έχει ολοκληρωθεί» τόσα λεπτά μετά την κράτηση, αν δεν έχει πληρωθεί
+// (0 = δεν στέλνεται). Πάντα τουλάχιστον 10 λεπτά πριν λήξει η δέσμευση του αυτοκινήτου.
+function paymentReminderMinutes() {
+  const minutes = int('PAYMENT_REMINDER_MINUTES', 10);
+  if (minutes <= 0) return 0;
+  return Math.min(minutes, paymentHoldMinutes - 10);
+}
+
 const config = {
   env: nodeEnv,
   isProduction,
@@ -137,8 +148,8 @@ const config = {
     minLicenseYears: int('MIN_LICENSE_YEARS', 1),
     vatPercent: int('VAT_PERCENT', 24),
     durationDiscounts: parseDurationDiscounts(env.DURATION_DISCOUNTS || '7:5,14:10,28:15'),
-    // Το Stripe απαιτεί η σελίδα πληρωμής να ισχύει τουλάχιστον 30 λεπτά, άρα ελάχιστο 35.
-    paymentHoldMinutes: Math.min(Math.max(int('PAYMENT_HOLD_MINUTES', 35), 35), 600),
+    paymentHoldMinutes,
+    paymentReminderMinutes: paymentReminderMinutes(),
     // Περίοδος χάριτος: μια καθυστέρηση έως 59 λεπτά δεν χρεώνεται ως επιπλέον ημέρα.
     graceMinutes: 59,
   },

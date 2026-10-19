@@ -1,7 +1,7 @@
 'use strict';
 
-// Περιοδικές εργασίες: λήξη απλήρωτων κρατήσεων, συγχρονισμός πληρωμών που
-// δεν ειδοποιήθηκαν με webhook, επανάληψη επιστροφών χρημάτων, εγγυήσεις.
+// Περιοδικές εργασίες: λήξη απλήρωτων κρατήσεων, υπενθύμιση για κρατήσεις που δεν πληρώθηκαν,
+// συγχρονισμός πληρωμών που δεν ειδοποιήθηκαν με webhook, επανάληψη επιστροφών χρημάτων, εγγυήσεις.
 
 const bookings = require('./bookings');
 const payments = require('./payments');
@@ -10,6 +10,7 @@ const config = require('../config');
 const time = require('./time');
 const bookingAccess = require('./booking-access');
 const { expireOpenCheckouts } = require('./checkouts');
+const rescue = require('./payment-rescue');
 
 let running = false;
 let lastSlow = 0;
@@ -53,6 +54,8 @@ async function runMaintenance(db, { store = null, force = false } = {}) {
     for (const id of bookings.expireStaleHolds(db)) {
       await expireOpenCheckouts(db, id, 'rental');
     }
+    // «Η κράτησή σας δεν έχει ολοκληρωθεί»: μία φορά, λίγα λεπτά μετά από κράτηση που δεν πληρώθηκε.
+    await rescue.sendPaymentReminders(db);
     if (store) store.prune();
     // Οι κλήσεις προς τους παρόχους γίνονται λιγότερο συχνά.
     if (force || Date.now() - lastSlow > 5 * 60 * 1000) {

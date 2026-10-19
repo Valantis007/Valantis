@@ -520,6 +520,15 @@ const MIGRATIONS = [
   );
   CREATE INDEX idx_booking_access_tokens_booking ON booking_access_tokens (booking_id);
   `,
+
+  // 13: Διάσωση πληρωμών με κάρτα που δεν ολοκληρώθηκαν (src/lib/payment-rescue.js):
+  //     - switched_to_pickup_at: ο πελάτης άλλαξε σε «Πληρωμή κατά την παραλαβή» ενώ η κράτηση
+  //       περίμενε πληρωμή. Μια πληρωμή με κάρτα που ολοκληρωθεί αργότερα καταγράφεται κανονικά.
+  //     - payment_reminder_sent_at: στάλθηκε (μία φορά) το email «Η κράτησή σας δεν έχει ολοκληρωθεί».
+  `
+  ALTER TABLE bookings ADD COLUMN switched_to_pickup_at TEXT;
+  ALTER TABLE bookings ADD COLUMN payment_reminder_sent_at TEXT;
+  `,
 ];
 
 function migrate(db) {

@@ -608,3 +608,12 @@ figure.car-hero { margin: 0; }
 }
 @media (prefers-reduced-motion: reduce) { .wa-float { transition: none !important; } }
 @media print { .wa-float { display: none !important; } body.has-wa-float, body.has-wa-float.has-bottom-bar { padding-bottom: 0; } }
+
+/* ===== Κράτηση που περιμένει πληρωμή: «Πληρωμή {ποσό}» ή «Πληρωμή κατά την παραλαβή» ===== */
+.pay-options { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; margin-bottom: 8px; }
+.pay-options form { margin: 0; }
+.pay-options-hint { margin: 0 0 16px; max-width: 62ch; }
+@media (max-width: 640px) {
+  .pay-options { flex-direction: column; align-items: stretch; }
+  .pay-options .btn { width: 100%; }
+}

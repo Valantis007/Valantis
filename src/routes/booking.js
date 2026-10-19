@@ -3,6 +3,7 @@
 const express = require('express');
 const config = require('../config');
 const payments = require('../lib/payments');
+const rescue = require('../lib/payment-rescue');
 const providers = require('../lib/providers');
 const deposits = require('../lib/deposits');
 const bookings = require('../lib/bookings');
@@ -200,6 +201,10 @@ module.exports = function bookingRoutes(db) {
       extras: bookings.getExtras(db, booking.id),
       cancellation: bookings.customerCancellation(booking, undefined, { pendingRefundCents: payments.pendingRefundCents(db, booking.id) }),
       canPay: booking.status === 'pending_payment' && booking.hold_expires_at > Date.now() && providers.onlineEnabled(),
+      // Η πληρωμή με κάρτα δεν ολοκληρώθηκε: «Πληρωμή κατά την παραλαβή» δίπλα στο «Πληρωμή {amount}».
+      canPayAtPickup: bookings.canSwitchToPayAtPickup(booking),
+      // «Κάντε νέα αναζήτηση» (κράτηση που έληξε): η ίδια αναζήτηση, με τα σημεία, τις ημερομηνίες και τις ώρες.
+      searchAgainQuery: rescue.searchQueryFor(booking),
       deposit: deposits.listForBooking(db, booking.id)[0] || null,
       charges,
       outstanding,
@@ -268,6 +273,24 @@ module.exports = function bookingRoutes(db) {
     }
   });
 
+  // Η πληρωμή με κάρτα δεν ολοκληρώθηκε (π.χ. η κάρτα απορρίφθηκε): ο πελάτης επιλέγει πληρωμή κατά
+  // την παραλαβή. Κλείνουν οι σελίδες πληρωμής και η κράτηση επιβεβαιώνεται (src/lib/payment-rescue.js).
+  router.post('/:ref/pay-at-pickup', limits.booking, async (req, res) => {
+    const { booking } = req;
+    try {
+      const { result } = await rescue.switchToPayAtPickup(db, booking.id, { actor: actorOf(req) });
+      if (result === 'confirmed') {
+        req.flash('success', 'Η κράτησή σας επιβεβαιώθηκε με πληρωμή κατά την παραλαβή. Σας στείλαμε email με όλες τις λεπτομέρειες.');
+      } else if (result === 'paid') {
+        req.flash('success', 'Η πληρωμή σας με κάρτα είχε ήδη ολοκληρωθεί και η κράτησή σας επιβεβαιώθηκε. Δεν χρειάζεται να πληρώσετε κατά την παραλαβή.');
+      }
+    } catch (err) {
+      if (!(err instanceof bookings.BookingError)) console.error('[payments] Αλλαγή σε πληρωμή κατά την παραλαβή:', err);
+      req.flash('error', err instanceof bookings.BookingError ? err.i18n || err.message : 'Δεν ήταν δυνατή η αλλαγή του τρόπου πληρωμής. Δοκιμάστε ξανά ή επικοινωνήστε μαζί μας.');
+    }
+    res.redirect(303, `/booking/${booking.reference}`);
+  });
+
   // Επιστροφή από τη σελίδα πληρωμής: η κατάσταση διαβάζεται από τον πάροχο, όχι από το URL.
   async function paymentReturn(req, res) {
     const { booking } = req;
@@ -299,7 +322,12 @@ module.exports = function bookingRoutes(db) {
   router.get('/:ref/payment/success', paymentReturn);
 
   router.get('/:ref/payment/cancel', (req, res) => {
-    req.flash('info', 'Η πληρωμή δεν ολοκληρώθηκε. Το αυτοκίνητο παραμένει δεσμευμένο για λίγα λεπτά — μπορείτε να δοκιμάσετε ξανά.');
+    req.flash(
+      'info',
+      bookings.canSwitchToPayAtPickup(req.booking)
+        ? 'Η πληρωμή δεν ολοκληρώθηκε. Το αυτοκίνητο παραμένει δεσμευμένο για λίγα λεπτά — μπορείτε να δοκιμάσετε ξανά ή να επιλέξετε πληρωμή κατά την παραλαβή.'
+        : 'Η πληρωμή δεν ολοκληρώθηκε. Το αυτοκίνητο παραμένει δεσμευμένο για λίγα λεπτά — μπορείτε να δοκιμάσετε ξανά.',
+    );
     res.redirect(303, `/booking/${req.booking.reference}`);
   });
 

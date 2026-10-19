@@ -1,5 +1,6 @@
 <%- include('_top') %>
 <p><strong>Νέα κράτηση</strong></p>
+<% if (booking.switched_to_pickup_at) { %><p>Η πληρωμή με κάρτα δεν ολοκληρώθηκε και ο πελάτης επέλεξε <strong>«Πληρωμή κατά την παραλαβή»</strong>. Αν η πληρωμή με κάρτα ολοκληρωθεί τελικά, θα λάβετε χωριστό email.</p><% } %>
 <%- include('_booking-table', { booking, extras }) %>
 <p>Email πελάτη: <%= booking.email %><% if (booking.invoice_requested) { %><br><strong>Ζητήθηκε τιμολόγιο</strong><% } %></p>
 <p><a href="<%= baseUrl %>/admin/bookings/<%= booking.id %>">Άνοιγμα στη διαχείριση</a></p>

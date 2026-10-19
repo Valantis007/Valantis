@@ -37,6 +37,8 @@
           <% if (b.notes) { %><dt>Σημειώσεις πελάτη</dt><dd><%= b.notes %></dd><% } %>
           <dt>Γλώσσα πελάτη</dt><dd><%= { el: 'Ελληνικά', en: 'Αγγλικά (English)', es: 'Ισπανικά (Español)' }[b.locale] || 'Ελληνικά' %><% if (b.locale && b.locale !== 'el') { %> <span class="small muted">— τα emails του στέλνονται σε αυτή τη γλώσσα</span><% } %></dd>
           <dt>Δημιουργήθηκε</dt><dd><%= format.utcTimestamp(b.created_at, config.rules.timezone) %></dd>
+          <% if (b.switched_to_pickup_at) { %><dt>Αλλαγή τρόπου πληρωμής</dt><dd>Από κάρτα σε πληρωμή κατά την παραλαβή (η πληρωμή με κάρτα δεν ολοκληρώθηκε) · <%= format.utcTimestamp(b.switched_to_pickup_at, config.rules.timezone) %><% if (b.payment_method === 'card' && b.paid_cents > 0) { %><br><strong>Η πληρωμή με κάρτα ολοκληρώθηκε τελικά: μην εισπράξετε ξανά το ποσό στην παραλαβή.</strong><% } %></dd><% } %>
+          <% if (b.payment_reminder_sent_at) { %><dt>Υπενθύμιση πληρωμής</dt><dd>Email «Η κράτησή σας δεν έχει ολοκληρωθεί» · <%= format.utcTimestamp(b.payment_reminder_sent_at, config.rules.timezone) %></dd><% } %>
           <% if (b.payment_provider) { %><dt>Πάροχος πληρωμής</dt><dd><%= b.payment_provider %><% if (b.payment_ref) { %> · <span class="small"><%= b.payment_ref %></span><% } %></dd><% } %>
         </dl>
       </div>

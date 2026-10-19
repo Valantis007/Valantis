@@ -112,6 +112,29 @@ async function handleRentalPaid(db, row, state, actor) {
       ['pending_payment', 'expired'].includes(b.status) &&
       (holdValid || isCarAvailable(db, b.car_id, b.pickup_at, b.return_at, { excludeBookingId: b.id }));
 
+    // Ο πελάτης άλλαξε σε «Πληρωμή κατά την παραλαβή» ενώ η πληρωμή με κάρτα ολοκληρωνόταν
+    // (π.χ. σε άλλη καρτέλα ή με καθυστέρηση της τράπεζας): η κράτηση είναι ήδη επιβεβαιωμένη και
+    // η πληρωμή καταγράφεται κανονικά σε αυτήν — δεν επιστρέφεται και δεν ξαναστέλνεται επιβεβαίωση.
+    const paidAfterSwitch =
+      amountOk &&
+      Boolean(b.switched_to_pickup_at) &&
+      b.status === 'confirmed' &&
+      b.payment_method === 'pay_at_pickup' &&
+      b.payment_status === 'unpaid' &&
+      b.paid_cents === 0 &&
+      current.amount_cents === b.total_cents;
+    if (paidAfterSwitch) {
+      setCheckoutStatus(db, current.id, 'paid', state.paymentRef);
+      db.prepare(
+        `UPDATE bookings SET payment_method = 'card', payment_status = 'paid', paid_cents = ?, payment_ref = ?,
+           payment_provider = ?, checkout_id = ?
+         WHERE id = ?`,
+      ).run(current.amount_cents, state.paymentRef, current.provider, current.id, b.id);
+      bookings.logEvent(db, b.id, actor, 'paid', `Πληρωμή ${format.money(current.amount_cents)} (${current.provider}) μετά την αλλαγή σε πληρωμή κατά την παραλαβή`);
+      fiscal.record(db, { bookingId: b.id, kind: 'receipt', amountCents: current.amount_cents, description: `Ενοικίαση ${b.reference} - πληρωμή online`, source: current.provider });
+      return { result: 'paid_after_switch', bookingId: b.id };
+    }
+
     if (canConfirm) {
       setCheckoutStatus(db, current.id, 'paid', state.paymentRef);
       db.prepare(
@@ -147,6 +170,24 @@ async function handleRentalPaid(db, row, state, actor) {
 
   if (decision.result === 'confirmed') {
     bookings.notifyConfirmed(db, bookings.getById(db, decision.bookingId));
+    await expireOpenCheckouts(db, decision.bookingId, 'rental');
+  } else if (decision.result === 'paid_after_switch') {
+    // Η επιβεβαίωση έχει ήδη σταλεί (με «Πληρωμή κατά την παραλαβή»): μόνο ενημέρωση για την πληρωμή,
+    // ώστε ο πελάτης να μην πληρώσει ξανά στην παραλαβή, και ειδοποίηση του γραφείου.
+    const b = bookings.getById(db, decision.bookingId);
+    mailer.sendInBackground({
+      to: b.email,
+      subject: i18n.msg('Λάβαμε την πληρωμή σας - κράτηση {ref}', { ref: b.reference }),
+      template: 'payment-received',
+      data: { booking: b, extras: bookings.getExtras(db, b.id) },
+      db,
+    });
+    mailer.sendInBackground({
+      to: config.mail.adminNotify,
+      subject: `Πληρωμή με κάρτα μετά την αλλαγή σε πληρωμή κατά την παραλαβή - κράτηση ${b.reference}`,
+      template: 'admin-paid-after-switch',
+      data: { booking: b },
+    });
     await expireOpenCheckouts(db, decision.bookingId, 'rental');
   } else if (decision.result === 'refund') {
     await processRefund(db, decision.refundId);

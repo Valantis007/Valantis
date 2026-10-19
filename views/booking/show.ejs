@@ -11,16 +11,32 @@
   <% if (booking.status === 'pending_payment') { %>
     <div class="alert alert-warning">
       <%= t('Η κράτηση δεν έχει ολοκληρωθεί — εκκρεμεί η πληρωμή.') %>
-      <% if (canPay) { %><%- th('Το αυτοκίνητο είναι δεσμευμένο για εσάς έως τις <strong>{time}</strong>.', { time: new Date(booking.hold_expires_at).toLocaleTimeString(intlLocale, { timeZone: config.rules.timezone, hour: '2-digit', minute: '2-digit' }) }) %><% } %>
+      <% if (canPay || canPayAtPickup) { %><%- th('Το αυτοκίνητο είναι δεσμευμένο για εσάς έως τις <strong>{time}</strong>.', { time: format.msTime(booking.hold_expires_at, config.rules.timezone) }) %><% } %>
     </div>
-    <% if (canPay) { %>
-      <form method="post" action="<%= u(`/booking/${booking.reference}/pay`) %>" class="inline-form">
-        <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
-        <button class="btn btn-primary" type="submit"><%= t('Πληρωμή {amount}', { amount: format.money(booking.total_cents) }) %></button>
-      </form>
+    <%# Η πληρωμή με κάρτα δεν ολοκληρώθηκε (π.χ. η κάρτα απορρίφθηκε ή έκλεισε η σελίδα πληρωμής):
+        νέα προσπάθεια ή πληρωμή κατά την παραλαβή, που επιβεβαιώνει αμέσως την κράτηση (src/lib/payment-rescue.js). %>
+    <% if (canPay || canPayAtPickup) { %>
+      <div class="pay-options">
+        <% if (canPay) { %>
+          <form method="post" action="<%= u(`/booking/${booking.reference}/pay`) %>">
+            <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+            <button class="btn btn-primary" type="submit"><%= t('Πληρωμή {amount}', { amount: format.money(booking.total_cents) }) %></button>
+          </form>
+        <% } %>
+        <% if (canPayAtPickup) { %>
+          <form method="post" action="<%= u(`/booking/${booking.reference}/pay-at-pickup`) %>">
+            <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+            <button class="btn" type="submit"><%= t('Πληρωμή κατά την παραλαβή') %></button>
+          </form>
+        <% } %>
+      </div>
+      <% if (canPayAtPickup) { %>
+        <p class="small muted pay-options-hint"><%= t('Με την «Πληρωμή κατά την παραλαβή» η κράτησή σας επιβεβαιώνεται αμέσως και πληρώνετε {amount} κατά την παραλαβή: χρεωστική ή πιστωτική κάρτα, IRIS ή μετρητά έως {cash}.', { amount: format.money(booking.total_cents), cash: format.money(config.tariff.cashLimitCents) }) %></p>
+      <% } %>
     <% } %>
   <% } else if (booking.status === 'expired') { %>
-    <div class="alert alert-error"><%- th('Η κράτηση έληξε επειδή δεν ολοκληρώθηκε η πληρωμή. <a href="{url}">Κάντε νέα αναζήτηση</a>.', { url: u('/cars') }) %></div>
+    <%# Νέα αναζήτηση με τα ίδια σημεία, ημερομηνίες και ώρες. %>
+    <div class="alert alert-error"><%- th('Η κράτηση έληξε επειδή δεν ολοκληρώθηκε η πληρωμή. <a href="{url}">Κάντε νέα αναζήτηση</a>.', { url: u(`/cars?${searchAgainQuery}`) }) %></div>
   <% } else if (booking.status === 'confirmed' && booking.pickup_address) { %>
     <div class="alert alert-success"><%- th('Η κράτησή σας είναι επιβεβαιωμένη. Θα σας φέρουμε το αυτοκίνητο στις <strong>{date}</strong> στη διεύθυνση «{address}».', { date: format.dateTime(booking.pickup_at), address: places.shownAddress(booking.pickup_address, t) }) %></div>
   <% } else if (booking.status === 'confirmed') { %>

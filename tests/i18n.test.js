@@ -242,6 +242,99 @@ for (const locale of ['en', 'es']) {
     for (const l of links) assertNoGreek(l.text, `WhatsApp στον πελάτη (${l.code})`);
   });
 
+  test(`[${locale}] πληρωμή με κάρτα που δεν ολοκληρώθηκε: κουμπιά, υπενθύμιση, πληρωμή κατά την παραλαβή, κράτηση που έληξε — χωρίς ελληνικό κείμενο`, async (t) => {
+    const config = require('../src/config');
+    const { runMaintenance } = require('../src/lib/maintenance');
+    const minutes = config.rules.paymentReminderMinutes;
+    config.rules.paymentReminderMinutes = 10;
+    t.after(() => {
+      config.rules.paymentReminderMinutes = minutes;
+    });
+    const { db, app } = h.setup();
+    const fake = h.useStripe(t);
+    const settle = async () => {
+      for (let i = 0; i < 5; i += 1) {
+        await h.mailer.flush();
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      }
+    };
+    const cardBooking = async (agent, opts, email) => {
+      const params = h.searchParams(opts);
+      const res = await h.post(agent, p('/booking'), { ...params, ...h.driver({ ...LATIN_DRIVER, email, payment_method: 'card' }) }, p(`/booking/new?${new URLSearchParams(params)}`));
+      assert.equal(res.status, 303);
+      const b = bookingsLib.getById(db, db.prepare('SELECT id FROM bookings ORDER BY id DESC LIMIT 1').get().id);
+      assert.equal(b.status, 'pending_payment');
+      assert.equal(b.locale, locale);
+      return b;
+    };
+    const agent = h.agent(app);
+    const booking = await cardBooking(agent, {}, 'john@example.com');
+    const ref = booking.reference;
+
+    // Η πληρωμή δεν ολοκληρώθηκε: μήνυμα, «Πληρωμή {ποσό}» και «Πληρωμή κατά την παραλαβή».
+    const back = await agent.get(p(`/booking/${ref}/payment/cancel`));
+    assert.equal(back.headers.location, p(`/booking/${ref}`));
+    const pending = await agent.get(p(`/booking/${ref}`));
+    assert.match(pending.text, locale === 'en' ? /choose to pay at pick-up/ : /elegir el pago en la recogida/);
+    assert.match(pending.text, new RegExp(`action="/${locale}/booking/${ref}/pay-at-pickup"[\\s\\S]*${locale === 'en' ? 'Pay at pick-up' : 'Pago en la recogida'}`));
+    assertNoGreek(pending.text, `${p(`/booking/${ref}`)} (περιμένει πληρωμή)`);
+
+    // Email «Η κράτησή σας δεν έχει ολοκληρωθεί» στη γλώσσα της κράτησης.
+    db.prepare(`UPDATE bookings SET created_at = datetime('now', '-11 minutes') WHERE id = ?`).run(booking.id);
+    await runMaintenance(db, { force: true });
+    await settle();
+    const reminder = h.mailer.outbox.find((m) => m.to === 'john@example.com' && m.html.includes(`/${locale}/b/`) && !m.attachments);
+    assert.ok(reminder, 'στάλθηκε η υπενθύμιση');
+    assert.equal(reminder.subject, locale === 'en' ? `Your booking has not been completed - booking ${ref}` : `Su reserva no se ha completado - reserva ${ref}`);
+    assert.match(reminder.html, locale === 'en' ? /Pay at pick-up/ : /Pago en la recogida/);
+    assertNoGreek(reminder.html, 'email υπενθύμισης πληρωμής');
+
+    // «Πληρωμή κατά την παραλαβή»: η κράτηση επιβεβαιώνεται, μήνυμα και σελίδα στη γλώσσα.
+    const switched = await h.post(agent, p(`/booking/${ref}/pay-at-pickup`), {}, p(`/booking/${ref}`));
+    assert.equal(switched.headers.location, p(`/booking/${ref}`));
+    const confirmed = await agent.get(p(`/booking/${ref}`));
+    assert.match(confirmed.text, locale === 'en' ? /Your booking has been confirmed with payment at pick-up/ : /Su reserva se ha confirmado con pago en la recogida/);
+    assertNoGreek(confirmed.text, `${p(`/booking/${ref}`)} (μετά την αλλαγή σε πληρωμή κατά την παραλαβή)`);
+    await settle();
+    const confirmation = h.mailer.outbox.find((m) => m.to === 'john@example.com' && m.attachments);
+    assert.ok(confirmation, 'email επιβεβαίωσης');
+    assert.doesNotMatch(confirmation.subject, GREEK);
+    assertNoGreek(confirmation.html, 'email επιβεβαίωσης (πληρωμή κατά την παραλαβή μετά από κάρτα)');
+
+    // Η πληρωμή με κάρτα ολοκληρώθηκε τελικά: email «Λάβαμε την πληρωμή σας».
+    fake.sessions[booking.checkout_id].status = 'open';
+    fake.pay(booking.checkout_id);
+    const hook = await h.request(app).post('/webhooks/stripe').set('stripe-signature', fake.webhookSecret).set('content-type', 'application/json').send(fake.event('checkout.session.completed', { id: booking.checkout_id }));
+    assert.equal(hook.status, 204);
+    assert.equal(bookingsLib.getById(db, booking.id).payment_status, 'paid');
+    await settle();
+    const received = h.mailer.outbox.find((m) => m.to === 'john@example.com' && m.subject.includes(ref) && /payment|pago/i.test(m.subject) && m !== reminder);
+    assert.ok(received, 'email «Λάβαμε την πληρωμή σας»');
+    assert.doesNotMatch(received.subject, GREEK);
+    assertNoGreek(received.html, 'email «Λάβαμε την πληρωμή σας»');
+    assertNoGreek((await agent.get(p(`/booking/${ref}`))).text, `${p(`/booking/${ref}`)} (πληρώθηκε μετά την αλλαγή)`);
+
+    // Η πληρωμή είχε ήδη ολοκληρωθεί όταν ο πελάτης πάτησε «Πληρωμή κατά την παραλαβή».
+    const paidFirst = await cardBooking(agent, { car: 2 }, 'john2@example.com');
+    fake.pay(paidFirst.checkout_id);
+    await h.post(agent, p(`/booking/${paidFirst.reference}/pay-at-pickup`), {}, p(`/booking/${paidFirst.reference}`));
+    const paidPage = await agent.get(p(`/booking/${paidFirst.reference}`));
+    assert.match(paidPage.text, locale === 'en' ? /Your card payment had already been completed/ : /Su pago con tarjeta ya se había completado/);
+    assertNoGreek(paidPage.text, `${p('/booking/…')} (η πληρωμή είχε ήδη ολοκληρωθεί)`);
+
+    // Η δέσμευση έληξε: σφάλμα στη γλώσσα και «Κάντε νέα αναζήτηση» με την ίδια αναζήτηση.
+    const late = await cardBooking(agent, { car: 3, pickupLocation: 2, returnLocation: 3, pickupTime: '11:30' }, 'john3@example.com');
+    db.prepare('UPDATE bookings SET hold_expires_at = ? WHERE id = ?').run(Date.now() - 1000, late.id);
+    await h.post(agent, p(`/booking/${late.reference}/pay-at-pickup`), {}, p(`/booking/${late.reference}`));
+    const refused = await agent.get(p(`/booking/${late.reference}`));
+    assert.match(refused.text, locale === 'en' ? /Payment at pick-up is no longer possible for this booking/ : /El pago en la recogida ya no es posible para esta reserva/);
+    assertNoGreek(refused.text, `${p('/booking/…')} (η πληρωμή κατά την παραλαβή δεν είναι πλέον δυνατή)`);
+    await runMaintenance(db);
+    const expired = await agent.get(p(`/booking/${late.reference}`));
+    assert.match(expired.text, new RegExp(`href="/${locale}/cars\\?pickup_location=2&amp;return_location=3&amp;pickup_date=[\\d-]+&amp;pickup_time=11%3A30&amp;`));
+    assertNoGreek(expired.text, `${p('/booking/…')} (έληξε)`);
+  });
+
   test(`[${locale}] emails προς τον πελάτη χωρίς ελληνικό κείμενο`, async () => {
     const { db, app } = h.setup();
     const agent = h.agent(app);
@@ -274,6 +367,9 @@ for (const locale of ['en', 'es']) {
       receivedAt: '16/10/2026 10:00',
       termsAttached: true,
       bookingUrl: `${i18n.siteUrl(locale)}/b/abc`,
+      // Υπενθύμιση πληρωμής: και οι δύο τρόποι.
+      canPayCard: true,
+      canPayAtPickup: true,
     };
     const templates = [
       'booking-confirmed',
@@ -288,6 +384,8 @@ for (const locale of ['en', 'es']) {
       'password-reset',
       'contact-ack',
       'terms-document',
+      'payment-reminder',
+      'payment-received',
     ];
     for (const template of templates) {
       const html = await mailer.render(template, data, locale);
