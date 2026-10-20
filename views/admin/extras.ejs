@@ -1,0 +1,48 @@
+<%- include('../partials/header') %>
+<% function err(fe, key) { return fe[key] ? `<span class="error">${fe[key].replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; })}</span>` : ''; } %>
+<div class="container section">
+  <%- include('_nav') %>
+  <h1>Πρόσθετα</h1>
+  <p class="muted small">Ό,τι γράφετε στα ελληνικά το βλέπουν και οι ξένοι πελάτες: συμπληρώστε υποχρεωτικά και τη μετάφραση στα αγγλικά και στα ισπανικά (π.χ. με DeepL ή Google Translate).</p>
+  <p class="muted small">Η <strong>Πλήρης απαλλαγή</strong> (είδος «Πλήρης απαλλαγή») δεν εμφανίζεται στα «Πρόσθετα» της φόρμας κράτησης: ο πελάτης τη βλέπει στην ενότητα «Κάλυψη ζημιών», ως επιλογή απέναντι στη «Βασική κάλυψη (περιλαμβάνεται)», που είναι πάντα προεπιλεγμένη. Εκεί φαίνεται η τιμή της, μαζί με έτοιμα κείμενα για τη συμμετοχή σε ζημιές, την εγγύηση και τις εξαιρέσεις των όρων (§7)· η περιγραφή της δεν εμφανίζεται εκεί, ενώ το όνομά της φαίνεται στην κράτηση και στα emails. Αν είναι ενεργές περισσότερες του ίδιου είδους, στην «Κάλυψη ζημιών» μπαίνει μόνο η πρώτη κατά σειρά και οι υπόλοιπες εμφανίζονται στα «Πρόσθετα».</p>
+  <div class="stack">
+    <% rows.concat([null]).forEach(function (r) {
+      const key = r ? r.id : 'new';
+      const editingThis = locals.editing !== null && locals.editing !== undefined && String(locals.editing) === String(key);
+      const f = editingThis ? values : (r || {});
+      const fe = editingThis ? errors : {};
+      const val = function (name) { const x = f[name]; return x === null || x === undefined ? '' : x; };
+      const price = editingThis ? val('price') : (r ? format.centsToInput(r.price_cents) : '');
+      const active = editingThis ? f.active === '1' : (!r || r.active);
+      const missingFields = r && missing && missing[r.id]; %>
+      <form method="post" action="/admin/extras<%= r ? `/${r.id}` : '' %>" class="card pad inline-grid" <% if (r) { %>id="extra-<%= r.id %>"<% } %>>
+        <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+        <% if (missingFields) { %><p class="small translations-grid"><span class="badge-warn">⚠ Λείπει μετάφραση: <%= missingFields.join(', ') %></span></p><% } %>
+        <div class="field"><label>Όνομα</label><input name="name" value="<%= val('name') %>" required><%- err(fe, 'name') %></div>
+        <div class="field grow"><label>Περιγραφή</label><input name="description" value="<%= val('description') %>"></div>
+        <div class="translations-grid">
+          <div class="grid-2">
+            <div class="field"><label>Όνομα (English)</label><input name="name_en" value="<%= val('name_en') %>" required <%= fe.name_en ? 'autofocus' : '' %>><%- err(fe, 'name_en') %></div>
+            <div class="field"><label>Όνομα (Español)</label><input name="name_es" value="<%= val('name_es') %>" required><%- err(fe, 'name_es') %></div>
+            <div class="field"><label>Περιγραφή (English)</label><input name="description_en" value="<%= val('description_en') %>" <%= !fe.name_en && fe.description_en ? 'autofocus' : '' %>><%- err(fe, 'description_en') %></div>
+            <div class="field"><label>Περιγραφή (Español)</label><input name="description_es" value="<%= val('description_es') %>"><%- err(fe, 'description_es') %></div>
+          </div>
+          <p class="small muted">Η περιγραφή είναι προαιρετική· αν τη γράψετε στα ελληνικά, χρειάζεται και στα αγγλικά και στα ισπανικά.</p>
+        </div>
+        <div class="field"><label>Τιμή (€)</label><input name="price" inputmode="decimal" value="<%= price %>" size="6" required><%- err(fe, 'price') %></div>
+        <div class="field"><label>Χρέωση</label><select name="pricing">
+          <option value="per_day" <%= val('pricing') === 'per_day' ? 'selected' : '' %>>ανά ημέρα</option>
+          <option value="per_rental" <%= val('pricing') === 'per_rental' ? 'selected' : '' %>>ανά ενοικίαση</option></select><%- err(fe, 'pricing') %></div>
+        <div class="field"><label>Είδος</label><select name="kind">
+          <% [['other', 'Άλλο'], ['damage_waiver', 'Πλήρης απαλλαγή (μηδενίζει τη συμμετοχή)'], ['child_seat', 'Παιδικό κάθισμα (ζητά στοιχεία παιδιού)'], ['prepaid_fuel', 'Προπληρωμένο καύσιμο'], ['driver', 'Επιπλέον οδηγός']].forEach(function (k) { %>
+            <option value="<%= k[0] %>" <%= val('kind') === k[0] ? 'selected' : '' %>><%= k[1] %></option>
+          <% }) %></select></div>
+        <div class="field"><label>Μέγ. ποσότητα</label><input name="max_qty" type="number" min="1" max="10" value="<%= editingThis ? val('max_qty') : (r ? r.max_qty : 1) %>" style="width:5em"><%- err(fe, 'max_qty') %></div>
+        <div class="field"><label>Σειρά</label><input name="sort_order" type="number" value="<%= editingThis ? val('sort_order') : (r ? r.sort_order : rows.length + 1) %>" style="width:5em"></div>
+        <label class="check"><input type="checkbox" name="active" value="1" <%= active ? 'checked' : '' %>><span>Ενεργό</span></label>
+        <button class="btn <%= r ? '' : 'btn-primary' %>" type="submit"><%= r ? 'Αποθήκευση' : '+ Προσθήκη' %></button>
+      </form>
+    <% }) %>
+  </div>
+</div>
+<%- include('../partials/footer') %>

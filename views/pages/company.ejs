@@ -1,0 +1,18 @@
+<%- include('../partials/header') %>
+<div class="container section prose">
+  <h1><%= t('Στοιχεία εταιρείας') %></h1>
+  <dl class="kv">
+    <dt><%= t('Επωνυμία') %></dt><dd><%= company.legalName %></dd>
+    <dt><%= t('Διακριτικός τίτλος') %></dt><dd><%= company.name %></dd>
+    <% if (company.seat) { %><dt><%= t('Έδρα') %></dt><dd><%= company.seat %></dd><% } %>
+    <% if (company.address) { %><dt><%= t('Γραφείο') %></dt><dd><%= company.address %></dd><% } %>
+    <% if (company.gemi) { %><dt><%= t('ΓΕΜΗ') %></dt><dd><%= company.gemi %></dd><% } %>
+    <% if (company.vat) { %><dt><%= t('ΑΦΜ / VAT') %></dt><dd>EL<%= company.vat %><% if (company.taxOffice) { %> · <%= company.taxOffice %><% } %></dd><% } %>
+    <% if (company.mhte) { %><dt><%= t('Αρ. Μητρώου ΜΗΤΕ') %></dt><dd><%= company.mhte %></dd><% } %>
+    <dt><%= t('Αρμόδια αρχή') %></dt><dd><%= company.authority %></dd>
+    <% if (company.phone) { %><dt><%= t('Τηλέφωνο') %></dt><dd><a href="tel:<%= company.phone.replace(/\s/g, '') %>"><%= company.phone %></a></dd><% } %>
+    <% if (company.email) { %><dt>Email</dt><dd><a href="mailto:<%= company.email %>"><%= company.email %></a></dd><% } %>
+  </dl>
+  <p><a href="<%= u('/terms') %>"><%= t('Όροι ενοικίασης') %></a> · <a href="<%= u('/privacy') %>"><%= t('Πολιτική απορρήτου') %></a> · <a href="<%= u('/complaints') %>"><%= t('Παράπονα & επίλυση διαφορών') %></a></p>
+</div>
+<%- include('../partials/footer') %>

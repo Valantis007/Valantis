@@ -1,0 +1,81 @@
+<% const t = config.tariff; const r = config.rules; %>
+<%# Traducción al español de terms-content.ejs. Mantener sincronizada con el original griego (mismas variables y condiciones). %>
+
+  <p class="alert alert-info small translation-note">Esta es una traducción facilitada a título informativo. En caso de discrepancia, prevalece la versión griega. <a href="<%= locals.siteUrl || '' %>/terms" hreflang="el">Consulte la versión griega</a>.</p>
+
+  <h2 id="lessor">1. Arrendador</h2>
+  <p><%= company.legalName %><% if (company.seat) { %>, domicilio social: <%= company.seat %><% } %><% if (company.address && company.address !== company.seat) { %>, oficina: <%= company.address %><% } %>.
+    <% if (company.phone) { %>Tel. <%= company.phone %>. <% } %><% if (company.email) { %>Correo electrónico: <%= company.email %>. <% } %>
+    <% if (company.gemi) { %>N.º de Registro Mercantil General (GEMI): <%= company.gemi %>. <% } %><% if (company.vat) { %>NIF: <%= company.vat %><% if (company.taxOffice) { %> (<%= company.taxOffice %>)<% } %>. <% } %>
+    <% if (company.mhte) { %>N.º de Registro de Empresas Turísticas (MHTE): <%= company.mhte %>. <% } %>Autoridad competente: <%= company.authority %>.</p>
+
+  <h2 id="process">2. Cómo se hace la reserva</h2>
+  <ol>
+    <li>Búsqueda por lugares y fechas de recogida y devolución.</li>
+    <li>Elección del coche y de los extras: el precio final se muestra antes de reservar.</li>
+    <li>Datos del conductor, forma de pago y (opcionalmente) datos de facturación.</li>
+    <li>Revisión del resumen: puede corregir cualquier dato antes de pulsar «Reservar con obligación de pago».</li>
+    <li>Si ha elegido pagar con tarjeta, pago en la página segura del proveedor de pagos.</li>
+  </ol>
+  <p>Si paga en la recogida, el contrato se celebra al pulsar el botón; si paga con tarjeta, cuando el pago se realiza con éxito. Archivamos el contrato, que está disponible en la página «Mi reserva»; las condiciones que usted ha aceptado se le envían con el correo electrónico de confirmación. Idioma del contrato: griego.</p>
+
+  <h2 id="driver">3. Conductor</h2>
+  <ul>
+    <li>Edad mínima del conductor: la indicada para cada coche. Permiso de conducir en vigor, expedido al menos <%= r.minLicenseYears %> <%= r.minLicenseYears === 1 ? 'año' : 'años' %> antes de la recogida. Para determinados permisos de fuera de la UE se exige un Permiso Internacional de Conducción.</li>
+    <li>En la recogida se requieren el permiso de conducir, el documento de identidad o el pasaporte y una tarjeta de crédito a nombre del conductor principal para la fianza.</li>
+    <li>Solo los conductores declarados pueden conducir el coche. El conductor adicional debe cumplir los mismos requisitos.</li>
+    <li>El coche es el modelo indicado «o similar» de la misma categoría. Si la categoría no está disponible, le asignamos una categoría superior sin cargo adicional o le reembolsamos el importe íntegro.</li>
+  </ul>
+
+  <h2 id="payment">4. Precios, pago y fianza</h2>
+  <ul>
+    <li>Todos los precios se expresan en euros e incluyen el <%= r.vatPercent %>% de IVA. El alquiler se cobra por periodos de 24 horas a partir de la hora de recogida; un retraso de hasta <%= r.graceMinutes %> minutos no se cobra.</li>
+    <% if (r.durationDiscounts.length) { %><li>Descuentos por duración: <%= r.durationDiscounts.map(function (d) { return `${d.percent}% a partir de ${d.minDays} días`; }).join(', ') %>.</li><% } %>
+    <% if (r.oneWayFeeCents) { %><li>Devolución en un lugar distinto: <%= format.money(r.oneWayFeeCents) %>.</li><% } %>
+    <li><strong>Pago:</strong> <%= paymentsEnabled ? 'online con tarjeta al hacer la reserva o ' : '' %>en la recogida con tarjeta de débito/crédito, IRIS o efectivo hasta <%= format.money(t.cashLimitCents) %>. No se aplica ningún recargo por la forma de pago.</li>
+    <li><strong>Fianza:</strong> bloqueo (no cargo), en una tarjeta de crédito Visa o Mastercard a nombre del conductor principal, del importe que se indica para cada coche antes de reservar. Para la fianza no se aceptan tarjetas de débito ni de prepago, ni efectivo. El bloqueo se realiza en el TPV de la oficina u online (desde <%= config.deposits.linkOpensHoursBeforePickup %> horas antes de la recogida) por el importe exacto que usted autorice, y nunca por un importe superior sin su nuevo consentimiento. Se libera sin demora tras la devolución<% if (config.deposits.autoReleaseHours > 0) { %> (a más tardar en un plazo de <%= config.deposits.autoReleaseHours %> horas si no hay cargos)<% } %>; el tiempo que tarde el importe en aparecer como disponible depende de su banco.</li>
+    <li>De la fianza solo se descuentan los cargos de las tarifas (§6) y, en caso de daños, solo con su consentimiento y hasta el importe de la franquicia (§7). Recibirá información detallada de cada cargo.</li>
+  </ul>
+
+  <h2 id="cancellation">5. Cancelaciones</h2>
+  <ul>
+    <li><strong>No existe derecho de desistimiento de 14 días</strong>, ya que se trata de un alquiler de coche para fechas concretas (artículo 3ib de la Ley griega 2251/1994). La cancelación se rige por la política siguiente.</li>
+    <li><strong>Cancelación gratuita</strong> hasta <%= r.freeCancellationHours %> horas antes de la recogida, online desde la página «Mi reserva». El reembolso se inicia inmediatamente en el medio de pago original.</li>
+    <li><strong>Cancelación dentro de las <%= r.freeCancellationHours %> horas previas o no presentación:</strong> se retiene un importe <%= t.lateCancelFeeCents ? `de ${format.money(t.lateCancelFeeCents)}` : 'equivalente al alquiler de un día sin extras' %> (el importe exacto figura en su reserva) y se reembolsa el resto. Si no ha pagado por adelantado, no se adeuda ningún cargo.</li>
+    <li>Si cancelamos nosotros o no podemos facilitarle un coche de la categoría reservada, le asignamos una categoría superior sin cargo adicional o le reembolsamos inmediatamente el importe íntegro.</li>
+    <li>La devolución anticipada no da derecho a reembolso por los días no utilizados.</li>
+  </ul>
+
+  <h2 id="use">6. Uso del coche y tarifas de cargos</h2>
+  <ul>
+    <li><strong>Combustible:</strong> recogida y devolución con el mismo nivel, salvo que haya contratado el «Depósito lleno prepagado» (el combustible no utilizado no se reembolsa).</li>
+    <li><strong>Ferry o extranjero:</strong> solo con nuestra autorización previa por escrito<%= t.ferryFeeCents ? ` (cargo: ${format.money(t.ferryFeeCents)})` : '' %>. Fuera de la UE se exige la Carta Verde. Los daños sufridos durante el transporte en ferry deben declararse por escrito a la naviera antes del desembarque.</li>
+    <li>Está prohibido fumar, conducir bajo los efectos del alcohol o de drogas, y utilizar el coche en competiciones, para remolcar o fuera de carretera.</li>
+    <li><strong>Las multas y los peajes</strong> generados durante el alquiler corren a cargo del arrendatario. Cuando lo permita el Código de Circulación griego, comunicamos sus datos a la autoridad para que la multa se expida a su nombre.</li>
+  </ul>
+  <h3 id="tariff">Tarifas de cargos tras la devolución</h3>
+  <table class="table">
+    <tbody>
+      <tr><td>Combustible que falte</td><td><%= format.money(t.fuelPerLitreCents) %> / litro + cargo por repostaje de <%= format.money(t.refuelFeeCents) %></td></tr>
+      <tr><td>Retraso en la devolución de más de <%= r.graceMinutes %> minutos</td><td>Un día adicional a la tarifa diaria de la reserva</td></tr>
+      <tr><td>Limpieza especial (tabaco, arena, mascotas)</td><td><%= format.money(t.cleaningFeeCents) %></td></tr>
+      <tr><td>Multas / peajes</td><td>El importe exacto, con copia de la notificación, + gastos de gestión de <%= format.money(t.finesAdminFeeCents) %></td></tr>
+      <tr><td>Pérdida de llave</td><td><%= format.money(t.lostKeyFeeCents) %></td></tr>
+    </tbody>
+  </table>
+  <p>Los cargos no incluidos en las tarifas solo se realizan con su consentimiento por escrito.</p>
+
+  <h2 id="damage">7. Seguro, cobertura de daños y procedimiento en caso de daños</h2>
+  <ul>
+    <li>Se incluyen el seguro obligatorio de responsabilidad civil frente a terceros y la cobertura básica de daños del vehículo (CDW) con una franquicia (la parte de los daños que corre a su cargo), según se indica para cada coche antes de la reserva.</li>
+    <li>La <strong>Exención total por daños (FDW)</strong> reduce la franquicia a cero. No es un producto de seguro; es una renuncia contractual de la empresa a reclamar por los daños del vehículo.</li>
+    <li>La CDW y la FDW no se aplican a los daños causados con dolo o negligencia grave, ni a los derivados de la conducción bajo los efectos del alcohol o de drogas, de la conducción por un conductor no declarado, de la conducción fuera de carretera o del transporte en ferry sin autorización.</li>
+    <li>En la recogida y en la devolución se registra el estado del coche mediante fotografías con fecha y hora.</li>
+    <li>Si se detectan daños en la devolución, le enviamos una notificación por escrito con la documentación justificativa (fotografías, presupuesto o factura de reparación). El importe es el coste real de la reparación, hasta la franquicia de su reserva. <strong>No se realiza ningún cargo por daños sin su consentimiento</strong>; dispone de <%= config.deposits.damageResponseDays %> días para aceptarlo o impugnarlo. Si el coste final resulta inferior, le reembolsamos la diferencia.</li>
+    <li>En caso de accidente, comuníquelo inmediatamente a nuestra empresa y a las autoridades, y cumplimente un parte de accidente.</li>
+  </ul>
+
+  <h2 id="law">8. Ley aplicable, reclamaciones y resolución de conflictos</h2>
+  <p>Estas condiciones se rigen por el Derecho griego. Son competentes los tribunales de Salónica, sin perjuicio del derecho del consumidor a acudir a los tribunales de su lugar de residencia cuando así lo prevea la ley.</p>
+  <p>Reclamaciones: <%= company.email || 'formulario de contacto' %><% if (company.phone) { %>, <%= company.phone %><% } %>, mediante el <a href="<%= locals.baseUrl ? `${locals.baseUrl}/complaints` : u('/complaints') %>">formulario de reclamaciones</a> o en nuestra oficina. Acusamos recibo en un plazo de 2 días hábiles y respondemos de forma motivada en un plazo de 15 días.</p>
+  <p>Para la resolución extrajudicial puede dirigirse al <strong>Defensor del Consumidor de Grecia</strong> (www.synigoroskatanaloti.gr), entidad de resolución alternativa de litigios; la empresa <%= company.adrCommitment ? 'se compromete a participar' : 'decide en cada caso si participa' %>. Los consumidores de otros Estados miembros de la UE pueden solicitar ayuda al Centro Europeo del Consumidor de Grecia (www.eccgreece.gr).</p>

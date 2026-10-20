@@ -1,0 +1,15 @@
+<%- include('../partials/header') %>
+<div class="container section narrow">
+  <h1><%= t('Σύνδεση') %></h1>
+  <% if (error) { %><div class="alert alert-error" role="alert"><%= t(error) %></div><% } %>
+  <form method="post" action="<%= u('/login') %>" class="card pad stack">
+    <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+    <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" value="<%= values.email || '' %>" required autocomplete="email" autofocus></div>
+    <div class="field"><label for="password"><%= t('Κωδικός') %></label><input id="password" name="password" type="password" required autocomplete="current-password"></div>
+    <label class="check"><input type="checkbox" name="remember" value="1"><span><%= t('Να με θυμάσαι για 30 ημέρες (μην το επιλέγετε σε κοινόχρηστο υπολογιστή)') %></span></label>
+    <button class="btn btn-primary" type="submit"><%= t('Σύνδεση') %></button>
+    <p class="small"><a href="<%= u('/forgot-password') %>"><%= t('Ξεχάσατε τον κωδικό;') %></a></p>
+  </form>
+  <p><%- th('Δεν έχετε λογαριασμό; <a href="{url}">Δημιουργήστε έναν</a>. Μπορείτε επίσης να κάνετε κράτηση χωρίς λογαριασμό.', { url: u('/register') }) %></p>
+</div>
+<%- include('../partials/footer') %>

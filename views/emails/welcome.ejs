@@ -1,0 +1,5 @@
+<%- include('_top') %>
+<p><%= t('Γεια σας {name},', { name: user.first_name }) %></p>
+<p><%- th('Καλώς ήρθατε στην {company}! Ο λογαριασμός σας δημιουργήθηκε με το email <strong>{email}</strong>.', { company: company.name, email: user.email }) %></p>
+<p><a href="<%= baseUrl %>/cars"><%= t('Βρείτε το αυτοκίνητο για το επόμενο ταξίδι σας') %></a></p>
+<%- include('_bottom') %>

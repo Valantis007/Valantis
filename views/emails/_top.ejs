@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="<%= locale %>"><head><meta charset="utf-8"><title><%= locals.subject || '' %></title></head>
+<body style="margin:0;padding:0;background:#f3f5f8;font-family:Arial,Helvetica,sans-serif;color:#1d2433;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f5f8;padding:24px 0;"><tr><td align="center">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:8px;overflow:hidden;">
+<tr><td style="background:#0f2742;color:#ffffff;padding:20px 28px;font-size:20px;font-weight:bold;"><%= company.name %></td></tr>
+<% if (locals.bookingUrl) { %>
+<%# «Η κράτησή μου»: ανοίγει την κράτηση με ένα πάτημα, χωρίς κωδικό και email (src/lib/booking-access.js). %>
+<tr><td style="padding:20px 28px 0;">
+<table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:#1d5bd8;border-radius:6px;">
+<a href="<%= bookingUrl %>" style="display:inline-block;padding:12px 22px;color:#ffffff;font-size:16px;font-weight:bold;text-decoration:none;"><%= t('Η κράτησή μου') %><% if (locals.booking && booking.reference) { %> · <%= booking.reference %><% } %></a>
+</td></tr></table>
+<p style="margin:8px 0 0;color:#6b7280;font-size:12px;line-height:1.4;"><%= t('Ο σύνδεσμος ανοίγει την κράτησή σας χωρίς κωδικό· μην προωθήσετε αυτό το email.') %></p>
+</td></tr>
+<% } %>
+<tr><td style="padding:28px;font-size:15px;line-height:1.55;">

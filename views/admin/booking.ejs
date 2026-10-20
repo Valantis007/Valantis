@@ -1,0 +1,375 @@
+<%- include('../partials/header') %>
+<% const b = booking;
+   const held = deposits.find(function (d) { return d.status === 'held'; });
+   const refundable = b.paid_cents - b.refunded_cents - pendingRefundCents;
+   const isOnline = Boolean(b.payment_provider && b.payment_ref && b.paid_cents > 0);
+   const unresolved = charges.filter(function (c) { return ['proposed', 'disputed'].includes(c.status); }); %>
+<div class="container section">
+  <%- include('_nav') %>
+  <p><a href="/admin/bookings">← Όλες οι κρατήσεις</a></p>
+  <div class="section-head">
+    <h1>Κράτηση <span class="ref"><%= b.reference %></span> <span class="status status-<%= b.status %>"><%= format.label('status', b.status) %></span></h1>
+    <a class="btn" href="/booking/<%= b.reference %>/print" target="_blank">Εκτύπωση</a>
+  </div>
+
+  <% if (newLink) { %>
+    <div class="card pad deposit-link">
+      <div>
+        <h2 class="h4">Σύνδεσμος εγγύησης για τον πελάτη</h2>
+        <p class="small">Ο πελάτης σκανάρει το QR με το κινητό του (ή ανοίγει τον σύνδεσμο), αποδέχεται τους όρους και εγκρίνει τη δέσμευση στην πιστωτική του κάρτα. Ο σύνδεσμος εμφανίζεται μόνο τώρα — φυλάξτε τον αν χρειάζεται.</p>
+        <p class="small"><a href="<%= newLink.url %>" target="_blank" rel="noopener"><%= newLink.url %></a></p>
+      </div>
+      <div class="qr"><%- newLink.qr %></div>
+    </div>
+  <% } %>
+
+  <div class="layout-sidebar reverse">
+    <div class="stack">
+      <%- include('../booking/_details', { booking: b, extras }) %>
+      <div class="card pad">
+        <h2 class="h4">Στοιχεία οδηγού (για το συμβόλαιο)</h2>
+        <dl class="kv">
+          <dt>Ημ. γέννησης</dt><dd><%= format.date(b.birth_date) %></dd>
+          <dt>Δίπλωμα</dt><dd><%= b.license_number %> · <%= b.license_country %> · έκδοση <%= format.date(b.license_issued) %></dd>
+          <dt>Αυτοκίνητο</dt><dd><%= b.make %> <%= b.model %> · <strong><%= b.plate %></strong></dd>
+          <% if (b.pickup_km !== null) { %><dt>Χλμ. παράδοσης</dt><dd><%= b.pickup_km %></dd><% } %>
+          <% if (b.return_km !== null) { %><dt>Χλμ. επιστροφής</dt><dd><%= b.return_km %> (<%= b.return_km - (b.pickup_km || 0) %> km)</dd><% } %>
+          <% if (b.notes) { %><dt>Σημειώσεις πελάτη</dt><dd><%= b.notes %></dd><% } %>
+          <dt>Γλώσσα πελάτη</dt><dd><%= { el: 'Ελληνικά', en: 'Αγγλικά (English)', es: 'Ισπανικά (Español)' }[b.locale] || 'Ελληνικά' %><% if (b.locale && b.locale !== 'el') { %> <span class="small muted">— τα emails του στέλνονται σε αυτή τη γλώσσα</span><% } %></dd>
+          <dt>Δημιουργήθηκε</dt><dd><%= format.utcTimestamp(b.created_at, config.rules.timezone) %></dd>
+          <% if (b.switched_to_pickup_at) { %><dt>Αλλαγή τρόπου πληρωμής</dt><dd>Από κάρτα σε πληρωμή κατά την παραλαβή (η πληρωμή με κάρτα δεν ολοκληρώθηκε) · <%= format.utcTimestamp(b.switched_to_pickup_at, config.rules.timezone) %><% if (b.payment_method === 'card' && b.paid_cents > 0) { %><br><strong>Η πληρωμή με κάρτα ολοκληρώθηκε τελικά: μην εισπράξετε ξανά το ποσό στην παραλαβή.</strong><% } %></dd><% } %>
+          <% if (b.payment_reminder_sent_at) { %><dt>Υπενθύμιση πληρωμής</dt><dd>Email «Η κράτησή σας δεν έχει ολοκληρωθεί» · <%= format.utcTimestamp(b.payment_reminder_sent_at, config.rules.timezone) %></dd><% } %>
+          <% if (b.payment_provider) { %><dt>Πάροχος πληρωμής</dt><dd><%= b.payment_provider %><% if (b.payment_ref) { %> · <span class="small"><%= b.payment_ref %></span><% } %></dd><% } %>
+        </dl>
+      </div>
+
+      <div class="card pad">
+        <h2 class="h4">Εγγύηση <span class="muted small">(απαιτούμενη: <%= format.money(b.deposit_cents) %>)</span></h2>
+        <% if (!deposits.length) { %><p class="muted small">Δεν έχει δεσμευτεί εγγύηση.</p><% } %>
+        <% deposits.forEach(function (d) { %>
+          <div class="deposit-row">
+            <div>
+              <strong><%= format.money(d.amount_cents) %></strong> · <%= format.label('depositMethod', d.method) %> ·
+              <span class="status status-<%= d.status === 'held' ? 'confirmed' : d.status === 'awaiting' ? 'pending_payment' : 'completed' %>"><%= format.label('depositStatus', d.status) %></span>
+              <div class="small muted">
+                <% if (d.card_last4) { %>Κάρτα <%= d.card_brand || '' %> •••• <%= d.card_last4 %><% if (d.funding) { %> (<%= d.funding %>)<% } %> · <% } %>
+                <% if (d.method === 'pos' && d.hold_ref) { %>Έγκριση POS <%= d.hold_ref %> · <% } %>
+                <% if (d.capture_deadline_ms) { %>Ισχύει έως <%= format.msDateTime(d.capture_deadline_ms, config.rules.timezone) %> · <% } %>
+                <% if (d.captured_cents) { %>Παρακράτηση <%= format.money(d.captured_cents) %> · <% } %>
+                <%= format.utcTimestamp(d.created_at, config.rules.timezone) %>
+              </div>
+              <% if (d.failure_reason) { %><div class="small error"><%= d.failure_reason %></div><% } %>
+            </div>
+          </div>
+        <% }) %>
+      </div>
+
+      <div class="card pad">
+        <h2 class="h4">Χρεώσεις μετά την επιστροφή</h2>
+        <% if (!charges.length) { %><p class="muted small">Καμία χρέωση.</p><% } else { %>
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th>Χρέωση</th><th>Ποσό</th><th>Κατάσταση</th><th></th></tr></thead>
+            <tbody>
+              <% charges.forEach(function (c) { %>
+                <tr class="<%= c.status === 'withdrawn' ? 'inactive' : '' %>">
+                  <td><strong><%= format.label('chargeCategory', c.category) %></strong><br><%= c.description %>
+                    <% if (c.evidence) { %><br><span class="small muted">Τεκμηρίωση: <%= c.evidence %></span><% } %>
+                    <% if (c.consent) { %><br><span class="small muted">Συναίνεση: <%= c.consent %></span><% } %>
+                    <% if (c.customer_note) { %><br><span class="small">Σχόλιο πελάτη: «<%= c.customer_note %>»</span><% } %>
+                    <% if (c.respond_by && c.status === 'proposed') { %><br><span class="small">Προθεσμία απάντησης: <%= format.date(c.respond_by) %></span><% } %></td>
+                  <td><%= format.money(c.amount_cents) %><% if (c.paid_cents) { %><br><span class="small muted">εξοφλ. <%= format.money(c.paid_cents) %></span><% } %></td>
+                  <td><%= format.label('chargeStatus', c.status) %></td>
+                  <td class="stack">
+                    <% if (['proposed', 'disputed'].includes(c.status)) { %>
+                      <form method="post" action="/admin/bookings/<%= b.id %>/charges/<%= c.id %>/accept" class="stack">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+                        <input name="consent_note" placeholder="π.χ. υπέγραψε πρακτικό Νο 12" required>
+                        <button class="btn btn-small" type="submit">Γραπτή συναίνεση</button>
+                      </form>
+                    <% } %>
+                    <% if (c.status === 'accepted' && c.paid_cents < c.amount_cents) { %>
+                      <form method="post" action="/admin/bookings/<%= b.id %>/charges/<%= c.id %>/mark-paid" data-confirm="Εξοφλήθηκε εκτός συστήματος;">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+                        <select name="method"><option value="pos">POS</option><option value="other">Μετρητά / μεταφορά</option></select>
+                        <button class="btn btn-small" type="submit">Εξοφλήθηκε</button>
+                      </form>
+                    <% } %>
+                    <% if (!c.paid_cents && c.status !== 'withdrawn') { %>
+                      <form method="post" action="/admin/bookings/<%= b.id %>/charges/<%= c.id %>/withdraw" data-confirm="Απόσυρση χρέωσης;">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+                        <button class="link-button small" type="submit">Απόσυρση</button>
+                      </form>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+        <p class="small">Εκκρεμεί προς είσπραξη: <strong><%= format.money(outstandingCents) %></strong></p>
+        <% } %>
+        <% if (['active', 'completed'].includes(b.status)) { const cd = chargeDraft || {}; %>
+          <details <%= chargeDraft ? 'open' : '' %>>
+            <summary>+ Νέα χρέωση</summary>
+            <form method="post" action="/admin/bookings/<%= b.id %>/charges" class="stack">
+              <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+              <div class="grid-2">
+                <div class="field"><label for="ch_category">Κατηγορία</label>
+                  <select id="ch_category" name="category" required>
+                    <% chargeCategories.forEach(function (k) { %><option value="<%= k %>" <%= cd.category === k ? 'selected' : '' %>><%= format.label('chargeCategory', k) %></option><% }) %>
+                  </select></div>
+                <div class="field"><label for="ch_amount">Ποσό (€)</label><input id="ch_amount" name="amount" inputmode="decimal" value="<%= cd.amount || '' %>" required></div>
+              </div>
+              <div class="field"><label for="ch_preset">Έτοιμη περιγραφή (μεταφράζεται αυτόματα στη γλώσσα του πελάτη)</label>
+                <select id="ch_preset" name="description_preset">
+                  <option value="">— Καμία: γράφω δική μου περιγραφή παρακάτω —</option>
+                  <% Object.keys(chargeDescriptions).forEach(function (k) { %><optgroup label="<%= format.label('chargeCategory', k) %>"><% chargeDescriptions[k].forEach(function (d) { %><option value="<%= d %>" <%= cd.description_preset === d ? 'selected' : '' %>><%= d %></option><% }) %></optgroup><% }) %>
+                </select></div>
+              <div class="field"><label for="ch_description">ή δική σας περιγραφή (θα τη δει ο πελάτης)</label><input id="ch_description" name="description" maxlength="300" value="<%= cd.description || '' %>"><span class="hint lang-hint"><%= customerLanguageHint %></span></div>
+              <div class="field"><label for="ch_evidence">Τεκμηρίωση (υποχρεωτική για ζημιά: πρακτικό, φωτογραφίες, εκτίμηση/τιμολόγιο συνεργείου)</label><textarea id="ch_evidence" name="evidence" rows="2"><%= cd.evidence || '' %></textarea><span class="hint lang-hint"><%= customerLanguageHint %></span></div>
+              <div class="field"><label for="ch_consent">Μόνο για ζημιά / άλλη χρέωση: ο πελάτης συναίνεσε ήδη γραπτώς; (αλλιώς θα του σταλεί για αποδοχή)</label><input id="ch_consent" name="customer_consent" value="<%= cd.customerConsent || '' %>" <% if (b.locale === 'el') { %>placeholder="π.χ. υπέγραψε πρακτικό ζημιάς Νο 12 στην επιστροφή"<% } %>><span class="hint lang-hint"><%= customerLanguageHint %></span></div>
+              <div class="field"><label for="ch_beyond">Μόνο για ζημιά πέραν της απαλλαγής (<%= format.money(b.excess_cents ?? b.deposit_cents) %>): εξαίρεση των όρων §7</label><input id="ch_beyond" name="beyond_excess" maxlength="300" value="<%= cd.beyondExcess || '' %>" <% if (b.locale === 'el') { %>placeholder="π.χ. ζημιά ελαστικών από οδήγηση εκτός ασφάλτου (§7)"<% } %>><span class="hint lang-hint"><%= customerLanguageHint %></span></div>
+              <p class="small muted">Καθαρισμός έως <%= format.money(config.tariff.cleaningFeeCents) %>, διαχείριση προστίμου έως <%= format.money(config.tariff.finesAdminFeeCents) %> ανά πρόστιμο (τιμοκατάλογος όρων). Ο πελάτης λαμβάνει email για κάθε χρέωση.</p>
+              <button class="btn" type="submit">Καταχώρηση</button>
+            </form>
+          </details>
+        <% } %>
+      </div>
+
+      <% if (fiscalDocs.length) { %>
+      <div class="card pad">
+        <h2 class="h4">Παραστατικά (myDATA)</h2>
+        <ul class="plain small">
+          <% fiscalDocs.forEach(function (f) { %>
+            <li><%= format.label('fiscalKind', f.kind) %> <%= format.money(f.amount_cents) %> — <%= f.description %> ·
+              <% if (f.issued_at) { %>ΜΑΡΚ <%= f.mark %><% } else { %>
+                <form method="post" action="/admin/fiscal/<%= f.id %>" class="inline-form">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+                  <input name="mark" maxlength="40" placeholder="ΜΑΡΚ" aria-label="ΜΑΡΚ" required>
+                  <button class="btn btn-small" type="submit">Εκδόθηκε</button>
+                </form>
+              <% } %></li>
+          <% }) %>
+        </ul>
+      </div>
+      <% } %>
+      <% if (b.personal_data_purged_at) { %><p class="small muted">Τα στοιχεία διπλώματος/επικοινωνίας διαγράφηκαν στις <%= format.dateTime(b.personal_data_purged_at.replace(' ', 'T')) %> (πολιτική διατήρησης δεδομένων).</p><% } %>
+      <% if (checkouts.length || refunds.length) { %>
+      <div class="card pad">
+        <h2 class="h4">Online πληρωμές & επιστροφές</h2>
+        <% if (checkouts.length) { %>
+          <ul class="plain small">
+            <% checkouts.forEach(function (co) { %>
+              <li><%= format.label('checkoutKind', co.kind) %> · <%= format.money(co.amount_cents) %> · <%= co.provider %> · <strong><%= format.label('checkoutStatus', co.status) %></strong> · <%= format.msDateTime(co.created_at, config.rules.timezone) %> <span class="muted"><%= co.id %></span></li>
+            <% }) %>
+          </ul>
+        <% } %>
+        <% if (refunds.length) { %>
+          <h3 class="h4">Επιστροφές χρημάτων</h3>
+          <ul class="plain small">
+            <% refunds.forEach(function (r) { %>
+              <li><%= format.money(r.amount_cents) %> · <strong><%= format.label('refundStatus', r.status) %></strong> · <%= r.reason || '' %>
+                <% if (r.last_error && r.status !== 'done') { %><br><span class="error">Σφάλμα: <%= r.last_error %> (προσπάθειες: <%= r.attempts %>)</span><% } %>
+                <% if (r.status === 'failed') { %>
+                  <form method="post" action="/admin/bookings/<%= b.id %>/refunds/<%= r.id %>/retry" class="inline-form">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+                    <button class="link-button small" type="submit">Νέα προσπάθεια</button>
+                  </form>
+                <% } %>
+              </li>
+            <% }) %>
+          </ul>
+        <% } %>
+      </div>
+      <% } %>
+
+      <div class="card pad">
+        <h2 class="h4">Ιστορικό</h2>
+        <ul class="timeline">
+          <% events.forEach(function (ev) { %>
+            <li><span class="muted small"><%= format.utcTimestamp(ev.created_at, config.rules.timezone) %> · <%= ev.actor %></span><br><strong><%= format.label('event', ev.action) %></strong><% if (ev.note) { %> — <%= ev.note %><% } %></li>
+          <% }) %>
+        </ul>
+      </div>
+    </div>
+
+    <aside class="stack">
+      <% if (b.status === 'confirmed') { %>
+        <form method="post" action="/admin/bookings/<%= b.id %>/pickup" class="card pad stack">
+          <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+          <h2 class="h4">Παράδοση στον πελάτη</h2>
+          <div class="field"><label for="pickup_km">Χιλιόμετρα</label><input id="pickup_km" name="pickup_km" type="number" min="0" required></div>
+          <% if (b.payment_status === 'unpaid') { %>
+            <label class="check"><input type="checkbox" name="collected_payment" value="1"><span>Εισπράχθηκε η πληρωμή <%= format.money(b.total_cents) %></span></label>
+            <% if (b.total_cents > config.tariff.cashLimitCents) { %><p class="small muted">Πάνω από <%= format.money(config.tariff.cashLimitCents) %>: μόνο με κάρτα ή IRIS, όχι μετρητά.</p><% } %>
+          <% } %>
+          <% if (b.deposit_cents > 0 && !held) { %>
+            <p class="small error">Δεν έχει δεσμευτεί εγγύηση.</p>
+            <label class="check"><input type="checkbox" name="no_deposit" value="1"><span>Παράδοση χωρίς εγγύηση (με ευθύνη του γραφείου)</span></label>
+          <% } %>
+          <button class="btn btn-primary" type="submit">Παράδοση</button>
+        </form>
+      <% } %>
+      <% if (b.status === 'active') { %>
+        <form method="post" action="/admin/bookings/<%= b.id %>/return" class="card pad stack">
+          <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+          <h2 class="h4">Επιστροφή αυτοκινήτου</h2>
+          <div class="field"><label for="return_km">Χιλιόμετρα</label><input id="return_km" name="return_km" type="number" min="<%= b.pickup_km || 0 %>" required></div>
+          <button class="btn btn-primary" type="submit">Ολοκλήρωση ενοικίασης</button>
+        </form>
+      <% } %>
+
+      <% if (['confirmed', 'active'].includes(b.status) && !held) { %>
+        <div class="card pad stack">
+          <h2 class="h4">Δέσμευση εγγύησης</h2>
+          <p class="small muted">Μόνο πιστωτικές κάρτες στο όνομα του οδηγού.</p>
+          <details open>
+            <summary>Με POS του γραφείου</summary>
+            <form method="post" action="/admin/bookings/<%= b.id %>/deposit/pos" class="stack">
+              <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+              <div class="grid-2">
+                <div class="field"><label for="pos_amount">Ποσό (€)</label><input id="pos_amount" name="amount" inputmode="decimal" value="<%= format.centsToInput(b.deposit_cents) %>" required></div>
+                <div class="field"><label for="pos_last4">Τελ. 4 ψηφία</label><input id="pos_last4" name="last4" inputmode="numeric" maxlength="4"></div>
+              </div>
+              <div class="field"><label for="pos_code">Αριθμός έγκρισης (approval code)</label><input id="pos_code" name="approval_code" required></div>
+              <div class="field"><label for="pos_over">Μόνο αν το ποσό είναι μεγαλύτερο από <%= format.money(b.deposit_cents) %>: συναίνεση του πελάτη</label><input id="pos_over" name="over_note" maxlength="300" placeholder="π.χ. υπέγραψε για εγγύηση 1.500 € (νέος οδηγός)"></div>
+              <label class="check"><input type="checkbox" name="credit_confirmed" value="1" required><span>Η κάρτα είναι πιστωτική και ο πελάτης υπέγραψε την απόδειξη προέγκρισης.</span></label>
+              <button class="btn" type="submit">Καταχώρηση προέγκρισης</button>
+            </form>
+          </details>
+          <% if (onlineProvider) { %>
+          <details <%= deposits.length ? '' : 'open' %>>
+            <summary>Online (<%= onlineProvider.label %>) — QR / σύνδεσμος</summary>
+            <form method="post" action="/admin/bookings/<%= b.id %>/deposit/link" class="stack">
+              <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+              <div class="field"><label for="link_amount">Ποσό (€)</label><input id="link_amount" name="amount" inputmode="decimal" value="<%= format.centsToInput(b.deposit_cents) %>" required></div>
+              <div class="field"><label for="link_over">Μόνο αν το ποσό είναι μεγαλύτερο από <%= format.money(b.deposit_cents) %>: συναίνεση του πελάτη</label><input id="link_over" name="over_note" maxlength="300"></div>
+              <label class="check"><input type="checkbox" name="send_email" value="1"><span>Αποστολή του συνδέσμου στον πελάτη με email</span></label>
+              <button class="btn" type="submit"><%= activeDeposit && activeDeposit.status === 'awaiting' ? 'Νέος σύνδεσμος (ακυρώνει τον προηγούμενο)' : 'Δημιουργία συνδέσμου' %></button>
+            </form>
+          </details>
+          <% } %>
+        </div>
+      <% } %>
+
+      <% if (held) { %>
+        <div class="card pad stack">
+          <h2 class="h4">Κλείσιμο εγγύησης</h2>
+          <% if (b.status === 'completed') { %>
+            <p class="small">Θα αφαιρεθούν <strong><%= format.money(Math.min(outstandingCents, held.amount_cents)) %></strong> (αποδεκτές χρεώσεις) και θα αποδεσμευτούν <strong><%= format.money(held.amount_cents - Math.min(outstandingCents, held.amount_cents)) %></strong>.</p>
+            <% if (unresolved.length) { %><p class="small error">Υπάρχουν <%= unresolved.length %> χρεώσεις ζημιάς χωρίς αποδοχή του πελάτη.</p><% } %>
+            <form method="post" action="/admin/bookings/<%= b.id %>/deposit/<%= held.id %>/settle" class="stack" data-confirm="Εκκαθάριση εγγύησης;">
+              <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+              <% if (unresolved.length) { %>
+                <label class="check"><input type="checkbox" name="force" value="1"><span>Κλείσιμο χωρίς τις μη αποδεκτές χρεώσεις (θα εισπραχθούν χωριστά)</span></label>
+              <% } %>
+              <% if (held.method === 'pos') { %>
+                <label class="check"><input type="checkbox" name="pos_confirmed" value="1" required><span>Έκανα στο POS <%= outstandingCents > 0 ? `ολοκλήρωση προέγκρισης ${format.money(Math.min(outstandingCents, held.amount_cents))}` : 'ακύρωση της προέγκρισης' %>.</span></label>
+              <% } %>
+              <button class="btn btn-primary" type="submit">Εκκαθάριση εγγύησης</button>
+            </form>
+          <% } else { %>
+            <p class="small muted">Η εκκαθάριση γίνεται μετά την επιστροφή του αυτοκινήτου.</p>
+          <% } %>
+          <form method="post" action="/admin/bookings/<%= b.id %>/deposit/<%= held.id %>/release" data-confirm="Πλήρης αποδέσμευση της εγγύησης χωρίς χρεώσεις;">
+            <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+            <button class="btn btn-block" type="submit">Πλήρης αποδέσμευση</button>
+          </form>
+        </div>
+      <% } else if (activeDeposit && activeDeposit.status === 'awaiting') { %>
+        <form method="post" action="/admin/bookings/<%= b.id %>/deposit/<%= activeDeposit.id %>/release" class="card pad">
+          <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+          <button class="btn btn-block" type="submit">Ακύρωση συνδέσμου εγγύησης</button>
+        </form>
+      <% } %>
+
+      <% if (b.payment_status === 'unpaid' && ['confirmed', 'active', 'completed'].includes(b.status)) { %>
+        <form method="post" action="/admin/bookings/<%= b.id %>/mark-paid" class="card pad stack" data-confirm="Καταχώρηση είσπραξης <%= format.money(b.total_cents) %>;">
+          <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+          <h2 class="h4">Πληρωμή</h2>
+          <button class="btn" type="submit">Σημείωση ως εξοφλημένη</button>
+        </form>
+      <% } %>
+
+      <% if (refundable > 0) { %>
+        <div class="card pad stack">
+          <h2 class="h4">Επιστροφή χρημάτων</h2>
+          <p class="small">Πληρώθηκαν <%= format.money(b.paid_cents) %>, επιστράφηκαν <%= format.money(b.refunded_cents) %><% if (pendingRefundCents) { %>, σε εξέλιξη <%= format.money(pendingRefundCents) %><% } %>.</p>
+          <% if (isOnline) { %>
+            <form method="post" action="/admin/bookings/<%= b.id %>/refund" class="stack" data-confirm="Επιστροφή χρημάτων στην κάρτα του πελάτη;">
+              <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+              <div class="field"><label for="rf_amount">Ποσό (€) — έως <%= format.money(refundable) %></label><input id="rf_amount" name="amount" inputmode="decimal" required></div>
+              <div class="field"><label for="rf_reason">Αιτία</label><input id="rf_reason" name="reason" required></div>
+              <button class="btn" type="submit">Επιστροφή στην κάρτα</button>
+            </form>
+          <% } %>
+          <details <%= isOnline ? '' : 'open' %>>
+            <summary>Καταχώρηση επιστροφής εκτός συστήματος</summary>
+            <form method="post" action="/admin/bookings/<%= b.id %>/refund-manual" class="stack">
+              <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+              <div class="field"><label for="rm_amount">Ποσό (€)</label><input id="rm_amount" name="amount" inputmode="decimal" required></div>
+              <div class="field"><label for="rm_note">Τρόπος (π.χ. μεταφορά, μετρητά, POS)</label><input id="rm_note" name="note"></div>
+              <button class="btn" type="submit">Καταχώρηση</button>
+            </form>
+          </details>
+        </div>
+      <% } %>
+
+      <div class="card pad stack wa-admin">
+        <h2 class="h4">WhatsApp στον πελάτη</h2>
+        <% if (!config.company.whatsapp) { %>
+          <p class="small muted">Ορίστε πρώτα τον αριθμό WhatsApp της επιχείρησης (<code>COMPANY_WHATSAPP</code>) <% if (config.isProduction) { %>στον server<% } else { %>στις <a href="/admin/settings#whatsapp">Ρυθμίσεις δοκιμών</a><% } %>: τότε ενημερώνεται και η πολιτική απορρήτου ότι επικοινωνείτε και μέσω WhatsApp.</p>
+        <% } else if (!whatsappCustomer.phone) { %>
+          <p class="small muted"><% if (b.phone) { %>Το τηλέφωνο «<%= b.phone %>» δεν έχει κωδικό χώρας (π.χ. +44): ρωτήστε τον πελάτη ή καλέστε τον.<% } else { %>Η κράτηση δεν έχει τηλέφωνο.<% } %></p>
+        <% } else { %>
+          <p class="small">Ανοίγει το WhatsApp με έτοιμο μήνυμα στη γλώσσα του πελάτη (<%= { el: 'ελληνικά', en: 'αγγλικά', es: 'ισπανικά' }[b.locale] || 'ελληνικά' %>) προς <strong>+<%= whatsappCustomer.phone %></strong>. Το μήνυμα στέλνεται μόνο όταν πατήσετε «Αποστολή» στο WhatsApp· μπορείτε να το αλλάξετε πριν.</p>
+          <% whatsappCustomer.links.forEach(function (l) { %>
+            <a class="btn btn-wa btn-block" href="<%= l.url %>" target="_blank" rel="noopener" title="<%= l.text %>"><%- include('../partials/wa-icon', { size: 18 }) %><%= l.label %></a>
+          <% }) %>
+        <% } %>
+      </div>
+      <% if (bookingMessages.length) { %>
+        <div class="card pad">
+          <h2 class="h4">Μηνύματα για την κράτηση</h2>
+          <ul class="plain small">
+            <% bookingMessages.forEach(function (m) { %>
+              <li><% if (m.kind !== 'question') { %><strong><%= format.label('messageKind', m.kind) %>:</strong> <% } %><%= m.subject %> <span class="muted">· <%= format.utcTimestamp(m.created_at, config.rules.timezone) %><%= m.handled ? '' : ' · εκκρεμεί' %></span></li>
+            <% }) %>
+          </ul>
+          <a href="/admin/messages" class="small">Όλα τα μηνύματα</a>
+        </div>
+      <% } %>
+      <% if (['confirmed', 'active'].includes(b.status)) { %>
+        <form method="post" action="/admin/bookings/<%= b.id %>/resend" class="card pad">
+          <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+          <button class="btn btn-block" type="submit">Επαναποστολή email επιβεβαίωσης</button>
+        </form>
+      <% } %>
+      <% if (['pending_payment', 'confirmed'].includes(b.status) || (b.status === 'expired' && refundable > 0)) { %>
+        <form method="post" action="/admin/bookings/<%= b.id %>/cancel" class="card pad stack" data-confirm="Ακύρωση της κράτησης; Ο πελάτης θα ενημερωθεί με email.">
+          <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+          <h2 class="h4">Ακύρωση</h2>
+          <% const kd = cancelDraft || {}; %>
+          <div class="field"><label for="reason_code">Αιτία (θα σταλεί στον πελάτη, μεταφρασμένη στη γλώσσα του)</label>
+            <select id="reason_code" name="reason_code">
+              <% cancelReasons.forEach(function (r) { %><option value="<%= r.code %>" <%= (kd.reason_code || 'office') === r.code ? 'selected' : '' %>><%= r.label || r.text %></option><% }) %>
+            </select></div>
+          <div class="field"><label for="reason_note">Σημείωση προς τον πελάτη (προαιρετική· υποχρεωτική για «Άλλος λόγος»)</label><textarea id="reason_note" name="reason_note" rows="2" maxlength="300"><%= kd.reason_note || '' %></textarea><span class="hint lang-hint"><%= customerLanguageHint %></span></div>
+          <% if (refundable > 0) { %>
+            <label class="check"><input type="checkbox" name="refund" value="1" checked><span><%= isOnline ? 'Επιστροφή χρημάτων στην κάρτα' : 'Οφείλεται επιστροφή (εκτός συστήματος — θα καταγραφεί ως εκκρεμότητα)' %></span></label>
+            <div class="field"><label for="refund_amount">Ποσό επιστροφής (κενό = ολόκληρο <%= format.money(refundable) %>)</label><input id="refund_amount" name="refund_amount" inputmode="decimal" placeholder="π.χ. 50.00"></div>
+          <% } %>
+          <button class="btn btn-danger" type="submit">Ακύρωση κράτησης</button>
+        </form>
+      <% } %>
+      <form method="post" action="/admin/bookings/<%= b.id %>/notes" class="card pad stack">
+        <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+        <h2 class="h4">Εσωτερικές σημειώσεις</h2>
+        <textarea name="admin_notes" rows="4"><%= b.admin_notes || '' %></textarea>
+        <button class="btn" type="submit">Αποθήκευση</button>
+      </form>
+    </aside>
+  </div>
+</div>
+<%- include('../partials/footer') %>

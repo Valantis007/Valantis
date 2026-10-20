@@ -1,0 +1,25 @@
+<%
+  // Ένα σημείο του «Πώς θα μας βρείτε» (src/lib/places.js).
+  // stop: στάση · title: ετικέτα (π.χ. «Παραλαβή») ή κενό · showPlace: όνομα, διεύθυνση και κουμπί χάρτη
+  // (όχι όταν η επιστροφή είναι στο ίδιο σημείο) · compact: σύντομη μορφή για τη σύνοψη της φόρμας
+  // κράτησης (το όνομα του σημείου φαίνεται ήδη εκεί).
+  const st = stop;
+  const text = tf(st, 'text');
+  const address = st.needs_address ? '' : tf(st, 'address');
+  const withName = showPlace && !compact;
+%>
+<div class="find-us-stop" data-find-us="<%= st.kind %>">
+  <p class="find-us-title">
+    <% if (title) { %><strong><%= title %></strong><% if (withName) { %> · <%= tf(st, 'name') %><% } %>
+    <% } else { %><strong><%= tf(st, 'name') %></strong><% } %>
+  </p>
+  <% if (withName && st.customer_address) { %>
+    <p><%= st.kind === 'return' ? t('Θα παραλάβουμε το αυτοκίνητο από: {address}', { address: places.shownAddress(st.customer_address, t) }) : t('Διεύθυνση παράδοσης: {address}', { address: places.shownAddress(st.customer_address, t) }) %></p>
+  <% } else if (withName && address) { %>
+    <p class="muted"><%= address %></p>
+  <% } %>
+  <% if (text) { %><p class="find-us-text"><%= text %></p><% } %>
+  <% if (showPlace && st.url) { %>
+    <p><a class="btn btn-small" href="<%= st.url %>" target="_blank" rel="noopener"><%= t('Οδηγίες πορείας') %> ↗</a></p>
+  <% } %>
+</div>

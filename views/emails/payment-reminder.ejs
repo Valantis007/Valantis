@@ -1,0 +1,29 @@
+<%# «Η κράτησή σας δεν έχει ολοκληρωθεί»: μία φορά, λίγα λεπτά μετά από κράτηση που περιμένει ακόμη
+    πληρωμή με κάρτα (src/lib/payment-rescue.js → sendPaymentReminders). Στη γλώσσα της κράτησης. %>
+<%- include('_top') %>
+<% const holdTime = format.msTime(booking.hold_expires_at, config.rules.timezone);
+   const amount = format.money(booking.total_cents); %>
+<p><%= t('Αγαπητέ/ή {name},', { name: booking.first_name }) %></p>
+<p><%- th('Η κράτησή σας <strong>{ref}</strong> δεν έχει ολοκληρωθεί: δεν έχουμε λάβει ακόμη την πληρωμή <strong>{amount}</strong>.', { ref: booking.reference, amount }) %></p>
+<p><%- th(config.rules.timezone === 'Europe/Athens'
+  ? 'Το αυτοκίνητο είναι δεσμευμένο για εσάς έως τις <strong>{time}</strong> (ώρα Ελλάδας). Μετά από αυτή την ώρα η κράτηση λήγει και το αυτοκίνητο αποδεσμεύεται.'
+  : 'Το αυτοκίνητο είναι δεσμευμένο για εσάς έως τις <strong>{time}</strong>. Μετά από αυτή την ώρα η κράτηση λήγει και το αυτοκίνητο αποδεσμεύεται.', { time: holdTime }) %></p>
+<% if (locals.canPayCard || locals.canPayAtPickup) { %>
+<p><%= t('Για να ολοκληρώσετε την κράτηση, ανοίξτε τη σελίδα της κράτησης και επιλέξτε:') %></p>
+<ul>
+  <% if (locals.canPayCard) { %><li><%- th('<strong>«Πληρωμή {amount}»</strong>: πληρώνετε τώρα online με κάρτα.', { amount }) %></li><% } %>
+  <% if (locals.canPayAtPickup) { %><li><%- th('<strong>«Πληρωμή κατά την παραλαβή»</strong>: η κράτησή σας επιβεβαιώνεται αμέσως και πληρώνετε {amount} κατά την παραλαβή, με χρεωστική ή πιστωτική κάρτα, IRIS ή μετρητά έως {cash}.', { amount, cash: format.money(config.tariff.cashLimitCents) }) %></li><% } %>
+</ul>
+<% if (locals.bookingUrl) { %>
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 16px;"><tr><td style="background:#1d5bd8;border-radius:6px;">
+<a href="<%= bookingUrl %>" style="display:inline-block;padding:12px 22px;color:#ffffff;font-size:16px;font-weight:bold;text-decoration:none;"><%= t('Ολοκλήρωση κράτησης') %></a>
+</td></tr></table>
+<% } else { %>
+<p><%- th('Για να δείτε ή να ακυρώσετε την κράτηση: <a href="{url}">{url}</a> με τον κωδικό <strong>{ref}</strong> και το email σας.', { url: `${baseUrl}/manage`, ref: booking.reference }) %></p>
+<% } %>
+<% } %>
+<%- include('_booking-table', { booking, extras: locals.extras || [] }) %>
+<p><%= t('Αν έχετε ήδη πληρώσει, δεν χρειάζεται να κάνετε τίποτα: θα λάβετε email επιβεβαίωσης.') %></p>
+<p><%= t('Αν δεν θέλετε πλέον την κράτηση, δεν χρειάζεται να κάνετε τίποτα: δεν θα χρεωθείτε.') %></p>
+<p><%= company.name %></p>
+<%- include('_bottom') %>

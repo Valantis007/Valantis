@@ -1,0 +1,5 @@
+<%- include('_top') %>
+<p><strong>Οφείλεται επιστροφή χρημάτων εκτός συστήματος</strong></p>
+<p>Η κράτηση <%= booking.reference %> (<%= booking.first_name %> <%= booking.last_name %>, <%= booking.phone %>) ακυρώθηκε και είχε πληρωθεί εκτός online συστήματος. Οφείλεται επιστροφή <strong><%= format.money(amountCents) %></strong>.</p>
+<p>Μετά την επιστροφή, καταχωρήστε την στη σελίδα της κράτησης: <a href="<%= baseUrl %>/admin/bookings/<%= booking.id %>">άνοιγμα</a>.</p>
+<%- include('_bottom') %>

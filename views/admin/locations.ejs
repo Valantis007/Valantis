@@ -1,0 +1,72 @@
+<%- include('../partials/header') %>
+<% function err(fe, key) { return fe[key] ? `<span class="error">${fe[key].replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; })}</span>` : ''; } %>
+<div class="container section">
+  <%- include('_nav') %>
+  <h1>Σημεία παραλαβής / επιστροφής</h1>
+  <p class="muted small">Η χρέωση σημείου προστίθεται μία φορά ανά κράτηση (η μεγαλύτερη από παραλαβή/επιστροφή).</p>
+  <p class="muted small">Ό,τι γράφετε στα ελληνικά το βλέπουν και οι ξένοι πελάτες: συμπληρώστε υποχρεωτικά και τη μετάφραση στα αγγλικά και στα ισπανικά (π.χ. με DeepL ή Google Translate).</p>
+  <p class="muted small">Οι οδηγίες εμφανίζονται στον πελάτη ως «Πώς θα μας βρείτε»: στη σύνοψη της κράτησης, στη σελίδα της κράτησης, στην εκτύπωση, στο email επιβεβαίωσης και στη σελίδα «Επικοινωνία» (οι οδηγίες παραλαβής).</p>
+  <div class="stack">
+    <% rows.concat([null]).forEach(function (r) {
+      const key = r ? r.id : 'new';
+      const editingThis = locals.editing !== null && locals.editing !== undefined && String(locals.editing) === String(key);
+      const f = editingThis ? values : (r || {});
+      const fe = editingThis ? errors : {};
+      const val = function (name) { const x = f[name]; return x === null || x === undefined ? '' : x; };
+      const fee = editingThis ? val('fee') : (r ? format.centsToInput(r.fee_cents) : '0.00');
+      const active = editingThis ? f.active === '1' : (!r || r.active);
+      const needsAddress = editingThis ? f.needs_address === '1' : Boolean(r && r.needs_address);
+      const missingFields = r && missing && missing[r.id];
+      // Το πρώτο πεδίο με σφάλμα παίρνει την εστίαση.
+      const firstError = ['name', 'map_url', 'name_en', 'name_es', 'address_en', 'address_es', 'instructions_en', 'instructions_es', 'return_instructions_en', 'return_instructions_es', 'fee'].find(function (k) { return fe[k]; });
+      const focus = function (k) { return firstError === k ? 'autofocus' : ''; };
+      const id = function (k) { return `loc-${key}-${k}`; };
+      const testUrl = r && !r.needs_address && !r.map_url && r.address ? places.googleDirections(r.address) : ''; %>
+      <form method="post" action="/admin/locations<%= r ? `/${r.id}` : '' %>" class="card pad inline-grid location-form" <% if (r) { %>id="location-<%= r.id %>"<% } %>>
+        <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+        <% if (!r) { %><h2 class="h4 full">Νέο σημείο</h2><% } %>
+        <% if (missingFields) { %><p class="small translations-grid"><span class="badge-warn">⚠ Λείπει μετάφραση: <%= missingFields.join(', ') %></span></p><% } %>
+        <div class="field"><label for="<%= id('name') %>">Όνομα</label><input id="<%= id('name') %>" name="name" value="<%= val('name') %>" required <%= focus('name') %>><%- err(fe, 'name') %></div>
+        <div class="field grow"><label for="<%= id('address') %>">Διεύθυνση</label><input id="<%= id('address') %>" name="address" value="<%= val('address') %>" placeholder="π.χ. Τσιμισκή 12, Θεσσαλονίκη"></div>
+        <div class="field full">
+          <label for="<%= id('instructions') %>">Οδηγίες παραλαβής («Πώς θα μας βρείτε»)</label>
+          <textarea id="<%= id('instructions') %>" name="instructions" rows="3" maxlength="1000"><%= val('instructions') %></textarea>
+          <span class="hint">Πού ακριβώς θα περιμένει ο συνάδελφός σας, π.χ. «στην έξοδο των αφίξεων με πινακίδα με το όνομά σας».</span>
+        </div>
+        <div class="field full">
+          <label for="<%= id('return_instructions') %>">Οδηγίες επιστροφής</label>
+          <textarea id="<%= id('return_instructions') %>" name="return_instructions" rows="3" maxlength="1000"><%= val('return_instructions') %></textarea>
+          <span class="hint">Πού σταθμεύει ο πελάτης και τι κάνει με το κλειδί.</span>
+        </div>
+        <div class="field full">
+          <label for="<%= id('map_url') %>">Σύνδεσμος χάρτη (προαιρετικό)</label>
+          <input id="<%= id('map_url') %>" name="map_url" type="url" inputmode="url" maxlength="500" value="<%= val('map_url') %>" placeholder="https://maps.app.goo.gl/…" <%= focus('map_url') %>>
+          <span class="hint">Στο Google Maps: βρείτε το ακριβές σημείο → «Κοινοποίηση» → «Αντιγραφή συνδέσμου» και επικολλήστε τον εδώ. Χωρίς σύνδεσμο, το κουμπί «Οδηγίες πορείας» ψάχνει στο Google Maps τη διεύθυνση όπως τη γράψατε<% if (testUrl) { %> (<a href="<%= testUrl %>" target="_blank" rel="noopener">δοκιμή</a>)<% } %>.</span>
+          <%- err(fe, 'map_url') %>
+        </div>
+        <div class="field full">
+          <label class="check"><input type="checkbox" name="needs_address" value="1" <%= needsAddress ? 'checked' : '' %>><span>Ζητείται διεύθυνση από τον πελάτη</span></label>
+          <span class="hint">Για σημεία όπου φέρνετε ή παραλαμβάνετε εσείς το αυτοκίνητο (π.χ. παράδοση σε ξενοδοχείο): ο πελάτης γράφει υποχρεωτικά τη διεύθυνση στην κράτηση και δεν εμφανίζεται κουμπί «Οδηγίες πορείας».</span>
+        </div>
+        <div class="translations-grid">
+          <div class="grid-2">
+            <div class="field"><label for="<%= id('name_en') %>">Όνομα (English)</label><input id="<%= id('name_en') %>" name="name_en" value="<%= val('name_en') %>" required <%= focus('name_en') %>><%- err(fe, 'name_en') %></div>
+            <div class="field"><label for="<%= id('name_es') %>">Όνομα (Español)</label><input id="<%= id('name_es') %>" name="name_es" value="<%= val('name_es') %>" required <%= focus('name_es') %>><%- err(fe, 'name_es') %></div>
+            <div class="field"><label for="<%= id('address_en') %>">Διεύθυνση (English)</label><input id="<%= id('address_en') %>" name="address_en" value="<%= val('address_en') %>" <%= focus('address_en') %>><%- err(fe, 'address_en') %></div>
+            <div class="field"><label for="<%= id('address_es') %>">Διεύθυνση (Español)</label><input id="<%= id('address_es') %>" name="address_es" value="<%= val('address_es') %>" <%= focus('address_es') %>><%- err(fe, 'address_es') %></div>
+            <div class="field"><label for="<%= id('instructions_en') %>">Οδηγίες παραλαβής (English)</label><textarea id="<%= id('instructions_en') %>" name="instructions_en" rows="3" maxlength="1000" <%= focus('instructions_en') %>><%= val('instructions_en') %></textarea><%- err(fe, 'instructions_en') %></div>
+            <div class="field"><label for="<%= id('instructions_es') %>">Οδηγίες παραλαβής (Español)</label><textarea id="<%= id('instructions_es') %>" name="instructions_es" rows="3" maxlength="1000" <%= focus('instructions_es') %>><%= val('instructions_es') %></textarea><%- err(fe, 'instructions_es') %></div>
+            <div class="field"><label for="<%= id('return_instructions_en') %>">Οδηγίες επιστροφής (English)</label><textarea id="<%= id('return_instructions_en') %>" name="return_instructions_en" rows="3" maxlength="1000" <%= focus('return_instructions_en') %>><%= val('return_instructions_en') %></textarea><%- err(fe, 'return_instructions_en') %></div>
+            <div class="field"><label for="<%= id('return_instructions_es') %>">Οδηγίες επιστροφής (Español)</label><textarea id="<%= id('return_instructions_es') %>" name="return_instructions_es" rows="3" maxlength="1000" <%= focus('return_instructions_es') %>><%= val('return_instructions_es') %></textarea><%- err(fe, 'return_instructions_es') %></div>
+          </div>
+          <p class="small muted">Η διεύθυνση και οι οδηγίες είναι προαιρετικές· ό,τι γράψετε στα ελληνικά χρειάζεται και στα αγγλικά και στα ισπανικά (οδοί και πόλεις με λατινικούς χαρακτήρες, π.χ. «Tsimiski 12, Thessaloniki»).</p>
+        </div>
+        <div class="field narrow"><label for="<%= id('fee') %>">Χρέωση (€)</label><input id="<%= id('fee') %>" name="fee" inputmode="decimal" value="<%= fee %>" size="6" <%= focus('fee') %>><%- err(fe, 'fee') %></div>
+        <div class="field narrow"><label for="<%= id('sort_order') %>">Σειρά</label><input id="<%= id('sort_order') %>" name="sort_order" type="number" value="<%= editingThis ? val('sort_order') : (r ? r.sort_order : rows.length + 1) %>" style="width:5em"></div>
+        <label class="check"><input type="checkbox" name="active" value="1" <%= active ? 'checked' : '' %>><span>Ενεργό</span></label>
+        <button class="btn <%= r ? '' : 'btn-primary' %>" type="submit"><%= r ? 'Αποθήκευση' : '+ Προσθήκη' %></button>
+      </form>
+    <% }) %>
+  </div>
+</div>
+<%- include('../partials/footer') %>

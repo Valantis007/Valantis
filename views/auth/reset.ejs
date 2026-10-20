@@ -1,0 +1,15 @@
+<%- include('../partials/header') %>
+<div class="container section narrow">
+  <h1><%= t('Νέος κωδικός') %></h1>
+  <% if (!valid) { %>
+    <div class="alert alert-error"><%- th('Ο σύνδεσμος δεν είναι έγκυρος ή έχει λήξει. <a href="{url}">Ζητήστε νέο σύνδεσμο</a>.', { url: u('/forgot-password') }) %></div>
+  <% } else { %>
+    <form method="post" action="<%= u(`/reset-password/${token}`) %>" class="card pad stack">
+      <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+      <div class="field"><label for="password"><%= t('Νέος κωδικός') %></label><input id="password" name="password" type="password" required autocomplete="new-password" minlength="10"><span class="hint"><%= t('Τουλάχιστον 10 χαρακτήρες, με γράμματα και αριθμούς.') %></span><% if (errors.password) { %><span class="error"><%= t(errors.password) %></span><% } %></div>
+      <div class="field"><label for="password_confirm"><%= t('Επιβεβαίωση') %></label><input id="password_confirm" name="password_confirm" type="password" required autocomplete="new-password"><% if (errors.password_confirm) { %><span class="error"><%= t(errors.password_confirm) %></span><% } %></div>
+      <button class="btn btn-primary" type="submit"><%= t('Αποθήκευση') %></button>
+    </form>
+  <% } %>
+</div>
+<%- include('../partials/footer') %>

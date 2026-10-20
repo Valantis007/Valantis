@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="<%= locale %>" data-lang-prefix="<%= langPrefix %>">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= t('Κράτηση {ref}', { ref: booking.reference }) %> | <%= company.name %></title>
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="/js/app.js" defer></script>
+</head>
+<body class="print-page">
+  <div class="container narrow-wide section">
+    <div class="section-head">
+      <div>
+        <strong><%= company.name %></strong><br>
+        <span class="small muted"><%= company.legalName %><% if (company.vat) { %> · <%= t('ΑΦΜ') %> <%= company.vat %><% } %><% if (company.gemi) { %> · <%= t('ΓΕΜΗ') %> <%= company.gemi %><% } %><% if (company.mhte) { %> · <%= t('ΜΗΤΕ') %> <%= company.mhte %><% } %><br><%= company.address %> · <%= company.phone %><% if (locals.whatsapp) { %> · <a href="<%= whatsapp.url(booking.reference) %>" target="_blank" rel="noopener">WhatsApp <%= whatsapp.display %></a><% } %> · <%= company.email %></span>
+      </div>
+      <button class="btn no-print" type="button" data-print><%= t('Εκτύπωση') %></button>
+    </div>
+    <h1><%- th('Επιβεβαίωση κράτησης <span class="ref">{ref}</span>', { ref: booking.reference }) %></h1>
+    <p><%- th('Κατάσταση: <strong>{status}</strong>', { status: format.label('status', booking.status) }) %></p>
+    <%- include('_details', { booking, extras }) %>
+    <% if (['pending_payment', 'confirmed', 'active'].includes(booking.status)) { %>
+      <%- include('../partials/find-us', { findUs: places.forBooking(booking) }) %>
+    <% } %>
+    <ul class="small">
+      <li><%- th('<strong>Εγγύηση {amount}:</strong> δέσμευση (όχι χρέωση) σε πιστωτική κάρτα στο όνομα του κύριου οδηγού, κατά την παραλαβή ή online. Αποδεσμεύεται μετά την επιστροφή.', { amount: format.money(booking.deposit_cents) }) %></li>
+      <li><%- th('<strong>Απαλλαγή ζημιών:</strong> {excess} (μέγιστη συμμετοχή σας σε ζημιές, εκτός από τις εξαιρέσεις των όρων §7).', { excess: format.money(booking.excess_cents ?? booking.deposit_cents) }) %></li>
+      <li><%- booking.late_cancel_fee_cents
+        ? th('<strong>Ακύρωση:</strong> δεν υφίσταται δικαίωμα υπαναχώρησης 14 ημερών (ενοικίαση για συγκεκριμένες ημερομηνίες). Δωρεάν ακύρωση έως {hours} ώρες πριν την παραλαβή· μετά, ή σε μη εμφάνιση, παρακρατείται {fee} από ό,τι έχετε προπληρώσει (αν πληρώνετε στην παραλαβή, δεν οφείλεται χρέωση).', { hours: rules.freeCancellationHours, fee: format.money(booking.late_cancel_fee_cents) })
+        : th('<strong>Ακύρωση:</strong> δεν υφίσταται δικαίωμα υπαναχώρησης 14 ημερών (ενοικίαση για συγκεκριμένες ημερομηνίες). Δωρεάν ακύρωση έως {hours} ώρες πριν την παραλαβή.', { hours: rules.freeCancellationHours }) %></li>
+      <li><%= t('Όροι ενοικίασης έκδοση {version}: {url}', { version: booking.terms_version || config.termsVersion, url: `${config.baseUrl}${u('/terms')}` }) %></li>
+    </ul>
+    <p class="small muted"><%= t('Το έγγραφο αυτό δεν αποτελεί φορολογικό παραστατικό. Η απόδειξη/τιμολόγιο εκδίδεται κατά την πληρωμή.') %></p>
+  </div>
+</body>
+</html>

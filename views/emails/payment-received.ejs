@@ -1,0 +1,10 @@
+<%# Η πληρωμή με κάρτα ολοκληρώθηκε αφού ο πελάτης είχε αλλάξει σε «Πληρωμή κατά την παραλαβή»
+    (η κράτηση ήταν ήδη επιβεβαιωμένη): η πληρωμή καταγράφηκε στην κράτηση (payments.js → handleRentalPaid). %>
+<%- include('_top') %>
+<p><%= t('Αγαπητέ/ή {name},', { name: booking.first_name }) %></p>
+<p><%- th('Λάβαμε την πληρωμή σας <strong>{amount}</strong> με κάρτα για την κράτηση <strong>{ref}</strong>.', { amount: format.money(booking.paid_cents), ref: booking.reference }) %></p>
+<p><%- th('<strong>Δεν χρειάζεται να πληρώσετε το ποσό της ενοικίασης κατά την παραλαβή.</strong> Η κράτησή σας παραμένει επιβεβαιωμένη, χωρίς άλλη αλλαγή.') %></p>
+<%- include('_booking-table', { booking, extras: locals.extras || [] }) %>
+<p><strong><%= t('Ακύρωση:') %></strong> <% if (booking.late_cancel_fee_cents) { %><%= t('Δωρεάν ακύρωση έως {hours} ώρες πριν την παραλαβή· μετά, ή σε μη εμφάνιση, παρακρατείται {fee} από ό,τι έχετε προπληρώσει (αν πληρώνετε στην παραλαβή, δεν οφείλεται χρέωση).', { hours: config.rules.freeCancellationHours, fee: format.money(booking.late_cancel_fee_cents) }) %><% } else { %><%= t('Δωρεάν ακύρωση έως {hours} ώρες πριν την παραλαβή.', { hours: config.rules.freeCancellationHours }) %><% } %></p>
+<p><%= company.name %></p>
+<%- include('_bottom') %>

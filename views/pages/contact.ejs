@@ -1,0 +1,76 @@
+<%- include('../partials/header') %>
+<div class="container section two-col">
+  <div>
+    <h1><%= t('Επικοινωνία') %></h1>
+    <p><%= t('Είμαστε στη διάθεσή σας για κάθε ερώτηση σχετικά με κρατήσεις, τιμές ή ειδικά αιτήματα.') %></p>
+    <ul class="contact-list">
+      <% if (company.phone) { %><li><strong><%= t('Τηλέφωνο:') %></strong> <a href="tel:<%= company.phone.replace(/\s/g, '') %>"><%= company.phone %></a></li><% } %>
+      <% if (whatsapp) { %><li><strong>WhatsApp:</strong> <a class="wa-link" href="<%= whatsapp.url(values.booking_reference || null) %>" target="_blank" rel="noopener"><%- include('../partials/wa-icon', { size: 16 }) %><%= t('Συνομιλία στο WhatsApp') %></a> <span class="small muted">(<%= whatsapp.hours %>)</span></li><% } %>
+      <% if (company.email) { %><li><strong>Email:</strong> <a href="mailto:<%= company.email %>"><%= company.email %></a></li><% } %>
+      <% if (company.address) { %><li><strong><%= t('Διεύθυνση:') %></strong> <%= company.address %></li><% } %>
+      <li><strong><%= t('Ωράριο:') %></strong> <%= t('καθημερινά {from} - {to}', { from: `${String(config.rules.openingHour).padStart(2, '0')}:00`, to: `${config.rules.closingHour}:00` }) %></li>
+    </ul>
+    <% const stops = (locals.locations || []).map(function (l) { return places.fromLocation(l, 'pickup'); }).filter(places.hasDetails); %>
+    <% if (stops.length) { %>
+      <section class="find-us find-us-list" aria-labelledby="find-us-title">
+        <h2 class="h3" id="find-us-title"><%= t('Πώς θα μας βρείτε') %></h2>
+        <% stops.forEach(function (st) { %>
+          <%- include('../partials/find-us-stop', { stop: st, title: '', showPlace: true, compact: false }) %>
+        <% }) %>
+      </section>
+    <% } %>
+  </div>
+  <form method="post" action="<%= u('/contact') %>" class="card pad stack" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+    <div class="hp" aria-hidden="true"><label><%= t('Ιστοσελίδα') %> <input name="website" tabindex="-1" autocomplete="off"></label></div>
+    <div class="field">
+      <label for="name"><%= t('Ονοματεπώνυμο') %></label>
+      <input id="name" name="name" value="<%= values.name || '' %>" required autocomplete="name">
+      <% if (errors.name) { %><span class="error"><%= t(errors.name) %></span><% } %>
+    </div>
+    <div class="grid-2">
+      <div class="field">
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" value="<%= values.email || '' %>" required autocomplete="email">
+        <% if (errors.email) { %><span class="error"><%= t(errors.email) %></span><% } %>
+      </div>
+      <div class="field">
+        <label for="phone"><%= t('Τηλέφωνο (προαιρετικό)') %></label>
+        <input id="phone" name="phone" type="tel" value="<%= values.phone || '' %>" autocomplete="tel">
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="field">
+        <label for="kind"><%= t('Είδος') %></label>
+        <select id="kind" name="kind">
+          <% ['question', 'change_request', 'complaint', 'charge_dispute'].forEach(function (k) { %>
+            <option value="<%= k %>" <%= values.kind === k ? 'selected' : '' %>><%= format.label('messageKind', k) %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="field">
+        <label for="booking_reference"><%= t('Κωδικός κράτησης (αν υπάρχει)') %></label>
+        <input id="booking_reference" name="booking_reference" value="<%= values.booking_reference || '' %>" maxlength="8" class="uppercase" autocomplete="off">
+        <% if (errors.booking_reference) { %><span class="error"><%= t(errors.booking_reference) %></span><% } %>
+      </div>
+    </div>
+    <%# Αίτημα αλλαγής: φαίνεται όταν επιλεγεί αυτό το είδος (χωρίς JavaScript: όταν η σελίδα άνοιξε με αυτό). %>
+    <div class="alert alert-info small" data-kind-only="change_request" <%= values.kind === 'change_request' ? '' : 'hidden' %>>
+      <%= t('Γράψτε τι θέλετε να αλλάξει: π.χ. ημερομηνίες, ώρες, σημείο παραλαβής ή επιστροφής, πρόσθετα.') %>
+      <strong><%= t('Η αλλαγή ισχύει μόνο αφού σας την επιβεβαιώσουμε· η τιμή μπορεί να αλλάξει.') %></strong>
+    </div>
+    <div class="field">
+      <label for="subject"><%= t('Θέμα') %></label>
+      <input id="subject" name="subject" value="<%= values.subject || '' %>" required>
+      <% if (errors.subject) { %><span class="error"><%= t(errors.subject) %></span><% } %>
+    </div>
+    <div class="field">
+      <label for="body"><%= t('Μήνυμα') %></label>
+      <textarea id="body" name="body" rows="6" required><%= values.body || '' %></textarea>
+      <% if (errors.body) { %><span class="error"><%= t(errors.body) %></span><% } %>
+    </div>
+    <p class="small muted"><%= t('Τα στοιχεία σας χρησιμοποιούνται μόνο για να απαντήσουμε στο μήνυμά σας.') %> <a href="<%= u('/privacy') %>"><%= t('Πολιτική απορρήτου') %></a></p>
+    <button class="btn btn-primary" type="submit"><%= t('Αποστολή') %></button>
+  </form>
+</div>
+<%- include('../partials/footer') %>

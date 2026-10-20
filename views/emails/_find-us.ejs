@@ -1,0 +1,24 @@
+<%
+  // «Πώς θα μας βρείτε» στο email: οδηγίες παραλαβής και επιστροφής, η διεύθυνση του σημείου
+  // επιστροφής και «Οδηγίες πορείας» (Google Maps). findUs: places.forBooking(booking).
+  const fu = findUs;
+  const items = [
+    { stop: fu.pickup, title: t('Παραλαβή'), showPlace: true },
+    { stop: fu.ret, title: t('Επιστροφή'), showPlace: !fu.same },
+  ].filter(function (i) { return i.stop && places.hasDetails(i.stop) && (i.showPlace || tf(i.stop, 'text')); });
+%>
+<% if (items.length) { %>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:16px 0;background:#f8f9fb;border:1px solid #e1e6ee;border-radius:8px;">
+  <tr><td style="padding:14px 16px 4px;font-size:16px;font-weight:bold;color:#0f2742;"><%= t('Πώς θα μας βρείτε') %></td></tr>
+  <% items.forEach(function (i) { const st = i.stop; const text = tf(st, 'text'); const address = st.needs_address ? '' : tf(st, 'address'); %>
+  <tr><td style="padding:8px 16px;font-size:14px;line-height:1.5;">
+    <strong><%= i.title %></strong><% if (i.showPlace) { %> · <%= tf(st, 'name') %><% } %><br>
+    <% if (i.showPlace && st.customer_address) { %><%= st.kind === 'return' ? t('Θα παραλάβουμε το αυτοκίνητο από: {address}', { address: places.shownAddress(st.customer_address, t) }) : t('Διεύθυνση παράδοσης: {address}', { address: places.shownAddress(st.customer_address, t) }) %><br>
+    <% } else if (i.showPlace && address) { %><span style="color:#6b7280;"><%= address %></span><br><% } %>
+    <% if (text) { %><span style="white-space:pre-line;"><%= text %></span><br><% } %>
+    <% if (i.showPlace && st.url) { %><a href="<%= st.url %>" style="display:inline-block;margin-top:6px;padding:6px 12px;background:#1d5bd8;color:#ffffff;text-decoration:none;border-radius:6px;font-size:13px;font-weight:bold;"><%= t('Οδηγίες πορείας') %></a><% } %>
+  </td></tr>
+  <% }) %>
+  <% if (company.phone) { %><tr><td style="padding:4px 16px 14px;font-size:13px;color:#6b7280;"><%- th('Αν χρειαστείτε βοήθεια, καλέστε μας στο <a href="{url}">{phone}</a>.', { url: `tel:${company.phone.replace(/\s/g, '')}`, phone: company.phone }) %></td></tr><% } else { %><tr><td style="padding:0 0 10px;"></td></tr><% } %>
+</table>
+<% } %>

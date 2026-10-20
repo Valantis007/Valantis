@@ -1,0 +1,9 @@
+<%- include('_top') %>
+<p><strong>Νέο μήνυμα από τη φόρμα επικοινωνίας</strong></p>
+<p>Από: <%= message.name %> &lt;<%= message.email %>&gt;<% if (message.phone) { %> · <%= message.phone %><% } %><br>
+<% if (message.kind && message.kind !== 'question') { %>Είδος: <strong><%= format.label('messageKind', message.kind) %></strong><br><% } %>
+<% if (message.booking_reference) { %>Κράτηση: <%= message.booking_reference %><br><% } %>
+Θέμα: <%= message.subject %></p>
+<p style="white-space:pre-wrap;border-left:3px solid #d0d7e2;padding-left:12px;"><%= message.body %></p>
+<p><a href="<%= baseUrl %>/admin/messages">Όλα τα μηνύματα</a></p>
+<%- include('_bottom') %>

@@ -1,0 +1,60 @@
+<%- include('../partials/header') %>
+<div class="container section">
+  <h1><%= t('Γεια σας, {name}', { name: user.first_name }) %></h1>
+  <div class="layout-sidebar reverse">
+    <section>
+      <h2 class="h3"><%= t('Οι κρατήσεις μου') %></h2>
+      <% if (!bookings.length) { %>
+        <div class="card pad empty"><p><%= t('Δεν έχετε κρατήσεις ακόμη.') %></p><a class="btn btn-primary" href="<%= u('/cars') %>"><%= t('Βρείτε αυτοκίνητο') %></a></div>
+      <% } %>
+      <div class="stack">
+        <% bookings.forEach(function (b) { %>
+          <a class="card booking-item" href="<%= u(`/booking/${b.reference}`) %>">
+            <img src="<%= b.image || `/img/cars/${b.category}.svg` %>" alt="" class="thumb">
+            <div>
+              <strong><%= b.make %> <%= b.model %></strong> <span class="status status-<%= b.status %>"><%= format.label('status', b.status) %></span><br>
+              <span class="small"><%= format.dateTime(b.pickup_at) %> → <%= format.dateTime(b.return_at) %> · <%= tf(b, 'pickup_location_name') %></span><br>
+              <span class="small muted"><%= t('Κωδικός {ref}', { ref: b.reference }) %> · <%= format.money(b.total_cents) %></span>
+            </div>
+          </a>
+        <% }) %>
+      </div>
+    </section>
+    <aside class="stack">
+      <form method="post" action="<%= u('/account/profile') %>" class="card pad stack">
+        <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+        <h2 class="h4"><%= t('Στοιχεία') %></h2>
+        <p class="small muted"><%= user.email %></p>
+        <div class="field"><label for="first_name"><%= t('Όνομα') %></label><input id="first_name" name="first_name" value="<%= profile.first_name %>" required><% if (profileErrors.first_name) { %><span class="error"><%= t(profileErrors.first_name) %></span><% } %></div>
+        <div class="field"><label for="last_name"><%= t('Επώνυμο') %></label><input id="last_name" name="last_name" value="<%= profile.last_name %>" required><% if (profileErrors.last_name) { %><span class="error"><%= t(profileErrors.last_name) %></span><% } %></div>
+        <div class="field"><label for="phone"><%= t('Τηλέφωνο') %></label><input id="phone" name="phone" type="tel" value="<%= profile.phone %>"><% if (profileErrors.phone) { %><span class="error"><%= t(profileErrors.phone) %></span><% } %></div>
+        <button class="btn" type="submit"><%= t('Αποθήκευση') %></button>
+      </form>
+      <form method="post" action="<%= u('/account/password') %>" class="card pad stack">
+        <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+        <h2 class="h4"><%= t('Αλλαγή κωδικού') %></h2>
+        <div class="field"><label for="current_password"><%= t('Τρέχων κωδικός') %></label><input id="current_password" name="current_password" type="password" required autocomplete="current-password"><% if (passwordErrors.current_password) { %><span class="error"><%= t(passwordErrors.current_password) %></span><% } %></div>
+        <div class="field"><label for="password"><%= t('Νέος κωδικός') %></label><input id="password" name="password" type="password" required autocomplete="new-password"><% if (passwordErrors.password) { %><span class="error"><%= t(passwordErrors.password) %></span><% } %></div>
+        <div class="field"><label for="password_confirm"><%= t('Επιβεβαίωση') %></label><input id="password_confirm" name="password_confirm" type="password" required autocomplete="new-password"><% if (passwordErrors.password_confirm) { %><span class="error"><%= t(passwordErrors.password_confirm) %></span><% } %></div>
+        <button class="btn" type="submit"><%= t('Αλλαγή κωδικού') %></button>
+      </form>
+      <div class="card pad">
+        <h2 class="h4"><%= t('Τα δεδομένα μου') %></h2>
+        <p class="small muted"><%= t('Κατεβάστε όλα τα δεδομένα του λογαριασμού και των κρατήσεών σας (αρχείο JSON).') %></p>
+        <a class="btn" href="<%= u('/account/export') %>"><%= t('Λήψη δεδομένων') %></a>
+      </div>
+      <% if (user.role !== 'admin') { %>
+      <details class="card pad">
+        <summary><%= t('Διαγραφή λογαριασμού') %></summary>
+        <form method="post" action="<%= u('/account/delete') %>" class="stack" data-confirm="<%= t('Ο λογαριασμός θα διαγραφεί οριστικά. Συνέχεια;') %>">
+          <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+          <p class="small muted"><%= t('Οι κρατήσεις σας θα διατηρηθούν όσο απαιτεί η φορολογική νομοθεσία, αλλά δεν θα συνδέονται πλέον με λογαριασμό. Τα στοιχεία διπλώματος, γέννησης και επικοινωνίας διαγράφονται αυτόματα {months} μήνες μετά την επιστροφή. Δεν είναι δυνατή η διαγραφή όσο εκκρεμεί κράτηση, εγγύηση ή χρέωση.', { months: config.retention.operationalMonths }) %></p>
+          <div class="field"><label for="del_password"><%= t('Κωδικός') %></label><input id="del_password" name="current_password" type="password" required></div>
+          <button class="btn btn-danger" type="submit"><%= t('Οριστική διαγραφή') %></button>
+        </form>
+      </details>
+      <% } %>
+    </aside>
+  </div>
+</div>
+<%- include('../partials/footer') %>
